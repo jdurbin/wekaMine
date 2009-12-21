@@ -59,7 +59,7 @@ parser.with{
                 description: 'Range of attributes specified as comma separated string: start,stop,step']
   
   optional 'F','cvFolds',[default:5,description: 'Number of cross validation folds.']
-  optional 'S','cvSeed',[default:1,description: 'Cross-validation random seed.']
+  optional 'S','cvSeed',[default:'1',description: 'Cross-validation random seed.']
   
   optional 'r','rocDir',[description: 'Directory to save ROC plots in Arff format.']
   
@@ -234,7 +234,7 @@ classifiers.each{classifierSpec->
         // Perform cross-validation of the model..
         err.print "Instances: ${merged.numInstances()} Attributes: $numFeatures. Running cross validation (${params.cvFolds} folds)..."
         eval = new Evaluation(merged)
-        eval.crossValidateModel(asClassifier,merged,params.cvFolds,new Random(params.cvSeed))
+        eval.crossValidateModel(asClassifier,merged,params.cvFolds,new Random(params.cvSeed.toInteger()))
         err.println "done. $className #att: $numFeatures AUC=${eval.weightedAreaUnderROC()}"
 
         // Append a summary line to a file. 
