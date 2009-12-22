@@ -1,0 +1,72 @@
+#!/usr/bin/env groovy 
+
+import weka.core.*
+import weka.core.converters.ConverterUtils.DataSource
+import weka.classifiers.evaluation.*
+
+import durbin.util.*
+
+// This is just some wrapper sugar for JFreeChart, so I don't have to 
+// specify all the plotting details each time. 
+import durbin.weka.Plots
+
+// More sugar. 
+err = System.err
+
+// Parse command line options...
+parser = new Parser(description:'''
+ Plot one or more ROC curves on same graph from weka ROC curve output in Arff format.
+ 
+ Example:
+ 
+ plotROC -t "Survival at three feature cutoffs." -o survival.png featuretest/SURVIVAL.{10,210,330}.arff
+
+''');
+
+parser.with{
+  optional 't','title',[description: 'Title for plot'] 
+  optional 'o','outputName',[description: 'Name of output file (default derived from input)'] 
+  remainder{
+    if (remainder.size() == 0) throw new Exception("Must specify at least one file to plot.")
+    else return(it)}
+}
+
+try{
+  params = parser.parse(args)
+}catch(Exception e){
+  System.err << parser.usage
+  System.exit(1)
+}
+
+curves = []
+curveIDs = []
+parser.remainder.eachWithIndex{curveName,i->
+
+  fields = curveName.split("/")
+  dir = fields[0]
+  rootName = fields[1]
+  fields = rootName.split(/\./)
+  rootName = fields[0]
+  featureCutoff = fields[1]
+    
+  err.print "Reading $curveName..."
+  thresholdCurve = DataSource.read(curveName)
+  err.println "${thresholdCurve.numInstances()} datapoints read."
+  
+  aucStr = sprintf("%.3g",ThresholdCurve.getROCArea(thresholdCurve))
+
+  xlabel = "Sensitivity"
+  ylabel = "Specificity"
+  curves << thresholdCurve
+  curveIDs << "$featureCutoff Attributes ($aucStr)" as String  
+}
+
+if (params.t){plotTitle = params.t}
+else plotTitle = rootName
+
+outputName = dir+"/"+rootName+".png"
+if (params.outputName) outputName = params.outputName
+
+plotter = new Plots()   
+plotter.shapesAreVisible  = false
+plotter.plotMultipleROC(curves,curveIDs,plotTitle,xlabel,ylabel,outputName)

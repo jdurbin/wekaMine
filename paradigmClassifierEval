@@ -58,8 +58,8 @@ parser.with{
   optional 'n',"numAttributes",[default: '10,200,20', 
                 description: 'Range of attributes specified as comma separated string: start,stop,step']
   
-  optional 'F','cvFolds',[default:5,description: 'Number of cross validation folds.']
-  optional 'S','cvSeed',[default:1,description: 'Cross-validation random seed.']
+  optional 'F','cvFolds',[default:5,description: 'Number of cross validation folds.' validate:{it as int}]
+  optional 'S','cvSeed',[default:1,description: 'Cross-validation random seed.' validate:{it as int}]
   
   optional 'r','rocDir',[description: 'Directory to save ROC plots in Arff format.']
   
