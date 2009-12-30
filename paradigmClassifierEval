@@ -58,23 +58,23 @@ parser.with{
   optional 'n',"numAttributes",[default: '10,200,20', 
                 description: 'Range of attributes specified as comma separated string: start,stop,step']
   
-  optional 'F','cvFolds',[default:5,description: 'Number of cross validation folds.' validate:{it as int}]
-  optional 'S','cvSeed',[default:1,description: 'Cross-validation random seed.' validate:{it as int}]
+  optional 'F','cvFolds',[default:5,description: 'Number of cross validation folds.',validate:{it as int}]
+  optional 'S','cvSeed',[default:1,description: 'Cross-validation random seed.',validate:{it as int}]
   
   optional 'r','rocDir',[description: 'Directory to save ROC plots in Arff format.']
+  
+  optional "p",'prefilter',[description: 'Specify an attribute to prefilter on and range of values (e.g. Survival,<8). Only < and > supported.']
   
 //  optional 'p','featuresPlot',[description: 'Save plots of AUC vs #Features.']
 
   optional 'P','arffFile',[description: 'Save processed instances to arffFile for use in Weka GUI. Disables other processing.']
-  
-  
+    
   flag 'N','allowNegativeClass',[default:false,description: 'If set, negative class values are allowed.']
   flag 'a','useAllClinicalAttributes',[default:false,description: 'If set, will classify on each clinical attribute in turn.']
   flag 'A','noAttributeSelection',[default:false,description: 'If set, attribute selection is disabled.']
   flag 'M','useMedianDiscretization',[default:false,description: 'If set, discretization will divide high/low on median.']
   flag 'U','useUpperLowerQuartile',[default:false,description: 'If set, discretization will divide high/low on upper/lower quartile.']
   flag 'h','help',[default:false,description: 'Print script help.']
-  
 }
 
 // Validate attributes that one of a set are required...
@@ -89,7 +89,8 @@ parser.validate{parameters->
   if (parameters['M']) count++
   if (parameters['U']) count++
   if (parameters['D']) count++
-  if (count != 1) throw new Exception("Must specify exactly one of -M, -U, or -D.")
+  // If we're going to save to an arff file, can skip discretization...
+  if ((count != 1) && (!parameters['P'])) throw new Exception("Must specify exactly one of -M, -U, or -D.")
 }
 
 def params
@@ -141,7 +142,6 @@ if (params.useAllClinicalAttributes){
 summaryHeading = DigmaPipeline.getFormattedSummaryHeading()
 println "className,${summaryHeading},numAttributes,classifier,attributeSelection"
 
-
 // Read data and clinical files as a set of Weka Instances
 Instances data = DigmaPipeline.readFromTable(params.data)
 Instances clinicalData = DigmaPipeline.readFromTable(params.clinical)
@@ -185,7 +185,7 @@ classifiers.each{classifierSpec->
         System.exit(1)
       }else if (params.useUpperLowerQuartile){
         merged = pipeline.classToNominalTopBottomQuartile(merged,"low","high")        
-      }else{
+      }else if (params.discretizeCutoffs){
         lowerBound = params.discretizeCutoffs.split(",")[0] as int
         upperBound = params.discretizeCutoffs.split(",")[1] as int 
         merged = pipeline.classToNominalFromCutoffs(merged,lowerBound,upperBound,"low","high")
@@ -196,10 +196,8 @@ classifiers.each{classifierSpec->
       if (params.arffFile){
         ArffSaver saver = new ArffSaver();
         saver.setInstances(merged);
-        mergedOutName = "${params.outputPrefix}${className}mergedunfiltered.arff"
-        err.print "\nSaving $mergedOutName for manual processing..."
-        mergedFile = new File(mergedOutName.toString())
-        saver.setFile(mergedFile);
+        err.print "\nSaving ${params.arffFile} for manual processing..."
+        saver.setFile(new File(params.arffFile))
         saver.writeBatch();  
         err.println "done."
         System.exit(0); // Exit happily. 
