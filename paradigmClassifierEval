@@ -20,6 +20,8 @@ import weka.classifiers.meta.*
 import weka.attributeSelection.*
 import weka.attributeSelection.InfoGainAttributeEval
 
+import weka.classifiers.meta.GridSearch;
+
 // Alias sugar. 
 err = System.err
 
@@ -51,6 +53,7 @@ parser.with{
   optional 'C','classFile',[description: 'File containing list of clinical attributes to classify on. MUST specify either -c, -C, or -a']  
 
   optional 'm','classifierFile', [description: 'File name of weka classifiers to try.  Default is SMO linear kernel.']
+  optional 's','classifierSpec', [description: 'Single classifier specification string.']
   optional 'f','featureSelectionFile', [description: 'File name of weka attribute filters to try. Default is Fisher LD']
   
   optional 'D','discretizeCutoffs',[description: 'High/Low cutoff values for discretization in comma separated string: low,high.']
@@ -110,15 +113,18 @@ minFeatures = params.numAttributes.split(",")[0] as int
 maxFeatures = params.numAttributes.split(",")[1] as int
 featureStep = params.numAttributes.split(",")[2] as int 
 
-
 // Set/load classifier descriptions...
 classifiers = []
-if (params.classifierFile) new File(params.classifierFile).eachLine{classifiers << it}
+if (params.classifierFile) new File(params.classifierFile).eachLine{if (!it.startsWith('#')) classifiers << it}
+else if (params.classifierSpec) classifiers << params.classifierSpec
 else classifiers << "weka.classifiers.functions.SMO -C 1.0 -L 0.0010 -P 1.0E-12 -N 0 -V -1 -W 1 -M"
+
+err.println "*******Classifiers: "+classifiers
+
 
 // Set/load attribute selection evaluator...
 evals = []
-if (params.featureSelectionFile) new File(params.featureSelectionFile).eachLine{evals <<it}
+if (params.featureSelectionFile) new File(params.featureSelectionFile).eachLine{if (!it.startsWith('#')) evals << it}
 else evals << "durbin.weka.FisherLDEval"
 
 // Use all clinical attributes, or one specific clinical attribute, or a list from a file. 
@@ -155,6 +161,7 @@ classifiers.each{classifierSpec->
       
       pipeline = new DigmaPipeline(className)
   
+      println "Classifier spec: $classifierSpec"
       classifier = pipeline.classifierFromSpec(classifierSpec)
       attrEval = pipeline.evalFromSpec(evalSpec)
 
@@ -202,12 +209,20 @@ classifiers.each{classifierSpec->
         err.println "done."
         System.exit(0); // Exit happily. 
       }
-    
+      
+      // KJD... should do this with filteredClassifier...
+      merged = pipeline.removeID(merged)    
+      
+      // Check to see if we can do this experiment at all...
+      if (merged.numInstances() < params.cvFolds) {
+        err.println "Experiment skipped.  ${merged.numInstances} instances < ${params.cvFolds} cross-validation folds."
+        return; // Can't do the experiment. 
+      } 
+                
       /****************************************************
       *   For each feature cutoff 
       */
-      minFeatures.step(maxFeatures,featureStep){numFeatures->    
-
+      minFeatures.step(maxFeatures,featureStep){numFeatures->  
         def asClassifier
         if (params.noAttributeSelection) asClassifier = classifierFromSpec(classifierSpec)
         else{
@@ -218,14 +233,7 @@ classifiers.each{classifierSpec->
           asClassifier.setClassifier(classifier);
           asClassifier.setEvaluator(attrEval);
           asClassifier.setSearch(search);                
-        }
-   
-        // KJD... should do this with filteredClassifier...
-        merged = pipeline.removeID(merged)    
-        if (merged.numInstances() < params.cvFolds) {
-          err.println "Experiment skipped.  ${merged.numInstances} instances < ${params.cvFolds} cross-validation folds."
-          return; // Can't do the experiment. 
-        }
+        }  
     
         // KJD TODO:  Need to Skip cases where the class doesn't vary!!!
    
