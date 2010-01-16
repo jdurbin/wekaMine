@@ -35,7 +35,7 @@ try{
 numExperiments = FileUtils.fastCountLines(options.experimentList)
 numJobs = (double)numExperiments/(double)options.numExperimentsPerJob
 
-System.err.println "numExp: "+numExperiments+" numJobs: "+numJobs;
+//System.err.println "numExp: "+numExperiments+" numJobs: "+numJobs;
 
 rootCmd = "${options.scriptRoot}/paradigmClassifierBulkEval -d ${options.data} -i ${options.clinical}"
 rootCmd += " -c ${options.params} -l ${options.experimentList}"
