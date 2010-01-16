@@ -1,0 +1,76 @@
+#!/usr/bin/env groovy 
+
+import durbin.util.*
+
+parser = new Parser(description: '''
+  Creates a list of script commands ready to execute with para try and para run.  Output is to stdout. 
+    
+  createParasolJobs -s ./scripts/ -d tcga_ov_both_pathwayentities.tab -i OV_clinicalTable.txt -p params.txt -l few.txt -o exp.out > jobList
+  
+  Be sure that -o is a cluster appropriate output, not your home directory. 
+  
+''');
+
+// /hive/users/james/bin/
+
+parser.with{    
+  required 's','scriptRoot',[description: 'Path to the directory containing paradigmClassifierBulkEval']
+  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+  required 'p','params',[description: 'Global parameters file (eventually will contain experiments too.)']
+  required 'l','experimentList',[description: 'List of experiments to perform.']
+  required 'o','outputFile',[description: 'File where output will be concatenated to']
+  optional 'n','numExperimentsPerJob',[default: 20,description: 'Number of experiments per cluster job. ']
+  flag 'h','help',[default:false,description: 'Print script help.']
+}
+
+def options
+try{
+  options = parser.parse(args)
+}catch(Exception e){
+  System.err << parser.usage
+  System.exit(1)
+}
+
+numExperiments = FileUtils.fastCountLines(options.experimentList)
+numJobs = (double)numExperiments/(double)options.numExperimentsPerJob
+
+System.err.println "numExp: "+numExperiments+" numJobs: "+numJobs;
+
+rootCmd = "${options.scriptRoot}/paradigmClassifierBulkEval -d ${options.data} -i ${options.clinical}"
+rootCmd += " -c ${options.params} -l ${options.experimentList}"
+
+// KJD: Note.. eventually I will add something in the jobs to indicate their expected time so that 
+// jobs can be constructed to be approximately equal time.   Thus, there might be 20 SVM experiments 
+// in a job, but only one perceptron experiment. 
+
+jobStart = 0
+jobEnd = options.numExperimentsPerJob -1;
+(0..<numJobs).each{
+  cmdOut = rootCmd + " -r $jobStart,$jobEnd >> ${options.outputFile}"
+  println cmdOut
+  jobStart += options.numExperimentsPerJob
+  jobEnd += options.numExperimentsPerJob  
+}
+
+// Handle remainder experiments..
+lastExperiment = (jobEnd-options.numExperimentsPerJob)
+if (lastExperiment < numExperiments){
+  jobStart = lastExperiment+1
+  jobEnd = numExperiments-1
+  cmdOut = rootCmd + " -r $jobStart,$jobEnd >> ${options.outputFile}"
+  println cmdOut
+}
+
+
+/*
+Example: 
+
+/scripts/createParasolJobs -s ./scripts/ -d data/tcga_ov_both_pathwayentities.tab -i data/OV_clinicalTable.txt -p lists/params.txt -l lists/experimentlist.txt -o temp/exp.out 
+numExp: 576 numJobs: 28.8
+./scripts//paradigmClassifierBulkEval -d data/tcga_ov_both_pathwayentities.tab -i data/OV_clinicalTable.txt -c lists/params.txt -l lists/experimentlist.txt -r 0,19 >> temp/exp.out
+./scripts//paradigmClassifierBulkEval -d data/tcga_ov_both_pathwayentities.tab -i data/OV_clinicalTable.txt -c lists/params.txt -l lists/experimentlist.txt -r 20,39 >> temp/exp.out
+./scripts//paradigmClassifierBulkEval -d data/tcga_ov_both_pathwayentities.tab -i data/OV_clinicalTable.txt -c lists/params.txt -l lists/experimentlist.txt -r 40,59 >> temp/exp.out
+
+*/
+

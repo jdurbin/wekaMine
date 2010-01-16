@@ -52,7 +52,7 @@ parser.with{
   optional 'c','config',[description: 'Configuration file. May include embedded experiment list.']  
 
   optional 'l','experimentList',[description: 'Flat experiment list file.']  
-  optional 'r','configRange',[description: 'Range of flat configurations to run.']
+  optional 'r','experimentRange',[description: 'Range of experiments to run. e.g. -r 54,67']
   flag 'h','help',[default:false,description: 'Print script help.']
 }
 
@@ -90,8 +90,16 @@ if (options.experimentList){
   // Takes a compact description of all of the classifiers and expands it to a short list. 
   //  classifiers = ClassifierSpecExpander.expand(params)
 }
-
-err.println "experiments.size="+experiments.size()
+// Set the 
+experimentStart = 0
+experimentEnd = experiments.size()-1
+if (options.experimentRange){
+ experimentStart = options.experimentRange.split(",")[0] as int
+ experimentEnd = options.experimentRange.split(",")[1] as int
+ 
+ err.println "eStart:"+experimentStart+" eEnd: "+experimentEnd+" size="+experiments.size()
+ 
+}
 
 
 /***********************************************************************************
@@ -100,14 +108,17 @@ err.println "experiments.size="+experiments.size()
 
 // Write out heading for the stats output... there are a lot, so heading needed. 
 summaryHeading = DigmaPipeline.getFormattedSummaryHeading()
-println "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
+
+// don't want to print it because we'll be concatenating output from lots of jobs, heading would 
+// appear hundreds of times in file. 
+//println "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
 
 // Read data and clinical files as a set of Weka Instances
 Instances data = DigmaPipeline.readFromTable(options.data)
 Instances clinicalData = DigmaPipeline.readFromTable(options.clinical)
 
-// For each classifier spec
-experiments.each{experiment-> 
+// For each experiment...
+experiments[experimentStart..experimentEnd].each{experiment-> 
   
   pipeline = new DigmaPipeline(experiment.classAttribute)
   
