@@ -145,12 +145,12 @@ if (params.useAllClinicalAttributes){
 */ 
 
 // Write out heading for the stats output... there are a lot, so heading needed. 
-summaryHeading = DigmaPipeline.getFormattedSummaryHeading()
+summaryHeading = ParadigmPipeline.getFormattedSummaryHeading()
 println "className,${summaryHeading},numAttributes,classifier,attributeSelection"
 
 // Read data and clinical files as a set of Weka Instances
-Instances data = DigmaPipeline.readFromTable(params.data)
-Instances clinicalData = DigmaPipeline.readFromTable(params.clinical)
+Instances data = ParadigmPipeline.readFromTable(params.data)
+Instances clinicalData = ParadigmPipeline.readFromTable(params.clinical)
 
 // For each classifier...
 classifiers.each{classifierSpec-> 
@@ -159,7 +159,7 @@ classifiers.each{classifierSpec->
     // For each clinical attribute to classify on...
     clinicalAttributes.each{className->
       
-      pipeline = new DigmaPipeline(className)
+      pipeline = new ParadigmPipeline(className)
   
       println "Classifier spec: $classifierSpec"
       classifier = pipeline.classifierFromSpec(classifierSpec)

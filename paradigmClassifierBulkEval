@@ -75,7 +75,7 @@ try{
 /***********************************************************************************
 *                                      SETUP
 */ 
-def cfg = new ConfigSlurper().parse(new File(options.config).toURL())
+def cfg = new ParadigmConfigSlurper().parse(new File(options.config).toURL())
 params = cfg.params // sugar. 
 
 experiments = []
@@ -107,20 +107,20 @@ if (options.experimentRange){
 */ 
 
 // Write out heading for the stats output... there are a lot, so heading needed. 
-summaryHeading = DigmaPipeline.getFormattedSummaryHeading()
+summaryHeading = ParadigmPipeline.getFormattedSummaryHeading()
 
 // don't want to print it because we'll be concatenating output from lots of jobs, heading would 
 // appear hundreds of times in file. 
 //println "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
 
 // Read data and clinical files as a set of Weka Instances
-Instances data = DigmaPipeline.readFromTable(options.data)
-Instances clinicalData = DigmaPipeline.readFromTable(options.clinical)
+Instances data = ParadigmPipeline.readFromTable(options.data)
+Instances clinicalData = ParadigmPipeline.readFromTable(options.clinical)
 
 // For each experiment...
 experiments[experimentStart..experimentEnd].each{experiment-> 
   
-  pipeline = new DigmaPipeline(experiment.classAttribute)
+  pipeline = new ParadigmPipeline(experiment.classAttribute)
   
   // Remove all clinical attributes except for the current class...
   selectedAttribute = []
