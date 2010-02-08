@@ -3,7 +3,7 @@
 import durbin.weka.*
 import durbin.weka.InstanceUtils as IU
 import durbin.util.*
-import durbin.digma.*
+import durbin.paradigm.*
 
 import weka.core.*
 import weka.core.converters.ArffSaver

@@ -3,7 +3,7 @@
 import durbin.weka.*
 import durbin.weka.InstanceUtils as IU
 import durbin.util.*
-import durbin.digma.*
+import durbin.paradigm.*
 
 import weka.core.*
 import weka.core.converters.ArffSaver
@@ -51,7 +51,7 @@ parser.with{
   required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
   optional 'c','config',[description: 'Configuration file. May include embedded experiment list.']  
 
-  optional 'l','experimentList',[description: 'Flat experiment list file.']  
+  optional 'l','experimentList',[description: 'Flat experiment list file. OVERRIDES experiments in config.']  
   optional 'r','experimentRange',[description: 'Range of experiments to run. e.g. -r 54,67']
   flag 'h','help',[default:false,description: 'Print script help.']
 }
@@ -75,8 +75,9 @@ try{
 /***********************************************************************************
 *                                      SETUP
 */ 
-def cfg = new ParadigmConfigSlurper().parse(new File(options.config).toURL())
-params = cfg.params // sugar. 
+def slurper = new ParadigmConfigSlurper()
+def cfg = slurper.parse(new File(options.config).toURL())
+params = cfg.params // cfg includes all sections.  make alias for section we want. 
 
 experiments = []
 if (options.experimentList){
@@ -86,10 +87,11 @@ if (options.experimentList){
     }
   }
 }else{
-  // TBD
-  // Takes a compact description of all of the classifiers and expands it to a short list. 
-  //  classifiers = ClassifierSpecExpander.expand(params)
+  slurper.getExpansion('experiments').each{experiment->
+    experiments << new ExperimentSpec(experiment);
+  }
 }
+
 // Set the 
 experimentStart = 0
 experimentEnd = experiments.size()-1

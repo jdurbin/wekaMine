@@ -1,11 +1,13 @@
 #!/usr/bin/env groovy 
 
 import durbin.util.*
+import durbin.paradigm.*
 
 parser = new Parser(description: '''
   Creates a list of script commands ready to execute with para try and para run.  Output is to stdout. 
     
   createParasolJobs -s ./scripts/ -d tcga_ov_both_pathwayentities.tab -i OV_clinicalTable.txt -p params.txt -l few.txt -o exp.out > jobList
+  createParasolJobs -o results/test.out -d data/tcga_ov_both_pathwayentities.tab -i data/OV_clinicalTable.txt -c lists/cfgExample2.txt  -s ./scripts/
   
   Be sure that -o is a cluster appropriate output, not your home directory. 
   
@@ -13,13 +15,13 @@ parser = new Parser(description: '''
 
 // /hive/users/james/bin/
 
-parser.with{    
-  required 's','scriptRoot',[description: 'Path to the directory containing paradigmClassifierBulkEval']
+parser.with{ 
+  required 's','scriptRoot',[description: 'Path to the directory containing paradigmClassifierBulkEval.']
   required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
   required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
-  required 'p','params',[description: 'Global parameters file (eventually will contain experiments too.)']
-  required 'l','experimentList',[description: 'List of experiments to perform.']
   required 'o','outputFile',[description: 'File where output will be concatenated to']
+  optional 'l','experimentList',[description: 'List of experiments to perform.']
+  optional 'c','configFile',[description: 'Config file (possibly with embedded experiments.)']
   optional 'n','numExperimentsPerJob',[default: 20,description: 'Number of experiments per cluster job. ']
   flag 'h','help',[default:false,description: 'Print script help.']
 }
@@ -32,13 +34,41 @@ try{
   System.exit(1)
 }
 
-numExperiments = FileUtils.fastCountLines(options.experimentList)
-numJobs = (double)numExperiments/(double)options.numExperimentsPerJob
+// Figure out how many jobs we need based on the number of experiments given. 
+def numExperiments,numJobs
+if (options.experimentList){
+  numExperiments = FileUtils.fastCountLines(options.experimentList)
+  numJobs = (double)numExperiments/(double)options.numExperimentsPerJob  
+}else if (options.configFile){
+  // Parse config file, expanding all experiments, to determine the number...
+  def slurper = new ParadigmConfigSlurper()
+  def cfg = slurper.parse(new File(options.configFile).toURL())
+  experiments = []
+  slurper.getExpansion('experiments').each{experiment->
+    experiments << new ExperimentSpec(experiment);
+  }
+  numExperiments = experiments.size()
+  numJobs = (double)numExperiments/(double)options.numExperimentsPerJob
+  System.err.println("numExperiments: $numExperiments  numJobs: $numJobs")
+}else{
+  System.err.println "MUST specify one of experimentList or configFile."
+  System.exit(1)
+}
 
 //System.err.println "numExp: "+numExperiments+" numJobs: "+numJobs;
 
-rootCmd = "${options.scriptRoot}/paradigmClassifierBulkEval -d ${options.data} -i ${options.clinical}"
-rootCmd += " -c ${options.params} -l ${options.experimentList}"
+if (options.experimentList){
+  rootCmd = "${options.scriptRoot}/paradigmClassifierBulkEval -d ${options.data} -i ${options.clinical}"
+  rootCmd += " -c ${options.configFile} -l ${options.experimentList}"
+}else if (options.configFile){
+  rootCmd = "${options.scriptRoot}/paradigmClassifierBulkEval -d ${options.data} -i ${options.clinical}"
+  rootCmd += " -c ${options.configFile}"
+}else{
+  System.err.println "ERROR: Must specify one of -c or -l."
+  System.err<<parser.usage
+  System.exit(1)
+}
+
 
 // KJD: Note.. eventually I will add something in the jobs to indicate their expected time so that 
 // jobs can be constructed to be approximately equal time.   Thus, there might be 20 SVM experiments 
@@ -71,6 +101,11 @@ numExp: 576 numJobs: 28.8
 ./scripts//paradigmClassifierBulkEval -d data/tcga_ov_both_pathwayentities.tab -i data/OV_clinicalTable.txt -c lists/params.txt -l lists/experimentlist.txt -r 0,19 >> temp/exp.out
 ./scripts//paradigmClassifierBulkEval -d data/tcga_ov_both_pathwayentities.tab -i data/OV_clinicalTable.txt -c lists/params.txt -l lists/experimentlist.txt -r 20,39 >> temp/exp.out
 ./scripts//paradigmClassifierBulkEval -d data/tcga_ov_both_pathwayentities.tab -i data/OV_clinicalTable.txt -c lists/params.txt -l lists/experimentlist.txt -r 40,59 >> temp/exp.out
+
+
+time scripts/paradigmClassifierBulkEval -d data/tcga_ov_both_pathwayentities.tab -i data/OV_clinicalTable.txt -c lists/cfgExample2.txt  -r 1,10 > temp/exp.out
+
+
 
 */
 
