@@ -49,6 +49,7 @@ parser.with{
     
   required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
   required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+  required 'o','output',[description: 'File where output should go.']
   optional 'c','config',[description: 'Configuration file. May include embedded experiment list.']  
 
   optional 'l','experimentList',[description: 'Flat experiment list file. OVERRIDES experiments in config.']  
@@ -71,6 +72,8 @@ try{
   System.err << parser.usage
   System.exit(1)
 }
+
+out = new File(options.output)
 
 /***********************************************************************************
 *                                      SETUP
@@ -102,7 +105,6 @@ if (options.experimentRange){
  err.println "eStart:"+experimentStart+" eEnd: "+experimentEnd+" size="+experiments.size()
  
 }
-
 
 /***********************************************************************************
 *                               MAIN PROCESSING 
@@ -200,7 +202,7 @@ experiments[experimentStart..experimentEnd].each{experiment->
 
   // Append a summary line to a file. 
   summaryLine = pipeline.getFormattedEvaluationSummary(merged.numInstances(),eval)
-  println "$summaryLine,${experiment.classifierStr},${experiment.attrEvalStr},${experiment.attrSearchStr},${experiment.numAttributes},${experiment.classAttribute}"
+  out << "$summaryLine,${experiment.classifierStr},${experiment.attrEvalStr},${experiment.attrSearchStr},${experiment.numAttributes},${experiment.classAttribute}\n"
 
   if (params.rocDir){
     // Save the ROC values for later plotting. 
@@ -214,7 +216,6 @@ experiments[experimentStart..experimentEnd].each{experiment->
     saver.writeBatch();        
   }
 } // classifiers
-
 
 // Example: 
 // scripts/paradigmClassifierEval -d dataDec9/breast/chin_naderi_pathwayvalues.txt -i dataDec9/breast/chinNaderi_clinical.txt -c Survival -D 9,11 > test/summary.txt
