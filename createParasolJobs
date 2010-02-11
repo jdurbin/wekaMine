@@ -38,7 +38,7 @@ try{
 // but that generated lots of headings where we only want one. 
 out = new File(options.outputFile)
 summaryHeading = ParadigmPipeline.getFormattedSummaryHeading()
-out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
+out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"
 
 
 // Figure out how many jobs we need based on the number of experiments given. 

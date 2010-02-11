@@ -169,7 +169,10 @@ def inferColumnTypes(fileName,sampleRows = -1){
       
       //Sanity test..
       if (fields.size() != headings.size()){
-        throw new Exception("ERROR:  headings size != fields.size().")
+        println "headings: $headings"
+        println "fields: $fields"
+        throw new Exception("ERROR:  headings size ${headings.size()} != fields.size ${fields.size()}." as String)
+        
       }
       
       fields.eachWithIndex{f,i->
