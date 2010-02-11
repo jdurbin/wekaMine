@@ -34,6 +34,14 @@ try{
   System.exit(1)
 }
 
+// Go ahead and write a heading to the output file.  Used to do this in the eval script itself
+// but that generated lots of headings where we only want one. 
+out = new File(outputFile)
+summaryHeading = ParadigmPipeline.getFormattedSummaryHeading()
+out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
+
+
+
 // Figure out how many jobs we need based on the number of experiments given. 
 def numExperiments,numJobs
 if (options.experimentList){

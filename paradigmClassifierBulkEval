@@ -115,7 +115,7 @@ summaryHeading = ParadigmPipeline.getFormattedSummaryHeading()
 
 // don't want to print it because we'll be concatenating output from lots of jobs, heading would 
 // appear hundreds of times in file. 
-//println "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
+println "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
 
 // Read data and clinical files as a set of Weka Instances
 Instances data = ParadigmPipeline.readFromTable(options.data)
