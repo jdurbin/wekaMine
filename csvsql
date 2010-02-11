@@ -43,6 +43,8 @@ parser = new Parser(description: '''
  > select people.name,children.child
  > from people.csv,children.csv
  > where people.name=children.name and people.age < 40"
+ 
+ Author:  James Durbin  
 ''')
 
 parser.with{  
