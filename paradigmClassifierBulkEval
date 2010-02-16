@@ -187,11 +187,12 @@ experiments[experimentStart..experimentEnd].each{experiment->
   else{
     // Wrap classifier in an AttributeSelectedClassifier. 
     asClassifier = new AttributeSelectedClassifier();
-    search = new Ranker();
+    //search = new Ranker();
+    search = experiment.attributeSearch
     search.setNumToSelect(experiment.numAttributes);
     asClassifier.setClassifier(experiment.classifier);
     asClassifier.setEvaluator(experiment.attributeEval);
-    asClassifier.setSearch(experiment.attributeSearch);                
+    asClassifier.setSearch(search);                
   }  
     
   // KJD TODO:  Need to Skip cases where the class doesn't vary!!!
