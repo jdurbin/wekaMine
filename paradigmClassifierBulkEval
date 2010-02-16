@@ -187,9 +187,14 @@ experiments[experimentStart..experimentEnd].each{experiment->
   else{
     // Wrap classifier in an AttributeSelectedClassifier. 
     asClassifier = new AttributeSelectedClassifier();
-    //search = new Ranker();
+    
     search = experiment.attributeSearch
-    search.setNumToSelect(experiment.numAttributes);
+    // Only Ranker (? right??) allows an overt numAttributes cutoff. 
+    // At least, BestFirst search does not. 
+    if (search.class == Ranker){
+      search.setNumToSelect(experiment.numAttributes);
+    }
+    
     asClassifier.setClassifier(experiment.classifier);
     asClassifier.setEvaluator(experiment.attributeEval);
     asClassifier.setSearch(search);                
