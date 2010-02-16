@@ -124,7 +124,7 @@ Instances clinicalData = ParadigmPipeline.readFromTable(options.clinical)
 // For each experiment...
 experiments[experimentStart..experimentEnd].each{experiment-> 
   
-  err.println experiment
+  err.println experiment.toString()
   
   pipeline = new ParadigmPipeline(experiment.classAttribute)
   
