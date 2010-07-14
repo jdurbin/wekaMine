@@ -23,6 +23,7 @@ parser.with{
   optional 'l','experimentList',[description: 'List of experiments to perform.']
   optional 'c','configFile',[description: 'Config file (possibly with embedded experiments.)']
   optional 'n','numExperimentsPerJob',[default: 20,description: 'Number of experiments per cluster job. ']
+  //optional 'l','listOutput',[description: 'File name for a flat list output of the experiments.']
   flag 'h','help',[default:false,description: 'Print script help.']
 }
 
@@ -40,6 +41,12 @@ out = new File(options.outputFile)
 summaryHeading = ParadigmPipeline.getFormattedSummaryHeading()
 out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"
 
+def listout
+if (options.configFile && options.listOutput){
+  listout = new File(options.listOutput)
+}
+
+
 
 // Figure out how many jobs we need based on the number of experiments given. 
 def numExperiments,numJobs
@@ -52,11 +59,24 @@ if (options.experimentList){
   def cfg = slurper.parse(new File(options.configFile).toURL())
   experiments = []
   slurper.getExpansion('experiments').each{experiment->
-    experiments << new ExperimentSpec(experiment);
+    experiments << new ExperimentSpec(experiment);    
+    
+    
+    // TODO:  This needs work, as currently still require outputFile even though it
+    // doesn't use it...
+    if (options.configFile && options.listOutput){
+      listout << experiment+"\n"
+    }    
   }
   numExperiments = experiments.size()
   numJobs = (double)numExperiments/(double)options.numExperimentsPerJob
   System.err.println("numExperiments: $numExperiments  numJobs: $numJobs")
+  
+  // Only wanted to write out the list file...
+  if (options.configFile && options.listOutput){
+    System.exit(0)
+  }
+    
 }else{
   System.err.println "MUST specify one of experimentList or configFile."
   System.exit(1)

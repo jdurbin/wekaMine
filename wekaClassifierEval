@@ -193,8 +193,8 @@ classifiers.each{classifierSpec->
       }else if (params.useUpperLowerQuartile){
         merged = pipeline.classToNominalTopBottomQuartile(merged,"low","high")        
       }else if (params.discretizeCutoffs){
-        lowerBound = params.discretizeCutoffs.split(",")[0] as int
-        upperBound = params.discretizeCutoffs.split(",")[1] as int 
+        lowerBound = params.discretizeCutoffs.split(",")[0] as double
+        upperBound = params.discretizeCutoffs.split(",")[1] as double
         merged = pipeline.classToNominalFromCutoffs(merged,lowerBound,upperBound,"low","high")
       }
 
@@ -240,8 +240,13 @@ classifiers.each{classifierSpec->
         // Perform cross-validation of the model..
         err.print "Instances: ${merged.numInstances()} Attributes: $numFeatures. Running cross validation (${params.cvFolds} folds)..."
         eval = new Evaluation(merged)
-        eval.crossValidateModel(asClassifier,merged,params.cvFolds,new Random(params.cvSeed))
+        predictions = new StringBuffer()
+        eval.crossValidateModel(asClassifier,merged,params.cvFolds,
+          new Random(params.cvSeed),predictions,
+          new Range("first,last"),false)
         err.println "done. $className #att: $numFeatures AUC=${eval.weightedAreaUnderROC()}"
+
+        //pipeline.parsePredictions(predictions)
 
         // Append a summary line to a file. 
         summaryLine = pipeline.getFormattedEvaluationSummary(merged.numInstances(),eval)

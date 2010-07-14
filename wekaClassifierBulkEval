@@ -30,18 +30,20 @@ WekaAdditions.enable()
 
 parser = new Parser(description: '''
  paradigmClassifierEval takes a data file in attributes (rows) x samples (cols) format, 
- and a clinical file, also in attributes (rows) x samples (cols) format, and evaluate 
- the given Weka classifier predicting a specified clinical attribute.  Classification is 
+ and a clinical file, also in attributes (rows) x samples (cols) format, and evaluates 
+ the set of experiments specified in an experimental configuration file.  Classification is 
  performed on the samples that occur in both the data and clinical file (intersection). 
  stdout is a list of summary lines in CSV format. Instances with missing class values are removed.   
  Attributes that do not vary at all are removed.  Instances with negative class values are 
  optionally removed.  
  
- Script written to process output of PARADIGM.  Written by: James Durbin (kdurbin@ucsc.edu)
+Written by: James Durbin (kdurbin@ucsc.edu)
  
  Example:
  
- paradigmClassifierBulkEval -d chin_naderi_pathwayvalues.txt -i chinNaderi_clinical.txt -c Survival -D 9,11 > summary.txt 
+ ./scripts/paradigmClassifierBulkEval  \
+ -d data/paradigm_results.txt -i data/collisonclinical.small.tab \
+ -c exp/cfgExample2.txt -r 0,19 -o results/expout.csv
  
 ''');
 
@@ -114,8 +116,8 @@ if (options.experimentRange){
 summaryHeading = ParadigmPipeline.getFormattedSummaryHeading()
 
 // don't want to print it because we'll be concatenating output from lots of jobs, heading would 
-// appear hundreds of times in file. 
-//println "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
+// appear hundreds of times in file. (should make it an option.)
+out<< "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"
 
 // Read data and clinical files as a set of Weka Instances
 Instances data = ParadigmPipeline.readFromTable(options.data)
