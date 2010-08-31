@@ -3,7 +3,7 @@
 import durbin.weka.*
 import durbin.weka.InstanceUtils as IU
 import durbin.util.*
-import durbin.paradigm.*
+//import durbin.paradigm.*
 
 import weka.core.*
 import weka.core.converters.ArffSaver
@@ -29,14 +29,14 @@ err = System.err
 WekaAdditions.enable()     
 
 parser = new Parser(description: '''
- paradigmClassifierEval takes a data file in attributes (rows) x samples (cols) format, 
+ wekaClassifierBulkEval takes a data file in attributes (rows) x samples (cols) format, 
  and a clinical file, also in attributes (rows) x samples (cols) format, and evaluates 
  the set of experiments specified in an experimental configuration file.  Classification is 
  performed on the samples that occur in both the data and clinical file (intersection). 
  stdout is a list of summary lines in CSV format. Instances with missing class values are removed.   
  Attributes that do not vary at all are removed.  Instances with negative class values are 
  optionally removed.  
- 
+  
 Written by: James Durbin (kdurbin@ucsc.edu)
  
  Example:
@@ -54,6 +54,7 @@ parser.with{
   required 'o','output',[description: 'File where output should go.']
   optional 'c','config',[description: 'Configuration file. May include embedded experiment list.']  
 
+  optional 'R','raRoot',[description: 'Root name of .ra file output']
   optional 'l','experimentList',[description: 'Flat experiment list file. OVERRIDES experiments in config.']  
   optional 'r','experimentRange',[description: 'Range of experiments to run. e.g. -r 54,67']
   flag 'h','help',[default:false,description: 'Print script help.']
@@ -76,13 +77,22 @@ try{
 }
 
 out = new File(options.output)
+RAUtils ra;
+if (options.raRoot){
+  err.println "Creating new ra files: "+options.raRoot;
+  ra = new RAUtils(options.raRoot);
+  ra.writeFeatureSelection();   // currently, always say None
+}
+
 
 /***********************************************************************************
 *                                      SETUP
 */ 
-def slurper = new ParadigmConfigSlurper()
+def slurper = new WekaExplorerConfigSlurper()
 def cfg = slurper.parse(new File(options.config).toURL())
 params = cfg.params // cfg includes all sections.  make alias for section we want. 
+
+//params.cvSeed = 521;
 
 experiments = []
 if (options.experimentList){
@@ -113,22 +123,23 @@ if (options.experimentRange){
 */ 
 
 // Write out heading for the stats output... there are a lot, so heading needed. 
-summaryHeading = ParadigmPipeline.getFormattedSummaryHeading()
+summaryHeading = WekaExplorer.getFormattedSummaryHeading()
 
 // don't want to print it because we'll be concatenating output from lots of jobs, heading would 
 // appear hundreds of times in file. (should make it an option.)
 out<< "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"
 
 // Read data and clinical files as a set of Weka Instances
-Instances data = ParadigmPipeline.readFromTable(options.data)
-Instances clinicalData = ParadigmPipeline.readFromTable(options.clinical)
+Instances data = WekaExplorer.readNumericFromTable(options.data)
+Instances clinicalData = WekaExplorer.readNumericFromTable(options.clinical)
 
 // For each experiment...
-experiments[experimentStart..experimentEnd].each{experiment-> 
+def tid,sid,classID;
+experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx-> 
+      
+  err.println "\nEXP.toString: "+experiment.toString()
   
-  err.println experiment.toString()
-  
-  pipeline = new ParadigmPipeline(experiment.classAttribute)
+  pipeline = new WekaExplorer(experiment.classAttribute)
   
   // Remove all clinical attributes except for the current class...
   selectedAttribute = []
@@ -152,9 +163,9 @@ experiments[experimentStart..experimentEnd].each{experiment->
 
   // Discretize class 
   if (params.useMedianDiscretization){
-    //merged = pipeline.classToMedian(merged,"low","high")        
-    err.println "Not yet implemented:  median discretization."
-    System.exit(1)
+    merged = pipeline.classToMedian(merged,"low","high")        
+    //err.println "Not yet implemented:  median discretization."
+    //System.exit(1)
   }else if (params.useUpperLowerQuartile){
     merged = pipeline.classToNominalTopBottomQuartile(merged,"low","high")        
   }else if (params.discretizeCutoffs){
@@ -176,13 +187,16 @@ experiments[experimentStart..experimentEnd].each{experiment->
   }
       
   // KJD... should do this with filteredClassifier...
-  merged = pipeline.removeID(merged)        
+//-->merged = pipeline.removeID(merged)        
       
   // Check to see if we can do this experiment at all...
-  if (merged.numInstances() < params.cvFolds) {
-    err.println "Experiment skipped.  ${merged.numInstances} instances < ${params.cvFolds} cross-validation folds."
+  if (merged.numInstances() < params.cvFolds){
+    err.println "Experiment skipped.  ${merged.numInstances()} instances < ${params.cvFolds} cross-validation folds."
     return; // Can't do the experiment. 
   } 
+    
+// If it's just a feature selection-only experiment, do that experiment, 
+// otherwise, wrap classifier in feature selection evaluator...    
                 
   def asClassifier
   if (params.noAttributeSelection) asClassifier = classifierFromSpec(classifierSpec)
@@ -201,14 +215,41 @@ experiments[experimentStart..experimentEnd].each{experiment->
     asClassifier.setEvaluator(experiment.attributeEval);
     asClassifier.setSearch(search);                
   }  
-    
-  // KJD TODO:  Need to Skip cases where the class doesn't vary!!!
+       
+  bugNumAttr = merged.numAttributes()
+  (0..<bugNumAttr).each{
+    attr = merged.attribute(it);
+    if (attr.isNominal()){
+      println "Nominal attribute: ${attr.name()}";
+    }
+  }
+
    
   // Perform cross-validation of the model..
   err.print "Instances: ${merged.numInstances()} Attributes: ${experiment.numAttributes}. Running cross validation (${params.cvFolds} folds)..."
-  eval = new Evaluation(merged)
-  eval.crossValidateModel(asClassifier,merged,params.cvFolds,new Random(params.cvSeed))
+    
+  cvu = new CVUtils()
+  results = cvu.crossValidateModel(asClassifier,merged,params.cvFolds,new Random(params.cvSeed))
+  eval = cvu.eval
+    
+  if (options.raRoot){
+    // Record basic info in RA files... ra functions handle detecting duplicate classifiers and subgroups...
+    jobIdx = idx+experimentStart;
+    classID = ra.writeClassifier(experiment.classifierStr,jobIdx); 
+    //  def classID1,tid1,sid1;
+    //if (classID1 != null) classID = classID1;  
+    err.println "classID: $classID"
+  
+    (tid1,sid1) = ra.writeSubgroup(merged,params);
+    if (tid1 != null){
+      tid = tid1;
+      sid = sid1;
+    }   
+    ra.writeResults(results,classID,tid,sid,jobIdx)
+  }
+    
   err.println "done. ${experiment.classifierStr} #att: ${experiment.numAttributes} AUC=${eval.weightedAreaUnderROC()}"
+  err.println "DEBUG: ${experiment.classifier.toString()}"
 
   // Append a summary line to a file. 
   summaryLine = pipeline.getFormattedEvaluationSummary(merged.numInstances(),eval)
