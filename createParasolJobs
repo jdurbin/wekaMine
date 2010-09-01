@@ -5,7 +5,6 @@ import durbin.weka.*
 
 // KJD: Should probably bundle this into wekaBulkEval somehow...
 
-
 parser = new Parser(description: '''
   Creates a list of script commands ready to execute with para try and para run.  Output is to stdout. 
     
@@ -24,7 +23,10 @@ parser.with{
   required 'o','outputFile',[description: 'File where output will be concatenated to']
   optional 'l','experimentList',[description: 'List of experiments to perform.']
   optional 'c','configFile',[description: 'Config file (possibly with embedded experiments.)']
-  optional 'n','numExperimentsPerJob',[default: 20,description: 'Number of experiments per cluster job. ']
+  optional 'n','numExperimentsPerJob',[default: 20,description: 'Number of experiments per cluster job. ',
+  validate: {
+        it as Integer  // the value of the parsed option with be an Integer in this case
+      }]
   optional 'R','raFileRoot',[description: 'Root path of .ra files for loading into classifier browser.']
   
   //optional 'l','listOutput',[description: 'File name for a flat list output of the experiments.']
@@ -117,11 +119,12 @@ jobEnd = options.numExperimentsPerJob -1;
 }
 
 // Handle remainder experiments..
+
 lastExperiment = (jobEnd-options.numExperimentsPerJob)
 if (lastExperiment < numExperiments){
   jobStart = lastExperiment+1
   jobEnd = numExperiments-1
-  cmdOut = rootCmd + " -r $jobStart,$jobEnd -o ${options.outputFile}"
+  cmdOut = rootCmd + " -r $jobStart,$jobEnd -o ${options.outputFile}".toString()
   println cmdOut
 }
 
