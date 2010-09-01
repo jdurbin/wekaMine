@@ -99,7 +99,7 @@ if (options.experimentList){
 }
 
 if (options.raFileRoot){
-  rootCmd += "-R ${options.raFileRoot}"
+  rootCmd += " -R ${options.raFileRoot}"
 }
 
 
