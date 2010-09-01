@@ -25,7 +25,7 @@ parser.with{
   optional 'l','experimentList',[description: 'List of experiments to perform.']
   optional 'c','configFile',[description: 'Config file (possibly with embedded experiments.)']
   optional 'n','numExperimentsPerJob',[default: 20,description: 'Number of experiments per cluster job. ']
-  optionsl 'R','raFileRoot',[description: 'Root path of .ra files for loading into classifier browser.']
+  optional 'R','raFileRoot',[description: 'Root path of .ra files for loading into classifier browser.']
   
   //optional 'l','listOutput',[description: 'File name for a flat list output of the experiments.']
   flag 'h','help',[default:false,description: 'Print script help.']
