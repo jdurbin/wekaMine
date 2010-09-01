@@ -38,7 +38,7 @@ try{
 // Go ahead and write a heading to the output file.  Used to do this in the eval script itself
 // but that generated lots of headings where we only want one. 
 out = new File(options.outputFile)
-summaryHeading = ParadigmPipeline.getFormattedSummaryHeading()
+summaryHeading = WekaExplorer.getFormattedSummaryHeading()
 out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"
 
 def listout
@@ -55,7 +55,7 @@ if (options.experimentList){
   numJobs = (double)numExperiments/(double)options.numExperimentsPerJob  
 }else if (options.configFile){
   // Parse config file, expanding all experiments, to determine the number...
-  def slurper = new ParadigmConfigSlurper()
+  def slurper = new WekaExplorerConfigSlurper()
   def cfg = slurper.parse(new File(options.configFile).toURL())
   experiments = []
   slurper.getExpansion('experiments').each{experiment->
@@ -85,10 +85,10 @@ if (options.experimentList){
 //System.err.println "numExp: "+numExperiments+" numJobs: "+numJobs;
 
 if (options.experimentList){
-  rootCmd = "${options.scriptRoot}/paradigmClassifierBulkEval -d ${options.data} -i ${options.clinical}"
+  rootCmd = "${options.scriptRoot}/wekaBulkEval -d ${options.data} -i ${options.clinical}"
   rootCmd += " -c ${options.configFile} -l ${options.experimentList}"
 }else if (options.configFile){
-  rootCmd = "${options.scriptRoot}/paradigmClassifierBulkEval -d ${options.data} -i ${options.clinical}"
+  rootCmd = "${options.scriptRoot}/wekaBulkEval -d ${options.data} -i ${options.clinical}"
   rootCmd += " -c ${options.configFile}"
 }else{
   System.err.println "ERROR: Must specify one of -c or -l."
