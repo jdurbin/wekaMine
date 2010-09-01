@@ -14,7 +14,6 @@ parser = new Parser(description: '''
 ''');
 
 // /hive/users/james/bin/
-
 parser.with{ 
   required 's','scriptRoot',[description: 'Path to the directory containing paradigmClassifierBulkEval.']
   required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']

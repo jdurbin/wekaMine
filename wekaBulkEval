@@ -129,6 +129,8 @@ if (options.writeHeading){
   System.exit(1);
 }
 
+// Trying to improve error reporting on cluster...
+try{
 
 /***********************************************************************************
 *                               MAIN PROCESSING 
@@ -272,6 +274,14 @@ experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx->
     saver.writeBatch();        
   }
 } // classifiers
+
+}catch(Exception e){
+  errfile = "${options.output}.err"
+  errout = new File(errfile)
+  errmsg = e.toString()
+  errout.append(errmsg)
+  errout.append("\n\n")
+}
 
 // Example: 
 // scripts/paradigmClassifierEval -d dataDec9/breast/chin_naderi_pathwayvalues.txt -i dataDec9/breast/chinNaderi_clinical.txt -c Survival -D 9,11 > test/summary.txt
