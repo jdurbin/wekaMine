@@ -57,6 +57,7 @@ parser.with{
   optional 'R','raRoot',[description: 'Root name of .ra file output']
   optional 'l','experimentList',[description: 'Flat experiment list file. OVERRIDES experiments in config.']  
   optional 'r','experimentRange',[description: 'Range of experiments to run. e.g. -r 54,67']
+  flag 'H','writeHeading',[default:false,description: 'Write out heading to output file.']
   flag 'h','help',[default:false,description: 'Print script help.']
 }
 
@@ -118,16 +119,20 @@ if (options.experimentRange){
  
 }
 
+
+// Write out heading for the stats output... there are a lot, so heading needed. 
+// don't want to print it when running as cluster job, because we'll be concatenating 
+// output from lots of jobs, heading would appear hundreds of times in file. 
+if (options.writeHeading){
+  summaryHeading = WekaExplorer.getFormattedSummaryHeading()
+  out<< "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"  
+  System.exit(1);
+}
+
+
 /***********************************************************************************
 *                               MAIN PROCESSING 
 */ 
-
-// Write out heading for the stats output... there are a lot, so heading needed. 
-summaryHeading = WekaExplorer.getFormattedSummaryHeading()
-
-// don't want to print it because we'll be concatenating output from lots of jobs, heading would 
-// appear hundreds of times in file. (should make it an option.)
-out<< "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"
 
 // Read data and clinical files as a set of Weka Instances
 Instances data = WekaExplorer.readNumericFromTable(options.data)

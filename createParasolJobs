@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy 
 
 import durbin.util.*
-import durbin.paradigm.*
+import durbin.weka.*
 
 parser = new Parser(description: '''
   Creates a list of script commands ready to execute with para try and para run.  Output is to stdout. 
