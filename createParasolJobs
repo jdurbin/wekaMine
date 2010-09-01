@@ -3,6 +3,9 @@
 import durbin.util.*
 import durbin.weka.*
 
+// KJD: Should probably bundle this into wekaBulkEval somehow...
+
+
 parser = new Parser(description: '''
   Creates a list of script commands ready to execute with para try and para run.  Output is to stdout. 
     
@@ -22,6 +25,8 @@ parser.with{
   optional 'l','experimentList',[description: 'List of experiments to perform.']
   optional 'c','configFile',[description: 'Config file (possibly with embedded experiments.)']
   optional 'n','numExperimentsPerJob',[default: 20,description: 'Number of experiments per cluster job. ']
+  optionsl 'R','raFileRoot',[description: 'Root path of .ra files for loading into classifier browser.']
+  
   //optional 'l','listOutput',[description: 'File name for a flat list output of the experiments.']
   flag 'h','help',[default:false,description: 'Print script help.']
 }
@@ -46,7 +51,6 @@ if (options.configFile && options.listOutput){
 }
 
 
-
 // Figure out how many jobs we need based on the number of experiments given. 
 def numExperiments,numJobs
 if (options.experimentList){
@@ -59,8 +63,7 @@ if (options.experimentList){
   experiments = []
   slurper.getExpansion('experiments').each{experiment->
     experiments << new ExperimentSpec(experiment);    
-    
-    
+        
     // TODO:  This needs work, as currently still require outputFile even though it
     // doesn't use it...
     if (options.configFile && options.listOutput){
@@ -93,6 +96,10 @@ if (options.experimentList){
   System.err.println "ERROR: Must specify one of -c or -l."
   System.err<<parser.usage
   System.exit(1)
+}
+
+if (options.raFileRoot){
+  rootCmd += "-R ${options.raFileRoot}"
 }
 
 
