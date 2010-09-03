@@ -261,7 +261,7 @@ try{
   }
     
   err.println "done. ${experiment.classifierStr} #att: ${experiment.numAttributes} AUC=${eval.weightedAreaUnderROC()}"
-  err.println "DEBUG: ${experiment.classifier.toString()}"
+  
 
   // Append a summary line to a file. 
   summaryLine = pipeline.getFormattedEvaluationSummary(merged.numInstances(),eval)
@@ -280,13 +280,16 @@ try{
   }
 
   }catch(Exception e){
+    jobIdx = idx+experimentStart;
     errfile = "${options.output}.err"
     errout = new File(errfile)
     errmsg = e.toString()
-    errout.append("ERROR on experiment #$idx" as String)
+    err.println "ERROR on experiment #$jobIdx"
+    errout.append("ERROR on experiment #$jobIdx" as String)
     errout.append("\nExperiment: ")
     errout.append(experiment.toString())
     errout.append("\n")
+    err.println "$errmsg"
     errout.append(errmsg)
     errout.append("\n\n")
   }  
