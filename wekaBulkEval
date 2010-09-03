@@ -129,8 +129,7 @@ if (options.writeHeading){
   System.exit(1);
 }
 
-// Trying to improve error reporting on cluster...
-try{
+
 
 /***********************************************************************************
 *                               MAIN PROCESSING 
@@ -143,8 +142,11 @@ Instances clinicalData = WekaExplorer.readNumericFromTable(options.clinical)
 // For each experiment...
 def tid,sid,classID;
 experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx-> 
+
+// Trying to improve error reporting on cluster...
+try{
       
-  err.println "\nEXP.toString: "+experiment.toString()
+ // err.println "\nEXP.toString: "+experiment.toString()
   
   pipeline = new WekaExplorer(experiment.classAttribute)
   
@@ -192,19 +194,23 @@ experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx->
     err.println "done. Exiting."
     System.exit(0); // Exit happily. 
   }
-      
-  // KJD... should do this with filteredClassifier...
-//-->merged = pipeline.removeID(merged)        
-      
+
   // Check to see if we can do this experiment at all...
+  // KJD:  Should also check to see if there is more than one class left...
   if (merged.numInstances() < params.cvFolds){
     err.println "Experiment skipped.  ${merged.numInstances()} instances < ${params.cvFolds} cross-validation folds."
     return; // Can't do the experiment. 
   } 
     
-// If it's just a feature selection-only experiment, do that experiment, 
-// otherwise, wrap classifier in feature selection evaluator...    
-                
+  // If it's just a feature selection-only experiment, do that experiment,
+  if (experiment.classifier == 'None'){
+    experiment.attributeSearch 
+    experiment.attributeEval
+    return;
+  }
+  
+  
+  // otherwise, wrap classifier in feature selection evaluator...                  
   def asClassifier
   if (params.noAttributeSelection) asClassifier = classifierFromSpec(classifierSpec)
   else{
@@ -230,7 +236,6 @@ experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx->
       println "Nominal attribute: ${attr.name()}";
     }
   }
-
    
   // Perform cross-validation of the model..
   err.print "Instances: ${merged.numInstances()} Attributes: ${experiment.numAttributes}. Running cross validation (${params.cvFolds} folds)..."
@@ -273,15 +278,20 @@ experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx->
     saver.setFile(curveFile);
     saver.writeBatch();        
   }
-} // classifiers
 
-}catch(Exception e){
-  errfile = "${options.output}.err"
-  errout = new File(errfile)
-  errmsg = e.toString()
-  errout.append(errmsg)
-  errout.append("\n\n")
-}
+  }catch(Exception e){
+    errfile = "${options.output}.err"
+    errout = new File(errfile)
+    errmsg = e.toString()
+    errout.append("ERROR on experiment #$idx" as String)
+    errout.append("\nExperiment: ")
+    errout.append(experiment.toString())
+    errout.append("\n")
+    errout.append(errmsg)
+    errout.append("\n\n")
+  }  
+
+} // classifiers
 
 // Example: 
 // scripts/paradigmClassifierEval -d dataDec9/breast/chin_naderi_pathwayvalues.txt -i dataDec9/breast/chinNaderi_clinical.txt -c Survival -D 9,11 > test/summary.txt
