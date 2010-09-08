@@ -78,12 +78,6 @@ try{
 }
 
 out = new File(options.output)
-RAUtils ra;
-if (options.raRoot){
-  err.println "Creating new ra files: "+options.raRoot;
-  ra = new RAUtils(options.raRoot);
-  ra.writeFeatureSelection();   // currently, always say None
-}
 
 
 /***********************************************************************************
@@ -117,6 +111,14 @@ if (options.experimentRange){
  
  err.println "eStart:"+experimentStart+" eEnd: "+experimentEnd+" size="+experiments.size()
  
+}
+
+// Setup RA files...
+RAUtils ra;
+if (options.raRoot){
+  err.println "Creating new ra files: "+options.raRoot;
+  ra = new RAUtils(options.raRoot);
+  ra.writeFeatureSelection(experimentStart);   // currently, always say None
 }
 
 
@@ -247,12 +249,12 @@ try{
   if (options.raRoot){
     // Record basic info in RA files... ra functions handle detecting duplicate classifiers and subgroups...
     jobIdx = idx+experimentStart;
-    classID = ra.writeClassifier(experiment.classifierStr,jobIdx); 
+    classIDTemp = ra.writeClassifier(experiment.classifierStr,jobIdx); 
     //  def classID1,tid1,sid1;
-    //if (classID1 != null) classID = classID1;  
+    if (classIDTemp != null) classID = classIDTemp;  
     err.println "classID: $classID"
   
-    (tid1,sid1) = ra.writeSubgroup(merged,params);
+    (tid1,sid1) = ra.writeSubgroup(merged,params,jobIdx);
     if (tid1 != null){
       tid = tid1;
       sid = sid1;
