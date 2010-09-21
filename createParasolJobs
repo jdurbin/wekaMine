@@ -46,8 +46,14 @@ try{
 // Go ahead and write a heading to the output file.  Used to do this in the eval script itself
 // but that generated lots of headings where we only want one. 
 out = new File(options.outputFile)
-summaryHeading = WekaExplorer.getFormattedSummaryHeading(numFeaturesReported)
-out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"
+summaryHeading = WekaPipelineOutput.getFormattedSummaryHeading()
+out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
+
+if (options.maxFeaturesOut > 0){
+  out<< ","+WekaPipelineOutput.getAttributesHeading(options.maxFeaturesOut)
+}
+out<<"\n"
+
 
 def listout
 if (options.configFile && options.listOutput){
