@@ -24,6 +24,7 @@ parser.with{
   optional 'l','experimentList',[description: 'List of experiments to perform.']
   optional 'c','configFile',[description: 'Config file (possibly with embedded experiments.)']
   optional 'n','numExperimentsPerJob',[default: 20,description: 'Number of experiments per cluster job. ',
+  optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output."]  
   validate: {
         it as Integer  // the value of the parsed option with be an Integer in this case
       }]
@@ -94,6 +95,7 @@ if (options.experimentList){
 }else if (options.configFile){
   rootCmd = "${options.scriptRoot}/wekaBulkEval -d ${options.data} -i ${options.clinical}"
   rootCmd += " -c ${options.configFile}"
+  rootCmd += " -m ${options.maxFeaturesOut}"
 }else{
   System.err.println "ERROR: Must specify one of -c or -l."
   System.err<<parser.usage
