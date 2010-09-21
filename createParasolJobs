@@ -44,7 +44,7 @@ try{
 // Go ahead and write a heading to the output file.  Used to do this in the eval script itself
 // but that generated lots of headings where we only want one. 
 out = new File(options.outputFile)
-summaryHeading = WekaExplorer.getFormattedSummaryHeading()
+summaryHeading = WekaExplorer.getFormattedSummaryHeading(numFeaturesReported)
 out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"
 
 def listout

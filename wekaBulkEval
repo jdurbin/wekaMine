@@ -11,6 +11,7 @@ import weka.filters.*
 import weka.filters.unsupervised.attribute.Remove
 import weka.filters.unsupervised.instance.RemoveWithValues
 
+import weka.filters.unsupervised.attribute.RemoveType
 import weka.classifiers.*
 import weka.classifiers.evaluation.*
 import weka.classifiers.Evaluation
@@ -29,20 +30,36 @@ err = System.err
 WekaAdditions.enable()     
 
 parser = new Parser(description: '''
- wekaClassifierBulkEval takes a data file in attributes (rows) x samples (cols) format, 
+ wekaBulkEval takes a tab delimited data file in attributes (rows) x samples (cols) format, 
  and a clinical file, also in attributes (rows) x samples (cols) format, and evaluates 
  the set of experiments specified in an experimental configuration file.  Classification is 
  performed on the samples that occur in both the data and clinical file (intersection). 
- stdout is a list of summary lines in CSV format. Instances with missing class values are removed.   
- Attributes that do not vary at all are removed.  Instances with negative class values are 
- optionally removed.  
+ A list of summary lines in CSV format will be APPENDED to the end of the output file.  Since this will
+ often be run in a cluster setting with many jobs appending to the same file, the heading is not normally 
+ written out.  Run this script with the -H option to just output heading to stdout.  
+ 
+ Instances with missing class values are removed.   Attributes that do not vary at all 
+ are removed.  Instances with negative class values are optionally removed.  
+ 
+ The actual experiments and experimental options are provided by the config file (-c). 
+ Documentation for this config file can be found here:  
+ 
+ https://cancer2.cse.ucsc.edu/mediawiki/index.php/WekaClassifierConfig
+ 
+ Note that the config file can specify a number of attributes to use in attribute 
+ selection, or -1 to auto-select (varies from algorithm to algorithm). The config 
+ file option actually determines how many attributes the classifier sees.  The 
+ -m/maxFeaturesOut option merely determines the maximum number of selected attributes, 
+ and their scores, to save in the output and does not affect what the classifier 
+ will see. 
+ 
   
 Written by: James Durbin (kdurbin@ucsc.edu)
  
  Example:
  
- ./scripts/paradigmClassifierBulkEval  \
- -d data/paradigm_results.txt -i data/collisonclinical.small.tab \
+ wekaBulkEval  \\
+ -d data/paradigm_results.txt -i data/collisonclinical.small.tab \\
  -c exp/cfgExample2.txt -r 0,19 -o results/expout.csv
  
 ''');
@@ -52,12 +69,13 @@ parser.with{
   required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
   required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
   required 'o','output',[description: 'File where output should go.']
-  optional 'c','config',[description: 'Configuration file. May include embedded experiment list.']  
+  optional 'c','config',[description: 'Configuration file']  
 
+  optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
   optional 'R','raRoot',[description: 'Root name of .ra file output']
-  optional 'l','experimentList',[description: 'Flat experiment list file. OVERRIDES experiments in config.']  
-  optional 'r','experimentRange',[description: 'Range of experiments to run. e.g. -r 54,67']
-  flag 'H','writeHeading',[default:false,description: 'Write out heading to output file.']
+  optional 'r','experimentRange',[description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)']
+  optional 'l','experimentList',[description: 'Flat experiment list file. OVERRIDES experiments in config. Will probably be deprecated.']  
+  flag 'H','writeHeading',[default:false,description: 'Write out heading alone to output file.']
   flag 'h','help',[default:false,description: 'Print script help.']
 }
 
@@ -107,13 +125,11 @@ experimentStart = 0
 experimentEnd = experiments.size()-1
 if (options.experimentRange){
  experimentStart = options.experimentRange.split(",")[0] as int
- experimentEnd = options.experimentRange.split(",")[1] as int
- 
- err.println "eStart:"+experimentStart+" eEnd: "+experimentEnd+" size="+experiments.size()
- 
+ experimentEnd = options.experimentRange.split(",")[1] as int 
+ err.println "eStart:"+experimentStart+" eEnd: "+experimentEnd+" size="+experiments.size() 
 }
 
-// Setup RA files...
+// Setup RA files if requested...
 RAUtils ra;
 if (options.raRoot){
   err.println "Creating new ra files: "+options.raRoot;
@@ -132,7 +148,6 @@ if (options.writeHeading){
 }
 
 
-
 /***********************************************************************************
 *                               MAIN PROCESSING 
 */ 
@@ -146,7 +161,7 @@ def tid,sid,classID;
 experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx-> 
 
 // Trying to improve error reporting on cluster...
-try{
+//try{
       
  // err.println "\nEXP.toString: "+experiment.toString()
   
@@ -172,7 +187,7 @@ try{
   // KJD why not:  newData.deleteWithMissingClass();
   merged = pipeline.removeInstancesWithMissingClassValues(merged) 
 
-  // Discretize class 
+  // Discretize class (needs to be an experiment list parameter, not global option)
   if (params.useMedianDiscretization){
     merged = pipeline.classToMedian(merged,"low","high")        
     //err.println "Not yet implemented:  median discretization."
@@ -186,7 +201,9 @@ try{
   }
 
   // If an arffFile output name was given, just save this processed file for 
-  // use in Weka GUI and exit. 
+  // use in Weka GUI and exit.  Arff files aren't a core part of the pipeline in 
+  // any way, but sometimes it's useful to explore the pre-processed data in 
+  // the GUI
   if (params.arffFile){
     ArffSaver saver = new ArffSaver();
     saver.setInstances(merged);
@@ -198,26 +215,48 @@ try{
   }
 
   // Check to see if we can do this experiment at all...
-  // KJD:  Should also check to see if there is more than one class left...
+  // KJD TODO:  Should also check to see if there is more than one class left...
   if (merged.numInstances() < params.cvFolds){
     err.println "Experiment skipped.  ${merged.numInstances()} instances < ${params.cvFolds} cross-validation folds."
     return; // Can't do the experiment. 
   } 
     
+  // KJD:TODO   
   // If it's just a feature selection-only experiment, do that experiment,
-  if (experiment.classifier == 'None'){
-    experiment.attributeSearch 
-    experiment.attributeEval
+  if (experiment.classifier == null){
+    AttributeSelection attsel = new AttributeSelection(); 
+
+    // Remove instance ID which is a string... 
+    filter = new RemoveType();
+    filter.setInputFormat(merged);
+    filtered = Filter.useFilter(merged, filter);
+
+    // Only Ranker (? right??) allows an overt numAttributes cutoff. 
+    // At least, BestFirst search does not. 
+    search = experiment.attributeSearch
+    if (search.class == Ranker){
+      search.setNumToSelect(experiment.numAttributes);
+    }    
+    
+    attsel.setEvaluator(experiment.attributeEval);
+    attsel.setSearch(search);
+    attsel.SelectAttributes(filtered);     
+          
+    WekaPipelineOutput.appendAttributeSelectionSummaryLine(merged,out,
+                                         merged.numInstances(),
+                                         experiment,attsel,
+                                         options.maxFeaturesOut as Integer)                                             
     return;
   }
   
-  
   // otherwise, wrap classifier in feature selection evaluator...                  
   def asClassifier
-  if (params.noAttributeSelection) asClassifier = classifierFromSpec(classifierSpec)
+  if (experiment.attributeEval == null) asClassifier = pipeline.classifierFromSpec(classifierSpec)
   else{
-    // Wrap classifier in an AttributeSelectedClassifier. 
-    asClassifier = new AttributeSelectedClassifier();
+    
+    // Wrap classifier in an AttributeSelectedClassifier2 (modified from weka to 
+    // provide API to expose the actual attributes selected). 
+    asClassifier = new AttributeSelectedClassifier2();
     
     search = experiment.attributeSearch
     // Only Ranker (? right??) allows an overt numAttributes cutoff. 
@@ -248,6 +287,7 @@ try{
     
   if (options.raRoot){
     // Record basic info in RA files... ra functions handle detecting duplicate classifiers and subgroups...
+    // at least within a job... between jobs, a post-filter will be needed. 
     jobIdx = idx+experimentStart;
     classIDTemp = ra.writeClassifier(experiment.classifierStr,jobIdx); 
     //  def classID1,tid1,sid1;
@@ -264,24 +304,17 @@ try{
     
   err.println "done. ${experiment.classifierStr} #att: ${experiment.numAttributes} AUC=${eval.weightedAreaUnderROC()}"
   
+  WekaPipelineOutput.appendSummaryLine(merged,out,merged.numInstances(),
+                                      experiment,eval,
+                                      options.maxFeaturesOut as Integer)
+                                                                                                                
 
-  // Append a summary line to a file. 
-  summaryLine = pipeline.getFormattedEvaluationSummary(merged.numInstances(),eval)
-  out << "$summaryLine,${experiment.classifierStr},${experiment.attrEvalStr},${experiment.attrSearchStr},${experiment.numAttributes},${experiment.classAttribute}\n"
-
-  if (params.rocDir){
-    // Save the ROC values for later plotting. 
-    ThresholdCurve tc = new ThresholdCurve();
-    Instances curve = tc.getCurve(eval.predictions());
-    
-    ArffSaver saver = new ArffSaver();
-    saver.setInstances(curve);
-    curveFile = new File("${params.rocDir}${className}.${numFeatures}.arff".toString())
-    saver.setFile(curveFile);
-    saver.writeBatch();        
-  }
-
-  }catch(Exception e){
+  // Save an ROC directory if requested...
+  if (params.rocDir) WekaPipelineOutput.saveROC(eval,params.rocDir,className,numFeatures)         
+ 
+ /*      
+  }catch(Exception e){  
+    // Save something meaningful so we know what happened, then move on...
     jobIdx = idx+experimentStart;
     errfile = "${options.output}.err"
     errout = new File(errfile)
@@ -295,6 +328,7 @@ try{
     errout.append(errmsg)
     errout.append("\n\n")
   }  
+  */
 
 } // classifiers
 

@@ -41,7 +41,7 @@ try{
 curves = []
 curveIDs = []
 parser.remainder.eachWithIndex{curveName,i->
-
+  
   fields = curveName.split("/")
   dir = fields[0]
   rootName = fields[1]
