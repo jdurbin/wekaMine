@@ -161,7 +161,7 @@ def tid,sid,classID;
 experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx-> 
 
 // Trying to improve error reporting on cluster...
-//try{
+try{
       
  // err.println "\nEXP.toString: "+experiment.toString()
   
@@ -312,7 +312,6 @@ experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx->
   // Save an ROC directory if requested...
   if (params.rocDir) WekaPipelineOutput.saveROC(eval,params.rocDir,className,numFeatures)         
  
- /*      
   }catch(Exception e){  
     // Save something meaningful so we know what happened, then move on...
     jobIdx = idx+experimentStart;
@@ -328,7 +327,6 @@ experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx->
     errout.append(errmsg)
     errout.append("\n\n")
   }  
-  */
 
 } // classifiers
 
