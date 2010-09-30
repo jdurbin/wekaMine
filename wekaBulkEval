@@ -308,7 +308,6 @@ try{
                                       experiment,eval,
                                       options.maxFeaturesOut as Integer)
                                                                                                                 
-
   // Save an ROC directory if requested...
   if (params.rocDir) WekaPipelineOutput.saveROC(eval,params.rocDir,className,numFeatures)         
  
