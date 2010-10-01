@@ -53,7 +53,6 @@ parser = new Parser(description: '''
  and their scores, to save in the output and does not affect what the classifier 
  will see. 
  
-  
 Written by: James Durbin (kdurbin@ucsc.edu)
  
  Example:
