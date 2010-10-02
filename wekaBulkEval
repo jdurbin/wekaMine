@@ -94,8 +94,6 @@ try{
   System.exit(1)
 }
 
-out = new File(options.output)
-
 
 /***********************************************************************************
 *                                      SETUP
@@ -127,6 +125,10 @@ if (options.experimentRange){
  experimentEnd = options.experimentRange.split(",")[1] as int 
  err.println "eStart:"+experimentStart+" eEnd: "+experimentEnd+" size="+experiments.size() 
 }
+
+// Experiment
+fileOut = "job$experimentStart${options.output}" as String
+out = new File(fileOut)
 
 // Setup RA files if requested...
 RAUtils ra;
