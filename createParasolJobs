@@ -121,7 +121,7 @@ if (options.raFileRoot){
 jobStart = 0
 jobEnd = options.numExperimentsPerJob -1;
 (0..<numJobs).each{
-  cmdOut = rootCmd + " -r $jobStart,$jobEnd -o ${options.outputFile}"
+  cmdOut = rootCmd + " -r $jobStart,$jobEnd -o ${options.outputFileRoot}"
   println cmdOut
   jobStart += options.numExperimentsPerJob
   jobEnd += options.numExperimentsPerJob  
@@ -133,7 +133,7 @@ lastExperiment = (jobEnd-options.numExperimentsPerJob)
 if (lastExperiment < numExperiments){
   jobStart = lastExperiment+1
   jobEnd = numExperiments-1
-  cmdOut = rootCmd + " -r $jobStart,$jobEnd -o ${options.outputFile}".toString()
+  cmdOut = rootCmd + " -r $jobStart,$jobEnd -o ${options.outputFileRoot}".toString()
   println cmdOut
 }
 
