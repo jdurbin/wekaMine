@@ -3,7 +3,6 @@
 import durbin.weka.*
 import durbin.weka.InstanceUtils as IU
 import durbin.util.*
-//import durbin.paradigm.*
 
 import weka.core.*
 import weka.core.converters.ArffSaver
@@ -127,7 +126,7 @@ if (options.experimentRange){
 }
 
 // Experiment
-fileOut = "job$experimentStart${options.output}" as String
+fileOut = "${options.output}$experimentStart.csv" as String
 out = new File(fileOut)
 
 // Setup RA files if requested...

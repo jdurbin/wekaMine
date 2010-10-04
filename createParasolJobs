@@ -20,7 +20,7 @@ parser.with{
   required 's','scriptRoot',[description: 'Path to the directory containing paradigmClassifierBulkEval.']
   required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
   required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
-  required 'o','outputFile',[description: 'File where output will be concatenated to']
+  required 'o','outputFileRoot',[description: 'Root name of file where output will be concatenated to']
   optional 'l','experimentList',[description: 'List of experiments to perform.']
   optional 'c','configFile',[description: 'Config file (possibly with embedded experiments.)']
   optional 'n','numExperimentsPerJob',[default: 20,description: 'Number of experiments per cluster job. ',
@@ -45,7 +45,7 @@ try{
 
 // Go ahead and write a heading to the output file.  Used to do this in the eval script itself
 // but that generated lots of headings where we only want one. 
-out = new File(options.outputFile)
+out = new File(options.outputFileRoot)
 summaryHeading = WekaPipelineOutput.getFormattedSummaryHeading()
 out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
 
