@@ -127,6 +127,7 @@ if (options.experimentRange){
 
 // Experiment
 fileOut = "${options.output}$experimentStart.csv" as String
+err.println "Creating output file $fileOut"
 out = new File(fileOut)
 
 // Setup RA files if requested...
