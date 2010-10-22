@@ -50,7 +50,7 @@ summaryHeading = WekaPipelineOutput.getFormattedSummaryHeading()
 out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
 
 if (options.maxFeaturesOut > 0){
-  out<< ","+WekaPipelineOutput.getAttributesHeading(options.maxFeaturesOut)
+  out<< ","+WekaPipelineOutput.getAttributesHeading(options.data,options.maxFeaturesOut)
 }
 out<<"\n"
 
