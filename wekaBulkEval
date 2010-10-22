@@ -160,6 +160,7 @@ Instances clinicalData = WekaExplorer.readNumericFromTable(options.clinical)
 // For each experiment...
 def tid,sid,classID;
 experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx-> 
+  jobIdx = idx+experimentStart;
 
 // Trying to improve error reporting on cluster...
 try{
@@ -242,8 +243,8 @@ try{
     attsel.setEvaluator(experiment.attributeEval);
     attsel.setSearch(search);
     attsel.SelectAttributes(filtered);     
-          
-    WekaPipelineOutput.appendAttributeSelectionSummaryLine(merged,out,
+
+    WekaPipelineOutput.appendAttributeSelectionSummaryLine(jobIdx,merged,out,
                                          merged.numInstances(),
                                          experiment,attsel,
                                          options.maxFeaturesOut as Integer)                                             
@@ -271,13 +272,13 @@ try{
     asClassifier.setSearch(search);                
   }  
        
-  bugNumAttr = merged.numAttributes()
-  (0..<bugNumAttr).each{
-    attr = merged.attribute(it);
-    if (attr.isNominal()){
-      println "Nominal attribute: ${attr.name()}";
-    }
-  }
+ // bugNumAttr = merged.numAttributes()
+  //(0..<bugNumAttr).each{
+  //  attr = merged.attribute(it);
+  //  if (attr.isNominal()){
+  //    println "Nominal attribute: ${attr.name()}";
+  //  }
+  //}
    
   // Perform cross-validation of the model..
   err.print "Instances: ${merged.numInstances()} Attributes: ${experiment.numAttributes}. Running cross validation (${params.cvFolds} folds)..."
@@ -305,7 +306,7 @@ try{
     
   err.println "done. ${experiment.classifierStr} #att: ${experiment.numAttributes} AUC=${eval.weightedAreaUnderROC()}"
   
-  WekaPipelineOutput.appendSummaryLine(merged,out,merged.numInstances(),
+  WekaPipelineOutput.appendSummaryLine(jobIdx,merged,out,merged.numInstances(),
                                       experiment,eval,
                                       options.maxFeaturesOut as Integer)
                                                                                                                 
