@@ -302,7 +302,7 @@ try{
       tid = tid1;
       sid = sid1;
     }   
-    ra.writeResults(experiment.classifierStr,tresults,classID,tid,sid,jobIdx)
+    ra.writeResults(experiment.classifierStr,results,classID,tid,sid,jobIdx)
   }
     
   err.println "done. ${experiment.classifierStr} #att: ${experiment.numAttributes} AUC=${eval.weightedAreaUnderROC()}"
