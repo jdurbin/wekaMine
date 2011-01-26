@@ -29,13 +29,14 @@ err = System.err
 WekaAdditions.enable()     
 
 parser = new Parser(description: '''
- wekaBulkEval takes a tab delimited data file in attributes (rows) x samples (cols) format, 
+ wekaMine takes a tab delimited data file in attributes (rows) x samples (cols) format, 
  and a clinical file, also in attributes (rows) x samples (cols) format, and evaluates 
  the set of experiments specified in an experimental configuration file.  Classification is 
  performed on the samples that occur in both the data and clinical file (intersection). 
- A list of summary lines in CSV format will be APPENDED to the end of the output file.  Since this will
- often be run in a cluster setting with many jobs appending to the same file, the heading is not normally 
- written out.  Run this script with the -H option to just output heading to stdout.  
+ A list of summary lines in CSV format will be APPENDED to the end of the output file.  
+ Since this will often be run in a cluster setting with many jobs appending to the same 
+ file, the heading is not normally written out.  Run this script with the -H option to 
+ just output heading to stdout.  
  
  Instances with missing class values are removed.   Attributes that do not vary at all 
  are removed.  Instances with negative class values are optionally removed.  
@@ -46,11 +47,11 @@ parser = new Parser(description: '''
  https://cancer2.cse.ucsc.edu/mediawiki/index.php/WekaClassifierConfig
  
  Note that the config file can specify a number of attributes to use in attribute 
- selection, or -1 to auto-select (varies from algorithm to algorithm). The config 
- file option actually determines how many attributes the classifier sees.  The 
- -m/maxFeaturesOut option merely determines the maximum number of selected attributes, 
- and their scores, to save in the output and does not affect what the classifier 
- will see. 
+ selection, or -1 to auto-select (the details of which varies from attribute selection 
+ algorithm to attribute selection algorithm). The config file option actually determines 
+ how many attributes the classifier sees.  The -m/maxFeaturesOut option merely determines 
+ the maximum number of selected attributes (and their scores) to save in the output and 
+ does not affect what attributes the classifier will see. 
  
 Written by: James Durbin (kdurbin@ucsc.edu)
  
@@ -301,7 +302,7 @@ try{
       tid = tid1;
       sid = sid1;
     }   
-    ra.writeResults(results,classID,tid,sid,jobIdx)
+    ra.writeResults(experiment.classifierStr,results,classID,tid,sid,jobIdx)
   }
     
   err.println "done. ${experiment.classifierStr} #att: ${experiment.numAttributes} AUC=${eval.weightedAreaUnderROC()}"

@@ -29,7 +29,7 @@ parser.with{
   optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output.",
                                  validate:{it as Integer}]
                                  
-  optional 'R','raFileRoot',[description: 'Root path of .ra files for loading into classifier browser.']
+  optional 'R','raFileRoot',[description: 'Root path of .ra files for loading into classifier browser.(e.g. ./ra/chin2006)']
   
   //optional 'l','listOutput',[description: 'File name for a flat list output of the experiments.']
   flag 'h','help',[default:false,description: 'Print script help.']
@@ -50,16 +50,15 @@ summaryHeading = WekaPipelineOutput.getFormattedSummaryHeading()
 out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
 
 if (options.maxFeaturesOut > 0){
+	err.println "DEBUG: ${options.maxFeaturesOut}"
   out<< ","+WekaPipelineOutput.getAttributesHeading(options.data,options.maxFeaturesOut)
 }
 out<<"\n"
-
 
 def listout
 if (options.configFile && options.listOutput){
   listout = new File(options.listOutput)
 }
-
 
 // Figure out how many jobs we need based on the number of experiments given. 
 def numExperiments,numJobs
