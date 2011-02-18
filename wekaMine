@@ -67,7 +67,7 @@ parser.with{
     
   required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
   required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
-  required 'o','output',[description: 'File where output should go.']
+  required 'o','output',[description: 'File where output should go. Generates three files *.summary.csv, *.features.csv, and *.samples.csv']
   optional 'c','config',[description: 'Configuration file']  
 
   optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
@@ -127,9 +127,19 @@ if (options.experimentRange){
 }
 
 // Experiment
-fileOut = "${options.output}${experimentStart}.csv" as String
+fileOut = "${options.output}${experimentStart}.summary.csv" as String
 err.println "Creating output file $fileOut"
 out = new File(fileOut)
+
+featuresOut = "${options.output}${experimentStart}.features.csv" as String
+err.println "Creating features output file $featuresOut"
+fout = new File(featuresOut)
+
+samplesOut = "${options.output}${experimentStart}.samples.csv" as String
+err.println "Creating samples output file $samplesOut"
+sout = new File(samplesOut)
+
+
 
 // Setup RA files if requested...
 RAUtils ra;
@@ -190,18 +200,22 @@ try{
   // KJD why not:  newData.deleteWithMissingClass();
   merged = pipeline.removeInstancesWithMissingClassValues(merged) 
 
-  // Discretize class (needs to be an experiment list parameter, not global option)
-  if (params.useMedianDiscretization){
+  // Discretize class 
+	if (experiment.discretization == 'median'){
+		err.println "quartile discretization"		
     merged = pipeline.classToMedian(merged,"low","high")        
-    //err.println "Not yet implemented:  median discretization."
-    //System.exit(1)
-  }else if (params.useUpperLowerQuartile){
+  }else if (experiment.discretization == 'quartile'){
+		err.println "quartile discretization"		
     merged = pipeline.classToNominalTopBottomQuartile(merged,"low","high")        
-  }else if (params.discretizeCutoffs){
-    lowerBound = params.discretizeCutoffs.low
-    upperBound = params.discretizeCutoffs.high
+  }else if (experiment.discretization.contains(";")){
+		fields = experiment.discretization.split(";")
+    lowerBound = fields[0] as double
+    upperBound = fields[1] as double
     merged = pipeline.classToNominalFromCutoffs(merged,lowerBound,upperBound,"low","high")
-  }
+  }else{
+		err.println "UNKNOWN discretization: "+experiment.discretization
+		return;
+	}
 
   // If an arffFile output name was given, just save this processed file for 
   // use in Weka GUI and exit.  Arff files aren't a core part of the pipeline in 
@@ -248,7 +262,10 @@ try{
     WekaPipelineOutput.appendAttributeSelectionSummaryLine(jobIdx,merged,out,
                                          merged.numInstances(),
                                          experiment,attsel,
-                                         options.maxFeaturesOut as Integer)                                             
+                                         options.maxFeaturesOut as Integer)
+
+		// LKD Revisit this to add features to the output...
+                                             
     return;
   }
   
@@ -282,9 +299,10 @@ try{
   //}
    
   // Perform cross-validation of the model..
-  err.print "Instances: ${merged.numInstances()} Attributes: ${experiment.numAttributes}. Running cross validation (${params.cvFolds} folds)..."
+  err.print "Instances: ${merged.numInstances()} Attributes: ${experiment.numAttributes}. Running cross validation (${params.cvFolds} folds) with ${experiment.classifierStr}..."
     
   cvu = new CVUtils()
+	// Results contain per-sample information...
   results = cvu.crossValidateModel(asClassifier,merged,params.cvFolds,new Random(params.cvSeed))
   eval = cvu.eval
     
@@ -305,12 +323,20 @@ try{
     ra.writeResults(experiment.classifierStr,results,classID,tid,sid,jobIdx)
   }
     
-  err.println "done. ${experiment.classifierStr} #att: ${experiment.numAttributes} AUC=${eval.weightedAreaUnderROC()}"
-  
+  err.println "done. #att: ${experiment.numAttributes} AUC=${eval.weightedAreaUnderROC()}"
+  err.println "================================"
+	// OK, a bit of a wordy interface, but it gets it done...
   WekaPipelineOutput.appendSummaryLine(jobIdx,merged,out,merged.numInstances(),
+                                      experiment,eval)
+
+  WekaPipelineOutput.appendFeaturesLine(jobIdx,merged,fout,merged.numInstances(),
                                       experiment,eval,
                                       options.maxFeaturesOut as Integer)
-                                                                                                                
+
+  WekaPipelineOutput.appendSamplesLine(jobIdx,merged,sout,merged.numInstances(),
+                                      experiment,eval,results)
+                                        																			
+                                                                        
   // Save an ROC directory if requested...
   if (params.rocDir) WekaPipelineOutput.saveROC(eval,params.rocDir,className,numFeatures)         
  

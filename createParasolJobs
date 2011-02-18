@@ -3,7 +3,9 @@
 import durbin.util.*
 import durbin.weka.*
 
-// KJD: Should probably bundle this into wekaBulkEval somehow...
+// KJD: Should probably bundle this into wekaMine somehow...
+
+err = System.err
 
 parser = new Parser(description: '''
   Creates a list of script commands ready to execute with para try and para run.  Output is to stdout. 
@@ -96,10 +98,10 @@ if (options.experimentList){
 //System.err.println "numExp: "+numExperiments+" numJobs: "+numJobs;
 
 if (options.experimentList){
-  rootCmd = "${options.scriptRoot}/wekaBulkEval -d ${options.data} -i ${options.clinical}"
+  rootCmd = "${options.scriptRoot}/wekaMine -d ${options.data} -i ${options.clinical}"
   rootCmd += " -c ${options.configFile} -l ${options.experimentList}"
 }else if (options.configFile){
-  rootCmd = "${options.scriptRoot}/wekaBulkEval -d ${options.data} -i ${options.clinical}"
+  rootCmd = "${options.scriptRoot}/wekaMine -d ${options.data} -i ${options.clinical}"
   rootCmd += " -c ${options.configFile}"
   rootCmd += " -m ${options.maxFeaturesOut}"
 }else{
