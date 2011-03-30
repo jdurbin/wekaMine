@@ -5,6 +5,7 @@ import durbin.weka.InstanceUtils as IU
 import durbin.util.*
 
 import weka.core.*
+import weka.core.SerializationHelper
 import weka.core.converters.ArffSaver
 import weka.filters.*
 import weka.filters.unsupervised.attribute.Remove
@@ -65,10 +66,17 @@ Written by: James Durbin (kdurbin@ucsc.edu)
 
 parser.with{
     
-  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
-  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
   required 'o','output',[description: 'File where output should go. Generates three files *.summary.csv, *.features.csv, and *.samples.csv']
   optional 'c','config',[description: 'Configuration file']  
+
+	// For file input...
+  optional 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+
+	optional 'b','bioint',[description: """	
+	A database string specifying a BioIntegrator database to get data/clinical info from and conf file for passwords. \n
+	For example:  cancer2.cse.ucsc.edu:3036:bioInt:.hg.conf
+	"""]
 
   optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
   optional 'R','raRoot',[description: 'Root name of .ra file output']
@@ -76,6 +84,7 @@ parser.with{
   optional 'l','experimentList',[description: 'Flat experiment list file. OVERRIDES experiments in config. Will probably be deprecated.']  
   flag 'H','writeHeading',[default:false,description: 'Write out heading alone to output file.']
   flag 'h','help',[default:false,description: 'Print script help.']
+	flag 'M','writeModel',[default:false,description: 'Save model file (name will encode jobID+classAttribute)']
 }
 
 // Validate attributes that one of a set are required...
@@ -159,14 +168,42 @@ if (options.writeHeading){
   System.exit(1);
 }
 
+/*****************************************************************************
+*  GET DATA FROM FILE OR DB
+*/
+
+Instances data;
+Instances clinicalData;
+if (params.bioint){
+	options.bioint == params.bioint	
+}
+
+if (options.bioint){
+	//cancer2.cse.ucsc.edu:3036:bioInt:.hg.conf:chin2002Exp
+	fields = options.bioint.split(":") 
+	host = fields[0]
+	port = fields[1]
+	dbName = fields[2]
+	confFile = fields[3]
+	table = fields[4]
+	err.println "bioint loading not yet implemented"
+   	// KJD... should probably wrap a separate version bioIntWekaMine for this
+	System.exit(1)		
+}else if (options.data){
+	// Read data and clinical files as a set of Weka Instances
+	data = WekaExplorer.readNumericFromTable(options.data)
+	clinicalData = WekaExplorer.readNumericFromTable(options.clinical)
+}else{
+	err.println "ERROR: Must specify either a database string or data and clinical files to get data from. "
+	System.exit(1)
+}
+
+
 
 /***********************************************************************************
 *                               MAIN PROCESSING 
 */ 
 
-// Read data and clinical files as a set of Weka Instances
-Instances data = WekaExplorer.readNumericFromTable(options.data)
-Instances clinicalData = WekaExplorer.readNumericFromTable(options.clinical)
 
 // For each experiment...
 def tid,sid,classID;
@@ -264,7 +301,7 @@ try{
                                          experiment,attsel,
                                          options.maxFeaturesOut as Integer)
 
-		// LKD Revisit this to add features to the output...
+		// JKD Revisit this to add features to the output...
                                              
     return;
   }
@@ -299,13 +336,63 @@ try{
   //}
    
   // Perform cross-validation of the model..
-  err.print "Instances: ${merged.numInstances()} Attributes: ${experiment.numAttributes}. Running cross validation (${params.cvFolds} folds) with ${experiment.classifierStr}..."
+  err.println "Instances: ${merged.numInstances()} Attributes: ${experiment.numAttributes}."
+  err.print   "Running cross validation (${params.cvFolds} folds) with ${experiment.classifierStr}..."
     
   cvu = new CVUtils()
 	// Results contain per-sample information...
   results = cvu.crossValidateModel(asClassifier,merged,params.cvFolds,new Random(params.cvSeed))
   eval = cvu.eval
-    
+  
+	/*****
+	* Save model...
+	*/ 
+	if (options.writeModel){
+		def classifierType = WekaNames.getBaseClassifierType(experiment.classifierStr)
+		
+		def modelFileName = "${options.output}.$classifierType.${experiment.classAttribute}.${jobIdx}.model"
+		err.print "Saving model to $modelFileName..."
+		
+
+
+		// KJD:  Notes on the size of models...
+		// When doing the filteredClassifierFromClassifier, the model size is 15MB. 
+		// omitting that Filtered classifier and simply removing string attribute before 
+		// classifier sees is reduces size to 3MB.... so, now we're maybe talking
+		// 200 datasets * 5 features * 5 top classifiers * 3MB = 5000 * 3MB = 15,000 MB or 15 GB.  Tolerable. 
+		// classifier object with no training has takes 1096 bytes.  
+		// J48 with filteredClassifierFromClassifer is also 14MB.  
+		// No coincidence, is it, that the raw data takes about 11 MB on disk? 
+		// With classifierFromSpec followed by RemoveType, J48 takes about 1MB.  So this is probably more typical. 
+		// so we can store all the models in something like 5GB.  That's probably tolerable. 
+
+
+		// Remove string attribute...
+		def fclassifier = pipeline.classifierFromSpec(experiment.classifierStr)
+		def remove = new RemoveType();
+		remove.setInputFormat(merged);
+		Instances notypeMerged = Filter.useFilter(merged, remove);   // apply filter		
+		fclassifier.buildClassifier(notypeMerged)
+		println "m_classifiers size: "+fclassifier.m_classifiers.size()
+		fclassifier.m_classifiers.each{it.m_data = null}
+		
+		//def fclassifier = pipeline.filteredClassifierFromClassifier(asClassifier);
+		//fclassifier.buildClassifier(merged)
+		//Vector v = new Vector()
+		//v.add(fclassifier)
+		//v.add(new Instances(merged,0))
+		
+		// serialize model
+	 ObjectOutputStream oos = new ObjectOutputStream(
+	                            new FileOutputStream(modelFileName));
+	 oos.writeObject(fclassifier);
+	 oos.flush();
+	 oos.close();
+				
+		//SerializationHelper.write(modelFileName,v)
+		err.println "done."
+	}
+	
   if (options.raRoot){
     // Record basic info in RA files... ra functions handle detecting duplicate classifiers and subgroups...
     // at least within a job... between jobs, a post-filter will be needed. 
