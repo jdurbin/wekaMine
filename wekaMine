@@ -1,450 +1,156 @@
 #!/usr/bin/env groovy 
 
-import durbin.weka.*
-import durbin.weka.InstanceUtils as IU
+import durbin.weka.* 
 import durbin.util.*
 
-import weka.core.*
-import weka.core.SerializationHelper
-import weka.core.converters.ArffSaver
-import weka.filters.*
-import weka.filters.unsupervised.attribute.Remove
-import weka.filters.unsupervised.instance.RemoveWithValues
+err = System.err // sugar
 
-import weka.filters.unsupervised.attribute.RemoveType
-import weka.classifiers.*
-import weka.classifiers.evaluation.*
-import weka.classifiers.Evaluation
-import weka.classifiers.functions.supportVector.PolyKernel
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
 
-import weka.classifiers.meta.*
-import weka.attributeSelection.*
-import weka.attributeSelection.InfoGainAttributeEval
-
-import weka.classifiers.meta.GridSearch;
-
-// Alias sugar. 
-err = System.err
-
-// Add some sugar methods to weka.Instances with Groovy metaclass. 
-WekaAdditions.enable()     
-
-parser = new Parser(description: '''
- wekaMine takes a tab delimited data file in attributes (rows) x samples (cols) format, 
- and a clinical file, also in attributes (rows) x samples (cols) format, and evaluates 
- the set of experiments specified in an experimental configuration file.  Classification is 
- performed on the samples that occur in both the data and clinical file (intersection). 
- A list of summary lines in CSV format will be APPENDED to the end of the output file.  
- Since this will often be run in a cluster setting with many jobs appending to the same 
- file, the heading is not normally written out.  Run this script with the -H option to 
- just output heading to stdout.  
- 
- Instances with missing class values are removed.   Attributes that do not vary at all 
- are removed.  Instances with negative class values are optionally removed.  
- 
- The actual experiments and experimental options are provided by the config file (-c). 
- Documentation for this config file can be found here:  
- 
- https://cancer2.cse.ucsc.edu/mediawiki/index.php/WekaClassifierConfig
- 
- Note that the config file can specify a number of attributes to use in attribute 
- selection, or -1 to auto-select (the details of which varies from attribute selection 
- algorithm to attribute selection algorithm). The config file option actually determines 
- how many attributes the classifier sees.  The -m/maxFeaturesOut option merely determines 
- the maximum number of selected attributes (and their scores) to save in the output and 
- does not affect what attributes the classifier will see. 
- 
-Written by: James Durbin (kdurbin@ucsc.edu)
- 
- Example:
- 
- wekaMine  \\
- -d data/paradigm_results.txt -i data/collisonclinical.small.tab \\
- -c exp/cfgExample2.txt -r 0,19 -o results/expout.csv
- 
-''');
-
-parser.with{
-    
-  required 'o','output',[description: 'File where output should go. Generates three files *.summary.csv, *.features.csv, and *.samples.csv']
-  optional 'c','config',[description: 'Configuration file']  
-
-	// For file input...
-  optional 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
-  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
-
-	optional 'b','bioint',[description: """	
-	A database string specifying a BioIntegrator database to get data/clinical info from and conf file for passwords. \n
-	For example:  cancer2.cse.ucsc.edu:3036:bioInt:.hg.conf
-	"""]
-
-  optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
-  optional 'R','raRoot',[description: 'Root name of .ra file output']
-  optional 'r','experimentRange',[description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)']
-  optional 'l','experimentList',[description: 'Flat experiment list file. OVERRIDES experiments in config. Will probably be deprecated.']  
-  flag 'H','writeHeading',[default:false,description: 'Write out heading alone to output file.']
-  flag 'h','help',[default:false,description: 'Print script help.']
-	flag 'M','writeModel',[default:false,description: 'Save model file (name will encode jobID+classAttribute)']
-}
-
-// Validate attributes that one of a set are required...
-parser.validate{parameters->
-  count = 0
-  if (parameters['c']) count++
-  if (parameters['f']) count++
-  if (count != 1) throw new Exception("Must specify exactly one of: -c, or -F.")
-}
-
-def options
-try{
-  options = parser.parse(args)
-}catch(Exception e){
-  System.err << parser.usage
-  System.exit(1)
-}
+// Expand the configuration file into a list of experiments. 
+experiments = new WekaMineConfig(options.config)
 
 
-/***********************************************************************************
-*                                      SETUP
-*/ 
-def slurper = new WekaExplorerConfigSlurper()
-def cfg = slurper.parse(new File(options.config).toURL())
-params = cfg.params // cfg includes all sections.  make alias for section we want. 
-
-//params.cvSeed = 521;
-
-experiments = []
-if (options.experimentList){
-  new File(options.experimentList).eachLine{line->
-    if (!line.startsWith('//')){      
-      experiments << new ExperimentSpec(line);
-    }
-  }
-}else{
-  slurper.getExpansion('experiments').each{experiment->
-    experiments << new ExperimentSpec(experiment);
-  }
-}
-
-// Set the 
-experimentStart = 0
-experimentEnd = experiments.size()-1
-if (options.experimentRange){
- experimentStart = options.experimentRange.split(",")[0] as int
- experimentEnd = options.experimentRange.split(",")[1] as int 
- err.println "eStart:"+experimentStart+" eEnd: "+experimentEnd+" size="+experiments.size() 
-}
-
-// Experiment
-fileOut = "${options.output}${experimentStart}.summary.csv" as String
+err.println ""
+// Create output files, a summary output, a features output, and a samples output.
+fileOut = "${options.output}${options.experimentRange}.summary.csv" as String
 err.println "Creating output file $fileOut"
 out = new File(fileOut)
 
-featuresOut = "${options.output}${experimentStart}.features.csv" as String
+featuresOut = "${options.output}${options.experimentRange}.features.csv" as String
 err.println "Creating features output file $featuresOut"
 fout = new File(featuresOut)
 
-samplesOut = "${options.output}${experimentStart}.samples.csv" as String
+samplesOut = "${options.output}${options.experimentRange}.samples.csv" as String
 err.println "Creating samples output file $samplesOut"
 sout = new File(samplesOut)
+err.println ""
 
+// Read the data (expression, CNV, whatever) and the clinical from tab delimited files
+data = WekaMine.readNumericFromTable(options.data)
+clinical = WekaMine.readNumericFromTable(options.clinical)
 
-
-// Setup RA files if requested...
-RAUtils ra;
-if (options.raRoot){
-  err.println "Creating new ra files: "+options.raRoot;
-  ra = new RAUtils(options.raRoot);
-  ra.writeFeatureSelection(experimentStart);   // currently, always say None
-}
-
-
-// Write out heading for the stats output... there are a lot, so heading needed. 
-// don't want to print it when running as cluster job, because we'll be concatenating 
-// output from lots of jobs, heading would appear hundreds of times in file. 
-if (options.writeHeading){
-  summaryHeading = WekaExplorer.getFormattedSummaryHeading()
-  out<< "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute\n"  
-  System.exit(1);
-}
-
-/*****************************************************************************
-*  GET DATA FROM FILE OR DB
-*/
-
-Instances data;
-Instances clinicalData;
-if (params.bioint){
-	options.bioint == params.bioint	
-}
-
-if (options.bioint){
-	//cancer2.cse.ucsc.edu:3036:bioInt:.hg.conf:chin2002Exp
-	fields = options.bioint.split(":") 
-	host = fields[0]
-	port = fields[1]
-	dbName = fields[2]
-	confFile = fields[3]
-	table = fields[4]
-	err.println "bioint loading not yet implemented"
-   	// KJD... should probably wrap a separate version bioIntWekaMine for this
-	System.exit(1)		
-}else if (options.data){
-	// Read data and clinical files as a set of Weka Instances
-	data = WekaExplorer.readNumericFromTable(options.data)
-	clinicalData = WekaExplorer.readNumericFromTable(options.clinical)
-}else{
-	err.println "ERROR: Must specify either a database string or data and clinical files to get data from. "
-	System.exit(1)
-}
-
-
-
-/***********************************************************************************
-*                               MAIN PROCESSING 
-*/ 
-
-
-// For each experiment...
-def tid,sid,classID;
-experiments[experimentStart..experimentEnd].eachWithIndex{experiment,idx-> 
-  jobIdx = idx+experimentStart;
-
-// Trying to improve error reporting on cluster...
-try{
-      
- // err.println "\nEXP.toString: "+experiment.toString()
-  
-  pipeline = new WekaExplorer(experiment.classAttribute)
-  
-  // Remove all clinical attributes except for the current class...
-  selectedAttribute = []
-  selectedAttribute.add(experiment.classAttribute)
-  singleClinicalAttribute = pipeline.removeAttributesNotSelected(clinicalData,selectedAttribute)  
-
-  // Merge data and clinical files (i.e. instances contained in both, omitting rest)
-  merged = IU.mergeNamedInstances(data,singleClinicalAttribute)
-
-  // Remove any attributes that don't vary at all..
-  merged = pipeline.removeUselessAttributes(merged)
-    
-  // For many class-attributes, negative values are invalid.  
-  if (!params.allowNegativeClass){    
-    merged = pipeline.removeInstancesWithNegativeClassValues(merged)
-  }
-
-  // Remove any instances whose class value is missingValue(). 
-  // KJD why not:  newData.deleteWithMissingClass();
-  merged = pipeline.removeInstancesWithMissingClassValues(merged) 
-
-  // Discretize class 
-	if (experiment.discretization == 'median'){
-		err.println "quartile discretization"		
-    merged = pipeline.classToMedian(merged,"low","high")        
-  }else if (experiment.discretization == 'quartile'){
-		err.println "quartile discretization"		
-    merged = pipeline.classToNominalTopBottomQuartile(merged,"low","high")        
-  }else if (experiment.discretization.contains(";")){
-		fields = experiment.discretization.split(";")
-    lowerBound = fields[0] as double
-    upperBound = fields[1] as double
-    merged = pipeline.classToNominalFromCutoffs(merged,lowerBound,upperBound,"low","high")
-  }else{
-		err.println "UNKNOWN discretization: "+experiment.discretization
-		return;
-	}
-
-  // If an arffFile output name was given, just save this processed file for 
-  // use in Weka GUI and exit.  Arff files aren't a core part of the pipeline in 
-  // any way, but sometimes it's useful to explore the pre-processed data in 
-  // the GUI
-  if (params.arffFile){
-    ArffSaver saver = new ArffSaver();
-    saver.setInstances(merged);
-    err.print "\nSaving ${params.arffFile} for manual processing..."
-    saver.setFile(new File(params.arffFile))
-    saver.writeBatch();  
-    err.println "done. Exiting."
-    System.exit(0); // Exit happily. 
-  }
-
-  // Check to see if we can do this experiment at all...
-  // KJD TODO:  Should also check to see if there is more than one class left...
-  if (merged.numInstances() < params.cvFolds){
-    err.println "Experiment skipped.  ${merged.numInstances()} instances < ${params.cvFolds} cross-validation folds."
-    return; // Can't do the experiment. 
-  } 
-    
-  // KJD:TODO   
-  // If it's just a feature selection-only experiment, do that experiment,
-  if (experiment.classifier == null){
-    AttributeSelection attsel = new AttributeSelection(); 
-
-    // Remove instance ID which is a string... 
-    filter = new RemoveType();
-    filter.setInputFormat(merged);
-    filtered = Filter.useFilter(merged, filter);
-
-    // Only Ranker (? right??) allows an overt numAttributes cutoff. 
-    // At least, BestFirst search does not. 
-    search = experiment.attributeSearch
-    if (search.class == Ranker){
-      search.setNumToSelect(experiment.numAttributes);
-    }    
-    
-    attsel.setEvaluator(experiment.attributeEval);
-    attsel.setSearch(search);
-    attsel.SelectAttributes(filtered);     
-
-    WekaPipelineOutput.appendAttributeSelectionSummaryLine(jobIdx,merged,out,
-                                         merged.numInstances(),
-                                         experiment,attsel,
-                                         options.maxFeaturesOut as Integer)
-
-		// JKD Revisit this to add features to the output...
-                                             
-    return;
-  }
-  
-  // otherwise, wrap classifier in feature selection evaluator...                  
-  def asClassifier
-  if (experiment.attributeEval == null) asClassifier = pipeline.classifierFromSpec(classifierSpec)
-  else{
-    
-    // Wrap classifier in an AttributeSelectedClassifier2 (modified from weka to 
-    // provide API to expose the actual attributes selected). 
-    asClassifier = new AttributeSelectedClassifier2();
-    
-    search = experiment.attributeSearch
-    // Only Ranker (? right??) allows an overt numAttributes cutoff. 
-    // At least, BestFirst search does not. 
-    if (search.class == Ranker){
-      search.setNumToSelect(experiment.numAttributes);
-    }
-    
-    asClassifier.setClassifier(experiment.classifier);
-    asClassifier.setEvaluator(experiment.attributeEval);
-    asClassifier.setSearch(search);                
-  }  
-       
- // bugNumAttr = merged.numAttributes()
-  //(0..<bugNumAttr).each{
-  //  attr = merged.attribute(it);
-  //  if (attr.isNominal()){
-  //    println "Nominal attribute: ${attr.name()}";
-  //  }
-  //}
-   
-  // Perform cross-validation of the model..
-  err.println "Instances: ${merged.numInstances()} Attributes: ${experiment.numAttributes}."
-  err.print   "Running cross validation (${params.cvFolds} folds) with ${experiment.classifierStr}..."
-    
-  cvu = new CVUtils()
-	// Results contain per-sample information...
-  results = cvu.crossValidateModel(asClassifier,merged,params.cvFolds,new Random(params.cvSeed))
-  eval = cvu.eval
-  
-	/*****
-	* Save model...
-	*/ 
-	if (options.writeModel){
-		def classifierType = WekaNames.getBaseClassifierType(experiment.classifierStr)
-		
-		def modelFileName = "${options.output}.$classifierType.${experiment.classAttribute}.${jobIdx}.model"
-		err.print "Saving model to $modelFileName..."
-		
-
-
-		// KJD:  Notes on the size of models...
-		// When doing the filteredClassifierFromClassifier, the model size is 15MB. 
-		// omitting that Filtered classifier and simply removing string attribute before 
-		// classifier sees is reduces size to 3MB.... so, now we're maybe talking
-		// 200 datasets * 5 features * 5 top classifiers * 3MB = 5000 * 3MB = 15,000 MB or 15 GB.  Tolerable. 
-		// classifier object with no training has takes 1096 bytes.  
-		// J48 with filteredClassifierFromClassifer is also 14MB.  
-		// No coincidence, is it, that the raw data takes about 11 MB on disk? 
-		// With classifierFromSpec followed by RemoveType, J48 takes about 1MB.  So this is probably more typical. 
-		// so we can store all the models in something like 5GB.  That's probably tolerable. 
-
-
-		// Remove string attribute...
-		def fclassifier = pipeline.classifierFromSpec(experiment.classifierStr)
-		def remove = new RemoveType();
-		remove.setInputFormat(merged);
-		Instances notypeMerged = Filter.useFilter(merged, remove);   // apply filter		
-		fclassifier.buildClassifier(notypeMerged)
-		println "m_classifiers size: "+fclassifier.m_classifiers.size()
-		fclassifier.m_classifiers.each{it.m_data = null}
-		
-		//def fclassifier = pipeline.filteredClassifierFromClassifier(asClassifier);
-		//fclassifier.buildClassifier(merged)
-		//Vector v = new Vector()
-		//v.add(fclassifier)
-		//v.add(new Instances(merged,0))
-		
-		// serialize model
-	 ObjectOutputStream oos = new ObjectOutputStream(
-	                            new FileOutputStream(modelFileName));
-	 oos.writeObject(fclassifier);
-	 oos.flush();
-	 oos.close();
-				
-		//SerializationHelper.write(modelFileName,v)
-		err.println "done."
-	}
+// Perform each experiment described in the experiment spec...
+//experiments[options.experimentRange].eachWithIndex{exp,idx-> 
+experiments[options.experimentRange].eachWithIndex{exp,idx-> 
+	jobIdx = idx+options.experimentRange.getTo()
+	err.println "Experiment: $jobIdx"
+	try{
 	
-  if (options.raRoot){
-    // Record basic info in RA files... ra functions handle detecting duplicate classifiers and subgroups...
-    // at least within a job... between jobs, a post-filter will be needed. 
-    jobIdx = idx+experimentStart;
-    classIDTemp = ra.writeClassifier(experiment.classifierStr,jobIdx); 
-    //  def classID1,tid1,sid1;
-    if (classIDTemp != null) classID = classIDTemp;  
-    err.println "classID: $classID"
-  
-    (tid1,sid1) = ra.writeSubgroup(merged,params,jobIdx);
-    if (tid1 != null){
-      tid = tid1;
-      sid = sid1;
-    }   
-    ra.writeResults(experiment.classifierStr,results,classID,tid,sid,jobIdx)
-  }
-    
-  err.println "done. #att: ${experiment.numAttributes} AUC=${eval.weightedAreaUnderROC()}"
-  err.println "================================"
-	// OK, a bit of a wordy interface, but it gets it done...
-  WekaPipelineOutput.appendSummaryLine(jobIdx,merged,out,merged.numInstances(),
-                                      experiment,eval)
+		// Creates a wekaMine pipeline...
+		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
+		
+		// Combines data and single class attribute from clinical into one set of instances...
+		instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
 
-  WekaPipelineOutput.appendFeaturesLine(jobIdx,merged,fout,merged.numInstances(),
-                                      experiment,eval,
-                                      options.maxFeaturesOut as Integer)
+	
+		// Clean up instances:
+		// * remove useless attributes
+		// * if not allowed, remove instances with negative class values
+		// * remove instances with missing class values	
+		instances = pipeline.cleanUpInstances(instances)
 
-  WekaPipelineOutput.appendSamplesLine(jobIdx,merged,sout,merged.numInstances(),
-                                      experiment,eval,results)
-                                        																			
-                                                                        
-  // Save an ROC directory if requested...
-  if (params.rocDir) WekaPipelineOutput.saveROC(eval,params.rocDir,className,numFeatures)         
- 
-  }catch(Exception e){  
-    // Save something meaningful so we know what happened, then move on...
-    jobIdx = idx+experimentStart;
-    errfile = "${options.output}.err"
-    errout = new File(errfile)
-    errmsg = e.toString()
-    err.println "ERROR on experiment #$jobIdx"
-    errout.append("ERROR on experiment #$jobIdx" as String)
-    errout.append("\nExperiment: ")
-    errout.append(experiment.toString())
-    errout.append("\n")
-    err.println "$errmsg"
-    errout.append(errmsg)
-    errout.append("\n\n")
-  }  
 
-} // classifiers
+		// Discretize the class attribute...
+		instances = pipeline.discretizeClassAttribute(instances)	
 
-// Example: 
-// scripts/paradigmClassifierEval -d dataDec9/breast/chin_naderi_pathwayvalues.txt -i dataDec9/breast/chinNaderi_clinical.txt -c Survival -D 9,11 > test/summary.txt
+		// Create an attribute selected classifier from the given experiment description..
+		asClassifier = pipeline.createAttributeSelectedClassifier()
+						
+		// Perform the cross validation
+		err.println "AttSel:  ${exp.attrEvalStr}"
+		err.println "Classifier: ${exp.classifierStr}"
+		err.print "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ..."
+		def eval = pipeline.crossValidateModel(asClassifier,instances,
+			experiments.params.cvFolds,new Random(experiments.params.cvSeed))
+		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
+	  err.println "=========================================="
+	
+		pipeline.appendSummary(out,jobIdx,instances)
+		pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
+		pipeline.appendSamples(sout, jobIdx,instances)
+			
+	}catch (Exception e){
+		err.println e
+		// Save info about exception..
+	}
+}
 
+
+
+//============================================================================
+// 
+
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	 wekaMine takes a tab delimited data file in attributes (rows) x samples (cols) format, 
+	 and a clinical file, also in attributes (rows) x samples (cols) format, and evaluates 
+	 the set of experiments specified in an experimental configuration file.  Classification is 
+	 performed on the samples that occur in both the data and clinical file (intersection). 
+	 A list of summary lines in CSV format will be APPENDED to the end of the output file.  
+	 Since this will often be run in a cluster setting with many jobs appending to the same 
+	 file, the heading is not normally written out.  Run this script with the -H option to 
+	 just output heading to stdout.  
+
+	 Instances with missing class values are removed.   Attributes that do not vary at all 
+	 are removed.  Instances with negative class values are optionally removed.  
+
+	 The actual experiments and experimental options are provided by the config file (-c). 
+	 Documentation for this config file can be found here:  
+
+	 https://cancer2.cse.ucsc.edu/mediawiki/index.php/WekaClassifierConfig
+
+	 Note that the config file can specify a number of attributes to use in attribute 
+	 selection, or -1 to auto-select (the details of which varies from attribute selection 
+	 algorithm to attribute selection algorithm). The config file option actually determines 
+	 how many attributes the classifier sees.  The -m/maxFeaturesOut option merely determines 
+	 the maximum number of selected attributes (and their scores) to save in the output and 
+	 does not affect what attributes the classifier will see. 
+
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	 Example:
+
+	 wekaMine  \\
+	 -d data/paradigm_results.txt -i data/collisonclinical.small.tab \\
+	 -c exp/cfgExample2.txt -r 0,19 -o results/expout.csv
+
+	''');
+
+	parser.with{
+
+	  required 'o','output',[description: 'File where output should go. Generates three files *.summary.csv, *.features.csv, and *.samples.csv']
+	  required 'c','config',[description: 'Configuration file']  
+	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+
+
+	  optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
+
+	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
+			// Convert it to a proper range. Default is all inclusive range. 
+			validate:{								
+		 		experimentStart = (it.split(","))[0] as int
+		 		experimentEnd = (it.split(","))[1] as int 
+			  range = (experimentStart..experimentEnd)
+				return(range)
+			}]			
+		
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
