@@ -1,0 +1,93 @@
+#!/usr/bin/env groovy
+
+import durbin.weka.* 
+import durbin.util.*
+
+err = System.err // sugar
+
+WekaAdditions.enable()
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+
+err.print "Reading model ${options.modelFile} ..."
+model = (WekaMineModel) weka.core.SerializationHelper.read(options.modelFile);
+err.println "done."
+
+// Read the data (expression, CNV, whatever) and the clinical from tab delimited files
+data = WekaMine.readNumericFromTable(options.data)
+clinical = WekaMine.readNumericFromTable(options.clinical)
+
+instances = WekaMine.createInstancesFromDataAndClinical(data,clinical,model.classAttribute())
+idList = instances.attributeValues("ID")
+//println idList
+
+// Create a new set of instances that match the model set... this may mean removing
+// some attributes that are not in the model and/or adding some that are in the model 
+// but not in the data (set as missing values in this case).   Performance on datasets
+// with different attribute sets will vary with algorithm and problem, but wekaMineClassify
+// will attempt to apply the model to any dataset it is given. 
+
+// The raw instances will, if nothing else,probably not be attribute selected, so a minimal
+// effect of this will be to reduce the number of attributes significantly down to the 
+// attribute selected subset of the model...
+
+// Note: This will also have the side effect of removing the ID attribute since the model won't
+// have it. Of course, we'd like to retain the ID somehow for the purpose of reporting results...
+instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
+
+//err.println "MATCHING: ======================================"
+//err.println instances
+
+// Model knows the class attribute, and everything else needed to process the 
+// data... so have at it...
+results = model.classify(instances)
+
+println "ID,low,high"
+
+// do something with results...
+results.eachWithIndex{result,i->
+	r = result as ArrayList	
+	rstr = r.join(",")
+	println "${idList[i]},$rstr"
+}
+
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	
+	wekaMineClassify reads in a saved wekaMine model file (.wmm) and a clinical and data file, 
+	creates a set of instances from the clinical and data file that match the model attributes, 
+	creating missing attribute values where needed, and then applies the classifier to these 
+	instances.  The output is one result per line with the instance ID followed by the probabilities
+	of each class in a list.  
+	 
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+
+
+	''');
+
+	parser.with{
+		
+		required 'm','modelFile',[description: 'wekaMine model file.']
+	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+		
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}

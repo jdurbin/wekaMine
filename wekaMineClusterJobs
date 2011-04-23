@@ -47,12 +47,12 @@ try{
 // Go ahead and write a heading to the output file.  Used to do this in the eval script itself
 // but that generated lots of headings where we only want one. 
 out = new File(options.outputFileRoot)
-summaryHeading = WekaPipelineOutput.getFormattedSummaryHeading()
+summaryHeading = WekaMineResults.getFormattedSummaryHeading()
 out << "${summaryHeading},classifier, attributeEval,attributeSearch,numAttributes,classAttribute"
 
 if (options.maxFeaturesOut > 0){
 	err.println "DEBUG: ${options.maxFeaturesOut}"
-  out<< ","+WekaPipelineOutput.getAttributesHeading(options.data,options.maxFeaturesOut)
+  out<< ","+WekaMineResults.getAttributesHeading(options.data,options.maxFeaturesOut)
 }
 out<<"\n"
 

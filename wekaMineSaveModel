@@ -1,0 +1,142 @@
+#!/usr/bin/env groovy
+
+import durbin.weka.* 
+import durbin.util.*
+
+import weka.classifiers.meta.FilteredClassifier;
+import weka.filters.unsupervised.attribute.RemoveType;
+import weka.core.SerializationHelper;
+import weka.filters.supervised.attribute.*
+import weka.filters.*
+import weka.attributeSelection.*
+
+WekaAdditions.enable() // Enable meta-class additions to weka API
+
+err = System.err // sugar
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+err.println ""
+
+// Expand the configuration file or wekaMine results into a list of experiments. 
+if (options.config){
+	experiments = new WekaMineConfig(options.config)
+	params = experiments.params
+}else if (options.resultsFile){
+	wmr = new WekaMineResults(options.resultsFile)
+	experiments = wmr.toExperiments()
+	params = [:]
+}else{
+	err.println "Must specify either a config file or a results file."
+	System.exit(1)
+}
+
+// Read the data (expression, CNV, whatever) and the clinical from tab delimited files
+data = WekaMine.readNumericFromTable(options.data)
+clinical = WekaMine.readNumericFromTable(options.clinical)
+
+// Perform each experiment described in the experiment spec...
+experiments[options.experimentRange].eachWithIndex{exp,idx-> 
+	jobIdx = idx+options.experimentRange.getTo()
+	err.println "=================================="
+	err.println "Experiment: $jobIdx"
+	try{
+		
+		// Creates a wekaMine pipeline...
+		pipeline = new WekaMine(data,clinical,exp,params)		
+		
+		// Combines data and single class attribute from clinical into one set of instances...
+		instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
+
+		// Clean up instances:
+		// * remove useless attributes
+		// * if not allowed, remove instances with negative class values
+		// * remove instances with missing class values	
+		instances = pipeline.cleanUpInstances(instances)
+
+		// Discretize the class attribute...
+		instances = pipeline.discretizeClassAttribute(instances)	
+		
+		// Remove ID attribute, since attribute evaluators and classifiers choke on it...
+		instances = pipeline.removeInstanceID(instances)
+		
+		// Apply the attribute selection algorithm to instances...			
+		instances = pipeline.selectAttributes(instances)			
+											
+		err.print("Build classifier ${exp.classifierStr}...")
+		exp.classifier.buildClassifier(instances);		
+		err.println("done.")
+
+		// Create an object to hold all the info we need to classify new instnces with 
+		// this model...
+		model = new WekaMineModel(instances,exp.classifier)
+
+		// Write out the model file...
+		outFile = "${options.modelFileName}.${jobIdx}.wmm"
+		err.print "Save model to $outFile ..."
+		SerializationHelper.write(outFile,model)
+		err.println "done."
+			
+	}catch (Exception e){
+		err.println e
+	}
+}
+
+
+//============================================================================
+// 
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	wekaMineSaveModel takes a tab delimited data file in attributes (rows) x samples (cols) format, 
+	and a clinical file, also in attributes (rows) x samples (cols) format, and trains 
+	a classifier either on the classifier(s) specified in the config file or the classifiers 
+	specified in a wekaMine results summary .csv file.  The resulting model(s) are written to 
+	a binary output file for later use. Note: attributes reported after filtering include class attribute.
+	
+	Documentation for the config file can be found here:  
+
+	https://cancer2.cse.ucsc.edu/mediawiki/index.php/WekaClassifierConfig
+
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+
+	wekaMineSaveModel  -d lin2008.tab -i lin2008.clinical.tab -c cfg.txt -o lin2008.wekaMine.wmm
+
+	''');
+
+	parser.with{
+
+	  required 'o','modelFileName',[description: 'Root file name where output should go.']
+	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+
+	  optional 'c','config',[description: 'Configuration file']  
+		optional 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier.']
+
+	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
+			// Convert it to a proper range. Default is all inclusive range. 
+			validate:{								
+		 		experimentStart = (it.split(","))[0] as int
+		 		experimentEnd = (it.split(","))[1] as int 
+			  range = (experimentStart..experimentEnd)
+				return(range)
+			}]			
+		
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}

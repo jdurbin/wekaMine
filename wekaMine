@@ -44,7 +44,6 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Combines data and single class attribute from clinical into one set of instances...
 		instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
 
-	
 		// Clean up instances:
 		// * remove useless attributes
 		// * if not allowed, remove instances with negative class values
@@ -59,7 +58,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		asClassifier = pipeline.createAttributeSelectedClassifier()
 						
 		// Perform the cross validation
-		err.println "AttSel:  ${exp.attrEvalStr}"
+		err.println "AttSel:  ${exp.attrEvalStr} numAttrs: ${exp.numAttributes}"
 		err.println "Classifier: ${exp.classifierStr}"
 		err.print "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ..."
 		def eval = pipeline.crossValidateModel(asClassifier,instances,
@@ -129,7 +128,6 @@ def ParseOptions(args){
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 
-
 	  optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
 
 	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
@@ -141,6 +139,13 @@ def ParseOptions(args){
 				return(range)
 			}]			
 		
+		flag 'H','heading',[default:false,description: 'Write out heading for summary.csv.',
+		validate:{
+			if (it){
+				println WekaMineResults.getFormattedSummaryHeading()
+				System.exit(1)		
+			}
+		}]
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
 
