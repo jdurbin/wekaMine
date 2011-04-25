@@ -27,6 +27,13 @@ err.println "Creating samples output file $samplesOut"
 sout = new File(samplesOut)
 err.println ""
 
+// Print a heading to the output files unless heading is suppressed (say, for cluster jobs)
+if (!options.suppressHeading){
+	out << WekaMineResults.getFormattedSummaryHeading() << "\n"
+	fout << WekaMineResults.getFormattedSummaryHeading() << "\n"
+	sout << WekaMineResults.getFormattedSummaryHeading() << "\n"
+}
+
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
 data = WekaMine.readNumericFromTable(options.data)
 clinical = WekaMine.readNumericFromTable(options.clinical)
@@ -49,7 +56,6 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// * if not allowed, remove instances with negative class values
 		// * remove instances with missing class values	
 		instances = pipeline.cleanUpInstances(instances)
-
 
 		// Discretize the class attribute...
 		instances = pipeline.discretizeClassAttribute(instances)	
@@ -139,13 +145,7 @@ def ParseOptions(args){
 				return(range)
 			}]			
 		
-		flag 'H','heading',[default:false,description: 'Write out heading for summary.csv.',
-		validate:{
-			if (it){
-				println WekaMineResults.getFormattedSummaryHeading()
-				System.exit(1)		
-			}
-		}]
+		flag 'H','suppressHeading',[default:false,description: 'Suppress heading for summary.csv. (to make easier to cat cluster job outputs)']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
 

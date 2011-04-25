@@ -69,7 +69,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 
 		// Create an object to hold all the info we need to classify new instnces with 
 		// this model...
-		model = new WekaMineModel(instances,exp.classifier)
+		model = new WekaMineModel(instances,exp.classifier,exp.discretization)
 
 		// Write out the model file...
 		outFile = "${options.modelFileName}.${jobIdx}.wmm"

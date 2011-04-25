@@ -36,6 +36,10 @@ idList = instances.attributeValues("ID")
 // have it. Of course, we'd like to retain the ID somehow for the purpose of reporting results...
 instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
 
+// Discretize instances.... 
+	// Discretize the class attribute...
+instances = WekaMine.discretizeClassAttribute(instances,model.discretization,model.classAttribute())
+
 //err.println "MATCHING: ======================================"
 //err.println instances
 
