@@ -141,11 +141,15 @@ def ParseOptions(args){
 	  optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
 		optional 's','sampleSubset',[default:null,description: "File listing samples to use.  All other samples will be excluded from analysis.",
 			validate:{
-				// Read in the samplesToUse... 
-				def samplesToUse = []
-				new File(it).eachLine{samplesToUse << it}
-				return(samplesToUse)
-			}			
+				if (it != null){				
+					// Read in the samplesToUse... 
+					def samplesToUse = []
+					new File(it).eachLine{samplesToUse << it}
+					return(samplesToUse)
+				}else {
+					return(it)							
+				}
+			}
 		]
 
 	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
