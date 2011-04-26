@@ -104,8 +104,7 @@ def ParseOptions(args){
 	 performed on the samples that occur in both the data and clinical file (intersection). 
 	 A list of summary lines in CSV format will be APPENDED to the end of the output file.  
 	 Since this will often be run in a cluster setting with many jobs appending to the same 
-	 file, the heading is not normally written out.  Run this script with the -H option to 
-	 just output heading to stdout.  
+	 file, the heading can optionally be omitted. 
 
 	 Instances with missing class values are removed.   Attributes that do not vary at all 
 	 are removed.  Instances with negative class values are optionally removed.  
