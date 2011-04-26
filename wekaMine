@@ -50,7 +50,12 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		
 		// Combines data and single class attribute from clinical into one set of instances...
 		instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
-
+		
+		// Remove everything except a subset if a list of samples to use is given.
+		if (options.sampleSubset){
+			instances = WekaMine.subsetInstances(instances,options.sampleSubset)
+		}
+		
 		// Clean up instances:
 		// * remove useless attributes
 		// * if not allowed, remove instances with negative class values
@@ -123,7 +128,7 @@ def ParseOptions(args){
 
 	 wekaMine  \\
 	 -d data/paradigm_results.txt -i data/collisonclinical.small.tab \\
-	 -c exp/cfgExample2.txt -r 0,19 -o results/expout.csv
+	 -c exp/cfgExample2.txt -r 0,19 -s include.samples -o results/expout.csv
 
 	''');
 
@@ -135,6 +140,14 @@ def ParseOptions(args){
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 
 	  optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
+		optional 's','sampleSubset',[default:null,description: "File listing samples to use.  All other samples will be excluded from analysis.",
+			validate:{
+				// Read in the samplesToUse... 
+				def samplesToUse = []
+				new File(it).eachLine{samplesToUse << it}
+				return(samplesToUse)
+			}			
+		]
 
 	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
 			// Convert it to a proper range. Default is all inclusive range. 
