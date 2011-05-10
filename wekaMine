@@ -19,15 +19,15 @@ def from = options.experimentRange.getFrom()
 def to = options.experimentRange.getTo()
 def rangeStr = "$from.$to"
 
-fileOut = "${options.output}$rangeStr.summary.csv" as String
+fileOut = "${options.output}${rangeStr}.summary.csv" as String
 err.println "Creating output file $fileOut"
 out = new File(fileOut)
 
-featuresOut = "${options.output}$rangeStr.features.csv" as String
+featuresOut = "${options.output}${rangeStr}.features.csv" as String
 err.println "Creating features output file $featuresOut"
 fout = new File(featuresOut)
 
-samplesOut = "${options.output}$rangeStr.samples.csv" as String
+samplesOut = "${options.output}${rangeStr}.samples.csv" as String
 err.println "Creating samples output file $samplesOut"
 sout = new File(samplesOut)
 err.println ""
