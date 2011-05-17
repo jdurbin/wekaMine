@@ -32,8 +32,8 @@ if (options.config){
 }
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-data = WekaMine.readNumericFromTable(options.data)
-clinical = WekaMine.readNumericFromTable(options.clinical)
+data = WekaMine.readFromTable(options.data)
+clinical = WekaMine.readFromTable(options.clinical)
 
 // Perform each experiment described in the experiment spec...
 experiments[options.experimentRange].eachWithIndex{exp,idx-> 

@@ -15,8 +15,8 @@ model = (WekaMineModel) weka.core.SerializationHelper.read(options.modelFile);
 err.println "done."
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-data = WekaMine.readNumericFromTable(options.data)
-clinical = WekaMine.readNumericFromTable(options.clinical)
+data = WekaMine.readFromTable(options.data)
+clinical = WekaMine.readFromTable(options.clinical)
 
 instances = WekaMine.createInstancesFromDataAndClinical(data,clinical,model.classAttribute())
 idList = instances.attributeValues("ID")

@@ -40,8 +40,10 @@ if (!options.suppressHeading){
 }
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-data = WekaMine.readNumericFromTable(options.data)
-clinical = WekaMine.readNumericFromTable(options.clinical)
+data = WekaMine.readFromTable(options.data,instancesInRows = false)
+clinical = WekaMine.readFromTable(options.clinical,instancesInRows = options.clinicalInstancesInRows)
+
+//err.println clinical
 
 // Perform each experiment described in the experiment spec...
 //experiments[options.experimentRange].eachWithIndex{exp,idx-> 
@@ -55,6 +57,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		
 		// Combines data and single class attribute from clinical into one set of instances...
 		instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
+
 		
 		// Remove everything except a subset if a list of samples to use is given.
 		if (options.sampleSubset){
@@ -76,7 +79,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Perform the cross validation
 		err.println "AttSel:  ${exp.attrEvalStr} numAttrs: ${exp.numAttributes}"
 		err.println "Classifier: ${exp.classifierStr}"
-		err.print "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ..."
+		err.print "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ${exp.classAttribute} ..."
 		def eval = pipeline.crossValidateModel(asClassifier,instances,
 			experiments.params.cvFolds,new Random(experiments.params.cvSeed))
 		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
@@ -165,7 +168,8 @@ def ParseOptions(args){
 			  range = (experimentStart..experimentEnd)
 				return(range)
 			}]			
-		
+
+		flag 'C','clinicalInstancesInRows',[default:false,description:'If set, clinical data will be assumed to be one instance per row. Default one instance per column.']		
 		flag 'H','suppressHeading',[default:false,description: 'Suppress heading for summary.csv. (to make easier to cat cluster job outputs)']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
@@ -177,6 +181,5 @@ def ParseOptions(args){
 	  System.err << parser.usage
 	  System.exit(1)
 	}	
-	
 	return(options)
 }
