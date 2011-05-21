@@ -16,11 +16,8 @@ err.println "done."
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
 data = WekaMine.readFromTable(options.data)
-clinical = WekaMine.readFromTable(options.clinical)
-
-instances = WekaMine.createInstancesFromDataAndClinical(data,clinical,model.classAttribute())
+instances = data
 idList = instances.attributeValues("ID")
-//println idList
 
 // Create a new set of instances that match the model set... this may mean removing
 // some attributes that are not in the model and/or adding some that are in the model 
@@ -36,24 +33,28 @@ idList = instances.attributeValues("ID")
 // have it. Of course, we'd like to retain the ID somehow for the purpose of reporting results...
 instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
 
-// Discretize instances.... 
-	// Discretize the class attribute...
-instances = WekaMine.discretizeClassAttribute(instances,model.discretization,model.classAttribute())
+// If a clinical file is given, also output whether or not the prediction matches
+// the clinical value...
+if (options.clinical){
+	clinical = WekaMine.readFromTable(options.clinical)
 
-//err.println "MATCHING: ======================================"
-//err.println instances
+	// Remove instances with missing values, etc...
+	clinical.setClassName(model.classAttribute())
+	clinical = WekaMine.cleanUpInstances(clinical)
+
+	// Discretize the class attribute...
+	clinical = WekaMine.discretizeClassAttribute(clinical,model.discretization,
+							model.classAttribute())								
+}
 
 // Model knows the class attribute, and everything else needed to process the 
 // data... so have at it...
 results = model.classify(instances)
 
-println "ID,low,high"
-
-// do something with results...
-results.eachWithIndex{result,i->
-	r = result as ArrayList	
-	rstr = r.join(",")
-	println "${idList[i]},$rstr"
+if (options.clinical){
+	model.printResultsAndCompare(results,clinical)
+}else{
+	model.printResults(results)
 }
 
 
@@ -63,11 +64,12 @@ results.eachWithIndex{result,i->
 def ParseOptions(args){
 	parser = new Parser(description: '''
 	
-	wekaMineClassify reads in a saved wekaMine model file (.wmm) and a clinical and data file, 
-	creates a set of instances from the clinical and data file that match the model attributes, 
+	wekaMineClassify reads in a saved wekaMine model file (.wmm) and a data file, 
+	creates a set of instances from data file that match the model attributes, 
 	creating missing attribute values where needed, and then applies the classifier to these 
 	instances.  The output is one result per line with the instance ID followed by the probabilities
-	of each class in a list.  
+	of each class in a list.  If a clinical file is given, the clinical values are compared 
+	with the predictions and summary statistics reported on the performance of the classifier. 
 	 
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
@@ -80,7 +82,8 @@ def ParseOptions(args){
 		
 		required 'm','modelFile',[description: 'wekaMine model file.']
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
-	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+
+	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 		
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
