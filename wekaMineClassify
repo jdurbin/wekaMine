@@ -15,9 +15,7 @@ model = (WekaMineModel) weka.core.SerializationHelper.read(options.modelFile);
 err.println "done."
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-data = WekaMine.readFromTable(options.data)
-instances = data
-idList = instances.attributeValues("ID")
+instances = WekaMine.readFromTable(options.data)
 
 // Create a new set of instances that match the model set... this may mean removing
 // some attributes that are not in the model and/or adding some that are in the model 
@@ -29,22 +27,23 @@ idList = instances.attributeValues("ID")
 // effect of this will be to reduce the number of attributes significantly down to the 
 // attribute selected subset of the model...
 
-// Note: This will also have the side effect of removing the ID attribute since the model won't
-// have it. Of course, we'd like to retain the ID somehow for the purpose of reporting results...
+// The model has no ID, so we save the ID for later reporting...
+instanceIDs = instances.attributeValues("ID") as ArrayList
 instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
+
 
 // If a clinical file is given, also output whether or not the prediction matches
 // the clinical value...
 if (options.clinical){
 	clinical = WekaMine.readFromTable(options.clinical)
 
-	// Remove instances with missing values, etc...
-	clinical.setClassName(model.classAttribute())
-	clinical = WekaMine.cleanUpInstances(clinical)
-
 	// Discretize the class attribute...
 	clinical = WekaMine.discretizeClassAttribute(clinical,model.discretization,
-							model.classAttribute())								
+							model.classAttribute())		
+																					
+	// Remove instances with missing values, etc...
+	clinical.setClassName(model.classAttribute())
+	clinical = WekaMine.cleanUpInstances(clinical)		
 }
 
 // Model knows the class attribute, and everything else needed to process the 
@@ -52,9 +51,9 @@ if (options.clinical){
 results = model.classify(instances)
 
 if (options.clinical){
-	model.printResultsAndCompare(results,clinical)
+	model.printResultsAndCompare(results,instanceIDs,clinical)
 }else{
-	model.printResults(results)
+	model.printResults(results,instanceIDs)
 }
 
 
