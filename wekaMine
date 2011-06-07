@@ -183,7 +183,7 @@ def ParseOptions(args){
 				return(range)
 			}]			
 
-		flag 'C','clinicalInstancesInRows',[default:false,description:'If set, clinical data will be assumed to be one instance per row. Default one instance per column.']		
+		flag 'R','clinicalInstancesInRows',[default:false,description:'If set, clinical data will be assumed to be one instance per row. Default one instance per column.']		
 		flag 'H','suppressHeading',[default:false,description: 'Suppress heading for summary.csv. (to make easier to cat cluster job outputs)']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
