@@ -37,7 +37,11 @@ instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attribu
 if (options.clinical){
 	clinical = WekaMine.readFromTable(options.clinical)
 
-	// Discretize the class attribute...
+	// Remove instances with missing class value...
+	clinical.setClassName(model.classAttribute())
+	clinical = WekaMine.cleanUpInstances(clinical)	
+
+	// Discretize the class attribute... (KJD... this should always be an explicit cutoff derived from experiment...)
 	clinical = WekaMine.discretizeClassAttribute(clinical,model.discretization,
 							model.classAttribute())		
 																					

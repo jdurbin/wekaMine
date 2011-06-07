@@ -11,6 +11,13 @@ options = ParseOptions(args)
 // Expand the configuration file into a list of experiments. 
 experiments = new WekaMineConfig(options.config)
 
+// Write out jobs and quit if that is requested...
+if (options.experimentsPerJob){
+	scriptFile = getClass().protectionDomain.codeSource.location.path	
+	WekaMine.writeClusterJobList(args,experiments.size(),options.experimentsPerJob,scriptFile)
+	System.exit(1)
+}
+
 
 err.println ""
 // Create output files, a summary output, a features output, and a samples output.
@@ -72,6 +79,11 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 
 		// Discretize the class attribute...
 		instances = pipeline.discretizeClassAttribute(instances)	
+		
+		// Remove censored samples that can't be put into a discretized class... 
+		if (experiments.params.censoredAttribute){
+			instances = pipeline.removeUnclassifiableCensoredSamples(instances,clinical,experiments.params.censoredAttribute)
+		}
 
 		// Create an attribute selected classifier from the given experiment description..
 		asClassifier = pipeline.createAttributeSelectedClassifier()
@@ -145,6 +157,8 @@ def ParseOptions(args){
 	  required 'c','config',[description: 'Configuration file']  
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+	
+		optional 'k','experimentsPerJob',[description: 'When specified, wekaMine does not run but instead outputs a list of wekaMine commands, k experiments each, for the cluster.']
 
 	  optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
 		optional 's','sampleSubset',[default:null,description: "File listing samples to use.  All other samples will be excluded from analysis.",

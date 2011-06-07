@@ -55,8 +55,14 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		instances = pipeline.cleanUpInstances(instances)
 
 		// Discretize the class attribute...
-		instances = pipeline.discretizeClassAttribute(instances)	
-		
+		instances = pipeline.discretizeClassAttribute(instances)
+
+		// Hacky way to get cutoffs out...
+		rn = instances.relationName()
+		fields = rn.split("\t")
+		cutoffs = fields[1]		
+				
+				
 		// Remove ID attribute, since attribute evaluators and classifiers choke on it...
 		instances = pipeline.removeInstanceID(instances)
 		
@@ -68,8 +74,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		err.println("done.")
 
 		// Create an object to hold all the info we need to classify new instnces with 
-		// this model...
-		model = new WekaMineModel(instances,exp.classifier,exp.discretization)
+		// this model...	
+		model = new WekaMineModel(instances,exp.classifier,cutoffs)
 
 		// Write out the model file...
 		outFile = "${options.modelFileName}.${jobIdx}.wmm"
