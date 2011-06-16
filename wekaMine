@@ -92,8 +92,16 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		err.println "AttSel:  ${exp.attrEvalStr} numAttrs: ${exp.numAttributes}"
 		err.println "Classifier: ${exp.classifierStr}"
 		err.print "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ${exp.classAttribute} ..."
-		def eval = pipeline.crossValidateModel(asClassifier,instances,
-			experiments.params.cvFolds,new Random(experiments.params.cvSeed))
+
+		// Use seed or randomize with clock...
+		def rng;
+		if (experiments.params.cvSeed == -1){
+			rng = new Random();
+		}else{
+			rng = new Random(experiments.params.cvSeed)
+		}
+				
+		def eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng)
 		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
 	  err.println "=========================================="
 	
