@@ -54,10 +54,12 @@ if (options.clinical){
 // data... so have at it...
 results = model.classify(instances)
 
+def out = System.out
+if (options.outputFile) out = new File(options.outputFile)
 if (options.clinical){
-	model.printResultsAndCompare(results,instanceIDs,clinical)
+	model.printResultsAndCompare(out,results,instanceIDs,clinical)
 }else{
-	model.printResults(results,instanceIDs)
+	model.printResults(out,results,instanceIDs)
 }
 
 
@@ -86,6 +88,7 @@ def ParseOptions(args){
 		required 'm','modelFile',[description: 'wekaMine model file.']
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 
+		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 		
 	  flag 'h','help',[default:false,description: 'Print script help.']

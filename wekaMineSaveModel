@@ -18,7 +18,8 @@ err = System.err // sugar
 options = ParseOptions(args)
 err.println ""
 
-// Expand the configuration file or wekaMine results into a list of experiments. 
+// Expand the configuration file or wekaMine results into a list of experiments.
+def experiments = [] 
 if (options.config){
 	experiments = new WekaMineConfig(options.config)
 	params = experiments.params
@@ -26,8 +27,13 @@ if (options.config){
 	wmr = new WekaMineResults(options.resultsFile)
 	experiments = wmr.toExperiments()
 	params = [:]
+}else if (options.experimentString){
+	headingMap = WekaMineResult.defaultHeadingMap()
+	experiment = new ExperimentSpec(options.experimentString,headingMap)
+	experiments << experiment
+	params = [:]
 }else{
-	err.println "Must specify either a config file or a results file."
+	System.err.println "How did we get here?  Must specify one of -c, -R, or -E to define the model. Run with -h for options. "
 	System.exit(1)
 }
 
@@ -122,7 +128,9 @@ def ParseOptions(args){
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 
 	  optional 'c','config',[description: 'Configuration file']  
-		optional 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier.']
+		optional 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier(s). Will save one model per result in file.']
+		
+		optional 'E','experimentString',[description: 'A single experiment string. In single quotes, comma separated: attrEval,attrSearch,numAttributes,classifier.  Use keyword "none" to omit a field.']
 
 	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
 			// Convert it to a proper range. Default is all inclusive range. 
@@ -139,7 +147,15 @@ def ParseOptions(args){
 	def options
 	try{
 	  options = parser.parse(args)
+	
+		if (!options.config && !options.resultsFile && !options.experimentString){
+			System.err.println "Must specify one of -c, -R, or -E to define the model. Run with -h for options. "
+			System.err<<parser.usage
+			System.exit(1)
+		}
+	
 	}catch(Exception e){
+		System.err e.toString()
 	  System.err << parser.usage
 	  System.exit(1)
 	}	
