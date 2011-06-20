@@ -148,14 +148,13 @@ def ParseOptions(args){
 	try{
 	  options = parser.parse(args)
 	
-		if (!options.config && !options.resultsFile && !options.experimentString){
+		if ((!options.config && !options.resultsFile && !options.experimentString) || (options.help)){
 			System.err.println "Must specify one of -c, -R, or -E to define the model. Run with -h for options. "
 			System.err<<parser.usage
 			System.exit(1)
 		}
 	
 	}catch(Exception e){
-		System.err e.toString()
 	  System.err << parser.usage
 	  System.exit(1)
 	}	
