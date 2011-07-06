@@ -11,6 +11,11 @@ options = ParseOptions(args)
 // Expand the configuration file into a list of experiments. 
 experiments = new WekaMineConfig(options.config)
 
+def foldsets = null;
+if (options.foldsetsFile){
+	foldsets = new FoldSets(options.foldsetsFile)	
+}
+
 // Write out jobs and quit if that is requested...
 if (options.experimentsPerJob){
 	scriptFile = getClass().protectionDomain.codeSource.location.path	
@@ -47,7 +52,8 @@ if (!options.suppressHeading){
 }
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-data = WekaMine.readFromTable(options.data,instancesInRows = false)
+data = WekaMine.readNumericFromTable(options.data)
+//data = TableFileLoader.readNumeric(options.data,options.data,"\t");
 clinical = WekaMine.readFromTable(options.clinical,instancesInRows = options.clinicalInstancesInRows)
 
 //err.println clinical
@@ -84,6 +90,13 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		if (experiments.params.censoredAttribute){
 			instances = pipeline.removeUnclassifiableCensoredSamples(instances,clinical,experiments.params.censoredAttribute)
 		}
+		
+		// Fix up the foldset to match the remaining instances...
+		if (options.foldsetsFile){
+			err.print "Fix foldset to reflect removed samples..."
+			foldsets = foldsets.removeMissing(instances)
+			err.println "done."
+		}
 
 		// Create an attribute selected classifier from the given experiment description..
 		asClassifier = pipeline.createAttributeSelectedClassifier()
@@ -101,15 +114,21 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			rng = new Random(experiments.params.cvSeed)
 		}
 				
-		def eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng)
+		def eval 
+		if (foldsets){
+			eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets)
+		}else{
+			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng)
+		}
 		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
-	  err.println "=========================================="
+	  err.println "==========================================\n"
 	
 		pipeline.appendSummary(out,jobIdx,instances)
 		pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
 		pipeline.appendSamples(sout, jobIdx,instances)
 			
 	}catch (Exception e){
+		err.println "\n\n"
 		err.println e
 		// Save info about exception..
 	}
@@ -168,7 +187,8 @@ def ParseOptions(args){
 	
 		optional 'k','experimentsPerJob',[description: 'When specified, wekaMine does not run but instead outputs a list of wekaMine commands, k experiments each, for the cluster.']
 
-	  optional 'm','maxFeaturesOut',[default: 0,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
+		optional 'f','foldsetsFile',[default:null,description: "File specifying the cross validation foldsets to use."]
+	  optional 'm','maxFeaturesOut',[default: 100,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
 		optional 's','sampleSubset',[default:null,description: "File listing samples to use.  All other samples will be excluded from analysis.",
 			validate:{
 				if (it != null){				
