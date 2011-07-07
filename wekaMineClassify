@@ -15,7 +15,8 @@ model = (WekaMineModel) weka.core.SerializationHelper.read(options.modelFile);
 err.println "done."
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-instances = WekaMine.readFromTable(options.data)
+//instances = WekaMine.readFromTable(options.data)
+instances = WekaMine.readNumericFromTable(options.data)
 
 // Create a new set of instances that match the model set... this may mean removing
 // some attributes that are not in the model and/or adding some that are in the model 

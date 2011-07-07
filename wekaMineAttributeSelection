@@ -38,7 +38,7 @@ if (options.config){
 }
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-data = WekaMine.readFromTable(options.data)
+data = WekaMine.readNumericFromTable(options.data)
 
 def clinical
 if (options.clinical){
