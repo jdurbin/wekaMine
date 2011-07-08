@@ -11,7 +11,7 @@ options = ParseOptions(args)
 // Expand the configuration file into a list of experiments. 
 experiments = new WekaMineConfig(options.config)
 
-def foldsets = null;
+FoldSets foldsets;
 if (options.foldsetsFile){
 	foldsets = new FoldSets(options.foldsetsFile)	
 }
@@ -95,6 +95,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		if (options.foldsetsFile){
 			err.print "Fix foldset to reflect removed samples..."
 			foldsets = foldsets.removeMissing(instances)
+			experiments.params.cvFolds = foldsets.countFolds()
 			err.println "done."
 		}
 
