@@ -30,6 +30,7 @@ instances = WekaMine.readNumericFromTable(options.data)
 
 // The model has no ID, so we save the ID for later reporting...
 instanceIDs = instances.attributeValues("ID") as ArrayList
+
 instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
 
 
@@ -46,7 +47,7 @@ if (options.clinical){
 	clinical = WekaMine.discretizeClassAttribute(clinical,model.discretization,
 							model.classAttribute())		
 																					
-	// Remove instances with missing values, etc...
+	// Remove instances with missing values, etc...  KJD twice?  Why do this twice?
 	clinical.setClassName(model.classAttribute())
 	clinical = WekaMine.cleanUpInstances(clinical)		
 }

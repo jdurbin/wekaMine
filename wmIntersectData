@@ -1,0 +1,62 @@
+#!/usr/bin/env groovy
+
+import durbin.weka.* 
+import durbin.util.*
+
+import weka.classifiers.meta.FilteredClassifier;
+import weka.filters.unsupervised.attribute.RemoveType;
+import weka.core.SerializationHelper;
+import weka.filters.supervised.attribute.*
+import weka.filters.*
+import weka.attributeSelection.*
+
+WekaAdditions.enable() // Enable meta-class additions to weka API
+
+err = System.err // sugar
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+err.println ""
+
+
+//============================================================================
+// 
+
+
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	wmIntersectData takes a list of the names of tab delimited data files 
+	(in attribute rows x samples cols format) and merges these data files into one combined data file. 
+	The combined data file will contain the intersection of the features in all of the input files (i.e. 
+	only the attributes that occur in all of the files) and the union of the instances in all of the
+	input files.  This is just a attribute intersection tool, no normalization or processing of the 
+	input files is performed to make their values comparable.  
+	
+	Example:
+
+	wmIntersectData 
+
+	''');
+
+	parser.with{
+
+	  required 'o','outputFile',[description: 'File name for where output.']
+	  required 'l','dataList', [description: 'List of data files to use.']
+		
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)		
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
