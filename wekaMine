@@ -21,7 +21,7 @@ if (options.foldsetsFile){
 if (options.experimentsPerJob){
 	scriptFile = getClass().protectionDomain.codeSource.location.path	
 	WekaMine.writeClusterJobList(args,experiments.size(),options.experimentsPerJob,scriptFile)
-	System.exit(1)
+	System.exit(0)
 }
 
 
