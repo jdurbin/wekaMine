@@ -45,7 +45,7 @@ err.println "Creating samples output file $samplesOut"
 sout = new File(samplesOut)
 
 // Output information about training set if requested. 
-def tout,tsout
+def tout
 if (options.evalTraining){
 	trainingOut = "${options.output}${rangeStr}.trainingsamples.csv" as String	
 	err.println "Creating samples output file $trainingOut"
@@ -132,18 +132,22 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}else{
 			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
 		}
-		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
-	  err.println "==========================================\n"
 	
+		err.print "Appending test results..."
 		pipeline.appendSummary(out,jobIdx,instances)
 		pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
 		pipeline.appendTestSamples(sout, jobIdx,instances)
+		err.println "done."
 		
-		if (options.evalTraining){
+		if (options.evalTraining){			
+			err.print "Append training results..."
 			pipeline.appendTrainingSamples(tout,jobIdx,instances)
-		}
+			err.println "done."
+		}		
 		
-			
+		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
+	  err.println "==========================================\n"
+					
 	}catch (Exception e){
 		err.println "\n\n"
 		err.println e
