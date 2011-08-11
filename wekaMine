@@ -49,11 +49,7 @@ def tout,tsout
 if (options.evalTraining){
 	trainingOut = "${options.output}${rangeStr}.trainingsamples.csv" as String	
 	err.println "Creating samples output file $trainingOut"
-	tout = new File(trainingOut)
-	
-	trainingSummaryOut = "${options.output}${rangeStr}.trainingsummary.csv" as String	
-	err.println "Creating samples output file $trainingSummaryOut"
-	tsout = new File(trainingOut)		
+	tout = new File(trainingOut)	
 }
 
 err.println ""
@@ -144,7 +140,6 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		pipeline.appendTestSamples(sout, jobIdx,instances)
 		
 		if (options.evalTraining){
-			pipeline.appendTrainingSummary(tsout,jobIdx,instances)
 			pipeline.appendTrainingSamples(tout,jobIdx,instances)
 		}
 		
