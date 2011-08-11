@@ -40,9 +40,22 @@ featuresOut = "${options.output}${rangeStr}.features.csv" as String
 err.println "Creating features output file $featuresOut"
 fout = new File(featuresOut)
 
-samplesOut = "${options.output}${rangeStr}.samples.csv" as String
+samplesOut = "${options.output}${rangeStr}.testsamples.csv" as String
 err.println "Creating samples output file $samplesOut"
 sout = new File(samplesOut)
+
+// Output information about training set if requested. 
+def tout,tsout
+if (options.evalTraining){
+	trainingOut = "${options.output}${rangeStr}.trainingsamples.csv" as String	
+	err.println "Creating samples output file $trainingOut"
+	tout = new File(trainingOut)
+	
+	trainingSummaryOut = "${options.output}${rangeStr}.trainingsummary.csv" as String	
+	err.println "Creating samples output file $trainingSummaryOut"
+	tsout = new File(trainingOut)		
+}
+
 err.println ""
 
 // Print a heading to the output files unless heading is suppressed (say, for cluster jobs)
@@ -68,6 +81,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	
 		// Creates a wekaMine pipeline...
 		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
+		pipeline.dataName = options.data
 		
 		// Combines data and single class attribute from clinical into one set of instances...
 		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
@@ -116,18 +130,24 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			rng = new Random(experiments.params.cvSeed)
 		}
 				
-		def eval 
-		if (foldsets){
-			eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets)
+		Evaluation2 eval 
+		if (options.foldsetsFile){
+			eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets,options.evalTraining)
 		}else{
-			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng)
+			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
 		}
 		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
 	  err.println "==========================================\n"
 	
 		pipeline.appendSummary(out,jobIdx,instances)
 		pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
-		pipeline.appendSamples(sout, jobIdx,instances)
+		pipeline.appendTestSamples(sout, jobIdx,instances)
+		
+		if (options.evalTraining){
+			pipeline.appendTrainingSummary(tsout,jobIdx,instances)
+			pipeline.appendTrainingSamples(tout,jobIdx,instances)
+		}
+		
 			
 	}catch (Exception e){
 		err.println "\n\n"
@@ -169,7 +189,8 @@ def ParseOptions(args){
 	 how many attributes the classifier sees.  The -m/maxFeaturesOut option merely determines 
 	 the maximum number of selected attributes (and their scores) to save in the output and 
 	 does not affect what attributes the classifier will see. 
-
+	
+	 
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
 	 Example:
@@ -213,6 +234,7 @@ def ParseOptions(args){
 				return(range)
 			}]			
 
+		flag 't','evalTraining',[default:false,description:'If set, the classifier is evaluated on the training data as well as the test data in cross validation, output in *.trainingsamples.csv.  NOTE: This will slow down execution, possibly significantly.' ]
 		flag 'R','clinicalInstancesInRows',[default:false,description:'If set, clinical data will be assumed to be one instance per row. Default one instance per column.']		
 		flag 'H','suppressHeading',[default:false,description: 'Suppress heading for summary.csv. (to make easier to cat cluster job outputs)']
 	  flag 'h','help',[default:false,description: 'Print script help.']
