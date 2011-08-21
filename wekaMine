@@ -95,7 +95,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		instances = pipeline.cleanUpInstances(instances)
 
 		// Discretize the class attribute...
-		instances = pipeline.discretizeClassAttribute(instances)	
+		(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)	
 		
 		// Remove censored samples that can't be put into a discretized class... 
 		if (experiments.params.censoredAttribute){

@@ -25,8 +25,28 @@ if (options.config){
 	params = experiments.params
 }else if (options.resultsFile){
 	wmr = new WekaMineResults(options.resultsFile)
-	experiments = wmr.toExperiments()
-	params = [:]
+		
+	if (options.topModel){	
+		err.print "Determining top model..."
+		// Find the top result...
+		maxStat = -999;
+		maxIdx = -1;
+		for(int i = 0;i < wmr.size();i++){
+				if (wmr[i].roc > maxStat){
+					maxStat = wmr[i].roc
+					maxIdx = i
+				}
+		}
+		err.println "done."
+		// Create an experiment from it...
+		topExperiment = wmr[maxIdx].toExperiment()
+		err.println "Top Model: "+topExperiment
+		experiments = []
+		experiments << topExperiment
+	}else{
+		experiments = wmr.toExperiments()
+	}
+	params = [:]	
 }else if (options.experimentString){
 	headingMap = WekaMineResult.defaultHeadingMap()
 	experiment = new ExperimentSpec(options.experimentString,headingMap)
@@ -52,6 +72,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		pipeline = new WekaMine(data,clinical,exp,params)		
 		
 		// Combines data and single class attribute from clinical into one set of instances...
+		// KJD: apparently, the order is not guaranteed to match between instances and data...
+		// I don't depend on the order, but it's something to keep in mind...
 		instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
 
 		// Clean up instances:
@@ -61,23 +83,19 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		instances = pipeline.cleanUpInstances(instances)
 
 		// Discretize the class attribute...
-		instances = pipeline.discretizeClassAttribute(instances)
-
-		// Hacky way to get cutoffs out...
-		rn = instances.relationName()
-		fields = rn.split("\t")
-		cutoffs = fields[1]		
+		(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)
 				
+		err.println "cutoffs: $cutoffs"		
 				
 		// Remove ID attribute, since attribute evaluators and classifiers choke on it...
 		instances = pipeline.removeInstanceID(instances)
 		
 		// Apply the attribute selection algorithm to instances...			
-		instances = pipeline.selectAttributes(instances)			
+		instances = pipeline.selectAttributes(instances)	
 											
 		err.print("Build classifier ${exp.classifierStr}...")
 		exp.classifier.buildClassifier(instances);		
-		err.println("done.")
+		err.println("done.")				
 
 		// Create an object to hold all the info we need to classify new instnces with 
 		// this model...	
@@ -130,6 +148,8 @@ def ParseOptions(args){
 	  optional 'c','config',[description: 'Configuration file']  
 		optional 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier(s). Will save one model per result in file.']
 		
+		flag 'T','topModel',[default: false,description: 'With -R option, will output a model corresponding to the best result in the results file.']
+		
 		optional 'E','experimentString',[description: 'A single experiment string. In single quotes, comma separated: attrEval,attrSearch,numAttributes,classifier.  Use keyword "none" to omit a field.']
 
 	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
@@ -153,6 +173,13 @@ def ParseOptions(args){
 			System.err<<parser.usage
 			System.exit(1)
 		}
+		
+		if (options.topModel && (!options.resultsFile)){
+			System.err.println "-T topModel option must be used with -R resultsFile option. "
+			System.err<<parser.usage
+			System.exit(1)
+		}
+		
 	
 	}catch(Exception e){
 	  System.err << parser.usage

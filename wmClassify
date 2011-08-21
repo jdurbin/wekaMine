@@ -2,6 +2,8 @@
 
 import durbin.weka.* 
 import durbin.util.*
+import weka.core.converters.ConverterUtils.DataSource;
+import weka.core.*
 
 err = System.err // sugar
 
@@ -33,6 +35,9 @@ instanceIDs = instances.attributeValues("ID") as ArrayList
 
 instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
 
+// Add an empty class attribute so that classifiers don't choke ?
+instances = WekaMine.createEmptyClassAttribute(instances,model.className,model.classValues)
+instances.setClassName(model.className)
 
 // If a clinical file is given, also output whether or not the prediction matches
 // the clinical value...
@@ -41,19 +46,16 @@ if (options.clinical){
 
 	// Remove instances with missing class value...
 	clinical.setClassName(model.classAttribute())
-	clinical = WekaMine.cleanUpInstances(clinical)	
+	//clinical = WekaMine.cleanUpInstances(clinical)	why would I do this?
 
 	// Discretize the class attribute... (KJD... this should always be an explicit cutoff derived from experiment...)
-	clinical = WekaMine.discretizeClassAttribute(clinical,model.discretization,
-							model.classAttribute())		
-																					
-	// Remove instances with missing values, etc...  KJD twice?  Why do this twice?
-	clinical.setClassName(model.classAttribute())
-	clinical = WekaMine.cleanUpInstances(clinical)		
+	(clinical,clinicalCutoffs) = WekaMine.discretizeClassAttribute(clinical,model.discretization,
+							model.classAttribute())			
+							
+	err.println "clinicalCutoffs: $clinicalCutoffs" 																												
 }
 
-// Model knows the class attribute, and everything else needed to process the 
-// data... so have at it...
+// Model knows everything else needed to process the data... so have at it...
 results = model.classify(instances)
 
 def out = System.out

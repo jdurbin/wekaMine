@@ -1,0 +1,67 @@
+#!/usr/bin/env groovy 
+
+import durbin.weka.* 
+import durbin.util.*
+
+err = System.err // sugar
+
+options = ParseOptions(args)
+
+err.print "Reading ${options.resultsFile}..."
+wmr = new WekaMineResults(options.resultsFile)
+err.println "done."
+
+err.print "Determining top model..."
+// Find the top result...
+maxStat = -999;
+maxIdx = -1;
+for(int i = 0;i < wmr.size();i++){	
+		if (wmr[i].roc > maxStat){
+			maxStat = wmr[i].roc
+			maxIdx = i
+		}
+}
+err.println "done."
+
+topExperimentResult = wmr[maxIdx]
+
+err.println topExperimentResult
+println wmr.getFormattedSummaryHeading()
+println topExperimentResult
+
+
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	wekaGetBestModel reads in a results summary file, finds the best model, and prints 
+	the description with stats to stderr and the model description alone to stdout. 
+
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+
+	wekaGetBestModel  -R summary.csv > topresult.csv
+
+	''');
+
+	parser.with{
+
+		required 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier(s).']
+		
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+		
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
