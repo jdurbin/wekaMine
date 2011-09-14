@@ -82,6 +82,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Combines data and single class attribute from clinical into one set of instances...
 		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
 		instances = pipeline.createInstancesFromDataAndClinical(data,clinical)	
+		err.println "Combined instances: "+instances.numInstances()
 
 		// Remove everything except a subset if a list of samples to use is given.
 		if (options.sampleSubset){
