@@ -1,0 +1,64 @@
+#!/usr/bin/env groovy
+
+import durbin.weka.* 
+import durbin.util.*
+import weka.core.converters.ConverterUtils.DataSource;
+import weka.core.*
+
+err = System.err // sugar
+
+WekaAdditions.enable()
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+
+err.print "Reading model ${options.modelFile} ..."
+model = (WekaMineModel) weka.core.SerializationHelper.read(options.modelFile);
+err.println "done."
+
+if (!options.attributeList){
+	println model.toString();
+}else{
+	println "Model attributes:"
+	println model.attributes().join("\n");
+}
+
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	
+	wmModelInfo reads in a saved wekaMine model file (.wmm) and reports on the information 
+	contained in the model, such as the classifier, parameters, attributes used, etc.  Default
+	output is to print basic information about the model.  The -a option prints out just the list
+	of attributes the model uses. 
+	 
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+	
+	wmModelInfo -m bestmodel.wmm > model.info
+
+
+	''');
+
+	parser.with{
+		
+		required 'm','modelFile',[description: 'wekaMine model file.']
+
+		flag 'a','attributeList',[default:false,description: 'suppress classifier info and just output attribute list.']		
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
