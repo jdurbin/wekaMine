@@ -31,8 +31,8 @@ for(int fs = 0;fs < foldSets.size();fs++){
 		Instances train = CVUtils.trainCV(data,foldSet,i);
 		Instances test = CVUtils.testCV(data,foldSet,i);			
 		
-		trainName = "${options.outRoot}_${fs}_${i}_train.tab"
-		testName = "${options.outRoot}_${fs}_${i}_test.tab"
+		trainName = "${options.outRoot}_${fs+1}_${i+1}_train.tab"
+		testName = "${options.outRoot}_${fs+1}_${i+1}_test.tab"
 		
 		print "\t\t\t"			
 	  WekaMine.saveDataFromInstances(trainName,train)
