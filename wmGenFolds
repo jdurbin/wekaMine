@@ -24,10 +24,10 @@ int numFolds = foldSets.foldSize();
 for(int fs = 0;fs < foldSets.size();fs++){
 	ArrayList<Integer> foldSet = foldSets.get(fs);
 	
-	System.err.println("\n\tFoldSet: "+fs);		
+	System.err.println("\n\tFoldSet: "+fs+);		
 	System.err.println("\tnumFolds: "+numFolds);
 	for (int i = 0; i < numFolds; i++) {
-		System.err.println("\t\tFold:"+i);
+		System.err.println("\t\tFold:"+i+1);
 		Instances train = CVUtils.trainCV(data,foldSet,i);
 		Instances test = CVUtils.testCV(data,foldSet,i);			
 		
