@@ -21,7 +21,7 @@ data = WekaMine.readNumericFromTable(options.data)
 
 foldSets = new FoldSets(options.foldSet)	
 int numFolds = foldSets.foldSize(); 
-for(int fs = 0;fs < foldSets.size();fs){
+for(int fs = 0;fs < foldSets.size();fs++){
 	ArrayList<Integer> foldSet = foldSets.get(fs);
 	
 	System.err.println("\n\tFoldSet: "+(fs+1));		
