@@ -1,0 +1,87 @@
+#!/usr/bin/env groovy
+
+import durbin.weka.* 
+import durbin.util.*
+
+import weka.classifiers.meta.FilteredClassifier;
+import weka.filters.unsupervised.attribute.RemoveType;
+import weka.core.*
+import weka.filters.supervised.attribute.*
+import weka.filters.*
+import weka.attributeSelection.*
+
+WekaAdditions.enable() // Enable meta-class additions to weka API
+
+err = System.err // sugar
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+
+data = WekaMine.readNumericFromTable(options.data)
+
+foldSets = new FoldSets(options.foldSet)	
+int numFolds = foldSets.foldSize(); 
+for(int fs = 0;fs < foldSets.size();fs++){
+	ArrayList<Integer> foldSet = foldSets.get(fs);
+	
+	System.err.println("\n\tFoldSet: "+fs);		
+	System.err.println("\tnumFolds: "+numFolds);
+	for (int i = 0; i < numFolds; i++) {
+		System.err.println("\t\tFold:"+i);
+		Instances train = CVUtils.trainCV(data,foldSet,i);
+		Instances test = CVUtils.testCV(data,foldSet,i);			
+		
+		trainName = "${options.outRoot}_${fs}_${i}_train.tab"
+		testName = "${options.outRoot}_${fs}_${i}_test.tab"
+		
+		print "\t\t\t"			
+	  WekaMine.saveDataFromInstances(trainName,train)
+		print "\t\t\t"
+		WekaMine.saveDataFromInstances(testName,test)
+	}
+}
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	
+	wmGenFolds creates a set of cross-validation folds.  Currently it only works from a foldset file, but 
+	soon it will generate them from scratch also. 
+	 
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+	
+	wmGenFolds -f foldset -o folds/test
+
+	''');
+
+	parser.with{
+		
+		required 'd','data',[description: 'data file.']
+		required 'f','foldSet',[description: 'foldSet file.']
+		required 'o','outRoot',[description: 'root name for folds files']
+		
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
+
+/**
+saveDataFromInstances2, one 5x cv of 295 samples: 
+0m37.638s
+
+saveDataFromInstaqnces  one 5x cv of 295 samples:
+real	0m13.292s
+*/
