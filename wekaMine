@@ -104,12 +104,13 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}
 		
 		// Fix up the foldset to match the remaining instances...
-		if (options.foldsetsFile){
-			err.print "Fix foldset to reflect removed samples..."
-			foldsets = foldsets.removeMissing(instances)
-			experiments.params.cvFolds = foldsets.countFolds()
-			err.println "done."
-		}
+		// FoldSet class just fixed up to do something sane if data doesn't contain desired sample...
+		//if (options.foldsetsFile){
+		//	err.print "Fix foldset to reflect removed samples..."
+		//	foldsets = foldsets.removeMissing(instances)
+		//	experiments.params.cvFolds = foldsets.countFolds()
+		//	err.println "done."
+		//}
 
 		// Create an attribute selected classifier from the given experiment description..
 		asClassifier = pipeline.createAttributeSelectedClassifier()

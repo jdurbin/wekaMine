@@ -59,6 +59,8 @@ try{
 	noIDinstances = WekaMine.applyFilter(noIDinstances,options.filter)
 		
 	// Put the ID back into the attribute selected instances...
+	// KJD: Note that addID below assumes same number of instances in same order. 
+	// KJD: This assumption may not always hold for filters... need to think of how to handle this.
 	instances = WekaMine.addID(noIDinstances,instNames)			
 											
 	// Write out the attribute selected tab file...

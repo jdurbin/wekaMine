@@ -33,9 +33,7 @@ instances = WekaMine.readNumericFromTable(options.data)
 // The model has no ID, so we save the ID for later reporting...
 instanceIDs = instances.attributeValues("ID") as ArrayList
 
-
 instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
-
 
 // Add an empty class attribute so that classifiers don't choke ?
 instances = WekaMine.createEmptyClassAttribute(instances,model.className,model.classValues)
@@ -48,7 +46,9 @@ if (options.clinical){
 
 	// Remove instances with missing class value...
 	clinical.setClassName(model.classAttribute())
-	//clinical = WekaMine.cleanUpInstances(clinical)	why would I do this?
+
+	// Remove instances with negative class value. 
+	clinical = WekaMine.cleanUpInstances(clinical)
 
 	// Discretize the class attribute... (KJD... this should always be an explicit cutoff derived from experiment...)
 	(clinical,clinicalCutoffs) = WekaMine.discretizeClassAttribute(clinical,model.discretization,
