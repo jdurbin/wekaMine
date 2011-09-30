@@ -155,6 +155,13 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		err.println e
 		// Save info about exception..
 	}
+	
+	// File doesn't have a close... Are writes to File guaranteed to flush? 
+	//out.close()
+	//fout.close()
+	//sout.close()
+	//if (options.evalTraining) tout.close()
+	
 }
 
 
