@@ -20,9 +20,10 @@ options = ParseOptions(args)
 data = WekaMine.readNumericFromTable(options.data)
 
 foldSets = new FoldSets(options.foldSet)	
-int numFolds = foldSets.foldSize(); 
 for(int fs = 0;fs < foldSets.size();fs++){
-	ArrayList<Integer> foldSet = foldSets.get(fs);
+	FoldSet foldSet = foldSets.get(fs);
+	
+	int numFolds = foldSet.numFolds(); 
 	
 	System.err.println("\n\tFoldSet: "+(fs+1));		
 	System.err.println("\tnumFolds: "+numFolds);
@@ -40,6 +41,8 @@ for(int fs = 0;fs < foldSets.size();fs++){
 		WekaMine.saveDataFromInstances(testName,test)
 	}
 }
+
+
 
 /****************************************************
 * Parse the command line options, checking validity, printing help if needed. 
