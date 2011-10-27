@@ -62,14 +62,21 @@ if (!options.suppressHeading){
 }
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-data = WekaMine.readNumericFromTable(options.data)
+if (options.dataMayContainNominalValues){
+	data = WekaMine.readFromTable(options.data)
+}else{
+	data = WekaMine.readNumericFromTable(options.data)
+}
 //data = TableFileLoader.readNumeric(options.data,options.data,"\t");
 clinical = WekaMine.readFromTable(options.clinical,instancesInRows = options.clinicalInstancesInRows)
 
-//err.println clinical
+// Remove everything except a subset if a list of samples to use is given.
+if (options.sampleSubset){
+	data = WekaMine.subsetInstances(data,options.sampleSubset)
+	clinical = WekaMine.subsetInstances(clinical,options.sampleSubset)
+}
 
 // Perform each experiment described in the experiment spec...
-//experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 	jobIdx = idx+options.experimentRange.getTo()
 	err.println "Experiment: $jobIdx"
@@ -83,11 +90,6 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
 		instances = pipeline.createInstancesFromDataAndClinical(data,clinical)	
 		err.println "Combined instances: "+instances.numInstances()
-
-		// Remove everything except a subset if a list of samples to use is given.
-		if (options.sampleSubset){
-			instances = WekaMine.subsetInstances(instances,options.sampleSubset)
-		}
 		
 		// Clean up instances:
 		// * remove useless attributes
@@ -102,15 +104,6 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		if (experiments.params.censoredAttribute){
 			instances = pipeline.removeUnclassifiableCensoredSamples(instances,clinical,experiments.params.censoredAttribute)
 		}
-		
-		// Fix up the foldset to match the remaining instances...
-		// FoldSet class just fixed up to do something sane if data doesn't contain desired sample...
-		//if (options.foldsetsFile){
-		//	err.print "Fix foldset to reflect removed samples..."
-		//	foldsets = foldsets.removeMissing(instances)
-		//	experiments.params.cvFolds = foldsets.countFolds()
-		//	err.println "done."
-		//}
 
 		// Create an attribute selected classifier from the given experiment description..
 		asClassifier = pipeline.createAttributeSelectedClassifier()
@@ -150,18 +143,19 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
 	  err.println "==========================================\n"
 					
+		// 			
+					
 	}catch (Exception e){
 		err.println "\n\n"
 		err.println e
 		// Save info about exception..
 	}
 	
-	// File doesn't have a close... Are writes to File guaranteed to flush? 
+	// File doesn't have a close (as opposed to writer)... Are writes to File guaranteed to flush? 
 	//out.close()
 	//fout.close()
 	//sout.close()
 	//if (options.evalTraining) tout.close()
-	
 }
 
 
@@ -245,6 +239,7 @@ def ParseOptions(args){
 		flag 't','evalTraining',[default:false,description:'If set, the classifier is evaluated on the training data as well as the test data in cross validation, output in *.trainingsamples.csv.  NOTE: This will slow down execution, possibly significantly.' ]
 		flag 'R','clinicalInstancesInRows',[default:false,description:'If set, clinical data will be assumed to be one instance per row. Default one instance per column.']		
 		flag 'H','suppressHeading',[default:false,description: 'Suppress heading for summary.csv. (to make easier to cat cluster job outputs)']
+		flag 'N','dataMayContainNominalValues',[default:false,description: 'Option to read datafile in as mixed numeric/nominal.  Slower than default all numeric. ']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
 

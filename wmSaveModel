@@ -101,6 +101,11 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// this model...	
 		model = new WekaMineModel(instances,exp.classifier,cutoffs)
 
+		if (options.nullModelIterations){
+			nullModel = pipeline.computeNullModel(instances,exp,options.nullModelIterations)
+			model.setNullModel(nullModel)
+		}		
+
 		// Write out the model file...
 		outFile = "${options.modelFileName}.${jobIdx}.wmm"
 		err.print "Save model to $outFile ..."
