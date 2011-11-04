@@ -107,10 +107,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}		
 
 		// Write out the model file...
-		rootName = options.modelFileName
+		def rootName = options.modelFileName
 		if (options.useClassName) rootName = "$rootName"+exp.classAttribute;
 		
-		outFile = "$rootName_${jobIdx}.wmm"
+		outFile = "${rootName}_${jobIdx}.wmm"
 		err.print "Save model to $outFile ..."
 		SerializationHelper.write(outFile,model)
 		err.println "done."
