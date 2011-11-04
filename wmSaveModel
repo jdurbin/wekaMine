@@ -107,7 +107,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}		
 
 		// Write out the model file...
-		outFile = "${options.modelFileName}.${jobIdx}.wmm"
+		rootName = options.modelFileName
+		if (options.useClassName) rootName = "$rootName"+exp.classAttribute;
+		
+		outFile = "$rootName_${jobIdx}.wmm"
 		err.print "Save model to $outFile ..."
 		SerializationHelper.write(outFile,model)
 		err.println "done."
@@ -166,6 +169,7 @@ def ParseOptions(args){
 				return(range)
 			}]			
 		
+	  flag 'N','useClassName',[default:false,description: 'Tack on class name as part of modelFileName.']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
 
