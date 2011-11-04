@@ -108,7 +108,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 
 		// Write out the model file...
 		def rootName = options.modelFileName
-		if (options.useClassName) rootName = "$rootName"+exp.classAttribute;
+		def cleanClass = exp.classAttribute.replaceAll(" ","_")
+		if (options.useClassName) rootName = "$rootName"+cleanClass
 		
 		outFile = "${rootName}_${jobIdx}.wmm"
 		err.print "Save model to $outFile ..."
