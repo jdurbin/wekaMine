@@ -1,0 +1,110 @@
+#!/usr/bin/env groovy
+
+import durbin.weka.* 
+import durbin.util.*
+import weka.core.converters.ConverterUtils.DataSource;
+import weka.core.*
+
+err = System.err // sugar
+
+WekaAdditions.enable()
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+
+// Read the data (expression, CNV, whatever) 
+instances = WekaMine.readNumericFromTable(options.data)
+
+// read model list
+fileContents = new File(options.modelList).text
+modelList = fileContents.split("\n") as ArrayList
+
+modelsBySamples = new TwoDMap()
+modelList.each{modelName->
+	
+	if (options.rootPath) modelPath = options.rootPath
+	else modelPath = ""
+	
+	err.print "Reading model ${modelName} ..."
+	model = (WekaMineModel) weka.core.SerializationHelper.read("${modelPath}${modelName}");
+	err.println "done."	
+
+	// Create a new set of instances that match the model set... this may mean removing
+	// some attributes that are not in the model and/or adding some that are in the model 
+	// but not in the data (set as missing values in this case).   Performance on datasets
+	// with different attribute sets will vary with algorithm and problem, but wekaMineClassify
+	// will attempt to apply the model to any dataset it is given. 
+
+	// The raw instances will, if nothing else,probably not be attribute selected, so a minimal
+	// effect of this will be to reduce the number of attributes significantly down to the 
+	// attribute selected subset of the model...
+
+	// The model has no ID, so we save the ID for later reporting...
+	instanceIDs = instances.attributeValues("ID") as ArrayList
+
+	matchedInstances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
+
+	// Add an empty class attribute so that classifiers don't choke ? Odd...
+	matchedInstances = WekaMine.createEmptyClassAttribute(matchedInstances,model.className,model.classValues)
+	matchedInstances.setClassName(model.className)
+	
+	// Model knows everything else needed to process the data... so have at it...
+	// Results is a list, one item per instance, each item is a distribution for instance
+	// results[0] == model.class0 probability, results[1] == model.class1 probability. 
+	results = model.classify(matchedInstances)
+	
+	
+	// KJD should have an option to take the name of the class you want to report...
+	// (i.e. brain or not-brain).  Currently just takes first class value.  Also, this is 
+	// poorly defined for multi-class distributions. 
+	for(instanceIdx in 0..< matchedInstances.numInstances()){		
+		instanceName = instanceIDs[instanceIdx]
+		modelsBySamples[modelName][instanceName] = results[instanceIdx][0]  // Return the distribution for instance 0
+	}
+}
+
+def out = System.out
+if (options.outputFile) out = new File(options.outputFile)
+
+err.print "Writing ${options.outputFile}.."
+modelsBySamples.writeTable(out){it.round(7)}
+err.println "done."
+
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	
+	wmCreateChain takes a list of models and applies them one at a time to the input data. The result of 
+	each classifier output (distForInstance value...) is saved in a model (rows) by samples (cols) table. 
+	 
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+
+
+	''');
+
+	parser.with{
+		
+		required 'm','modelList',[description: 'A list of model file paths.']
+	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+
+		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
+		optional 'p','rootPath',[description: 'Root path appended to beginning of each model name.']
+				
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
