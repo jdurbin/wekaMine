@@ -26,7 +26,7 @@ modelList.each{modelName->
 	else modelPath = ""
 	
 	err.print "Reading model ${modelName} ..."
-	model = (WekaMineModel) weka.core.SerializationHelper.read("${modelPath}${modelName}");
+	model = (WekaMineModel) weka.core.SerializationHelper.read("${modelPath}/${modelName}");
 	err.println "done."	
 
 	// Create a new set of instances that match the model set... this may mean removing
@@ -59,7 +59,13 @@ modelList.each{modelName->
 	// poorly defined for multi-class distributions. 
 	for(instanceIdx in 0..< matchedInstances.numInstances()){		
 		instanceName = instanceIDs[instanceIdx]
-		modelsBySamples[modelName][instanceName] = results[instanceIdx][0]  // Return the distribution for instance 0
+		
+		class0Pr = results[instanceIdx][0]  
+		class1Pr = results[instanceIdx][1]
+		err.println "class0Pr: $class0Pr  class1Pr: $class1Pr "
+		llr = Math.log(class1Pr/class0Pr)
+		
+		modelsBySamples[modelName][instanceName] = llr
 	}
 }
 
@@ -95,7 +101,8 @@ def ParseOptions(args){
 		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 		optional 'p','rootPath',[description: 'Root path appended to beginning of each model name.']
 				
-	  flag 'h','help',[default:false,description: 'Print script help.']
+	  flag 'h','help',[default:false,description: 'Print script help.']	
+	
 	}
 
 	def options
