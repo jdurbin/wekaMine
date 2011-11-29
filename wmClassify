@@ -33,7 +33,8 @@ instances = WekaMine.readNumericFromTable(options.data)
 // The model has no ID, so we save the ID for later reporting...
 instanceIDs = instances.attributeValues("ID") as ArrayList
 
-instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
+//instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)  // 17 seconds
+instances = InstanceUtils.createInstancesToMatchAttributeList(instances,model.attributes) // 3-5 seconds. 
 
 // Add an empty class attribute so that classifiers don't choke ?
 instances = WekaMine.createEmptyClassAttribute(instances,model.className,model.classValues)
