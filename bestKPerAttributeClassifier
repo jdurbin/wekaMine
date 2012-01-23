@@ -1,0 +1,126 @@
+#!/usr/bin/env groovy
+
+import durbin.util.*
+import durbin.weka.*
+
+err = System.err
+
+if (args.size() < 2){
+	err.println "Usage:\n"
+	err.println "\tbestKPerAttributeClassifier K resultsFile > bestk.csv\n"
+	System.exit(1)
+}
+
+// K is maximum number to save for each attribute/classifier pair.  
+K = args[0] as int 
+inputFile = args[1]
+
+// topTen is a 2DMap attributes vs classifiers, each entry is a list of 
+// file line number index, roc values.  e.g.: 
+// topTen[attribute][classifier] = [(idx,roc),(idx,roc),(idx,roc)...]
+// topTen['TIMEmeta']['SMO'] = [[0.9,20],[0.76,25],[0.65,30]]
+
+err.print "Building index of top ten per attribute/clssifier type..."
+
+def topTen = new TwoDMap()
+idx = 0;
+new File(inputFile).withReader{r->
+
+  headings = r.readLine()
+  println headings
+
+  heading2IdxMap = [:]
+  headings = headings.split(",")
+  headings.eachWithIndex{h,i->heading2IdxMap[h] = i}
+                attributesIdx = heading2IdxMap['numAttrs']
+   
+  rocIdx = heading2IdxMap['roc']
+  attributeIdx = heading2IdxMap['classAttr']
+  classifierIdx = heading2IdxMap['classifier']
+	
+  r.splitEachLine(","){fields->			
+  	attribute = fields[attributeIdx]
+		classifier = fields[classifierIdx]
+		roc = fields[rocIdx] as double
+		baseClassifier = WekaNames.getBaseClassifierType(classifier)
+		addIfTopTen(topTen,attribute,baseClassifier,roc,idx)				
+		idx++
+  }  
+}
+
+err.println "done."
+
+err.print "Creating master save list..."
+saveSet = new HashSet()
+rowkeys = topTen.rowKeySet()
+colkeys = topTen.colKeySet()
+rowkeys.each{rk->
+	colkeys.each{ck->
+		list = topTen[rk][ck]
+		list.each{pair-> 
+			saveSet.add(pair[1])
+		}
+	}
+}
+err.println "done."
+//err.println saveSet
+
+
+err.print "Writing out reduced file..."
+new File(inputFile).withReader{r->
+		headings = r.readLine();
+		idx = 0
+		r.eachLine{
+			if (saveSet.contains(idx)) println it
+			idx++
+		}		
+}
+err.println "done."
+
+
+/*****
+* Adds the roc,idx pair if it's in the top ten for this attribute,classifier pair. 
+*/ 
+def addIfTopTen(topTen,attribute,baseClassifier,roc,idx){
+	
+	if (topTen.contains(attribute,baseClassifier)){
+		list = topTen[attribute][baseClassifier]
+		if (list.size() < K){
+			list << [roc,idx]
+		}else{
+			replaceSmallestIfSmaller(list,roc,idx)
+		}		
+	}else{
+		list = []
+		list << [roc,idx]
+		topTen[attribute][baseClassifier] = list
+	}	
+}
+
+
+/*****
+* Find the smallest value in the list.  If it's smaller than roc, 
+* then replace that pair with the new pair. 
+*/ 
+def replaceSmallestIfSmaller(list,roc,idx){
+	/***
+	* Find the smallest value...
+	*/ 
+	smallestVal = 99999;
+	smallestIdx = 0
+	list.eachWithIndex{pair,i->
+		if (pair[0] < smallestVal){
+			smallestVal = pair[0]
+			smallestIdx = i
+		}
+	}
+	if (smallestVal < roc ){
+		list[smallestIdx] = [roc,idx]
+	}
+}
+
+
+
+
+//     0      1         2         3         4         5      6  7   8   9   10  11  12          13            14                15            16
+// samples,pctCorrect,precision0,recall0,precision1,recall1,tp1,fp1,tn1,fn1,rms,roc,classifier, attributeEval,attributeSearch,numAttributes,classAttribute

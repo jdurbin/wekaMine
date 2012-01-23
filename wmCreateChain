@@ -28,6 +28,11 @@ modelList.each{modelName->
 	err.print "Reading model ${modelName} ..."
 	model = (WekaMineModel) weka.core.SerializationHelper.read("${modelPath}/${modelName}");
 	err.println "done."	
+	
+	if ((options.useNullModel) && (model.bnm == null)){
+		err.println "ERROR: Attempt to use bootstrap null model, but none found in $modelName"
+		System.exit(1)
+	}
 
 	// Create a new set of instances that match the model set... this may mean removing
 	// some attributes that are not in the model and/or adding some that are in the model 
@@ -53,19 +58,28 @@ modelList.each{modelName->
 	// results[0] == model.class0 probability, results[1] == model.class1 probability. 
 	results = model.classify(matchedInstances)
 	
-	
 	// KJD should have an option to take the name of the class you want to report...
 	// (i.e. brain or not-brain).  Currently just takes first class value.  Also, this is 
 	// poorly defined for multi-class distributions. 
-	for(instanceIdx in 0..< matchedInstances.numInstances()){		
-		instanceName = instanceIDs[instanceIdx]
-		
-		class0Pr = results[instanceIdx][0]  
-		class1Pr = results[instanceIdx][1]
-		err.println "class0Pr: $class0Pr  class1Pr: $class1Pr "
-		llr = Math.log(class1Pr/class0Pr)
-		
-		modelsBySamples[modelName][instanceName] = llr
+	if (options.useNullModel){	
+		for(instanceIdx in 0..< matchedInstances.numInstances()){		
+			instanceName = instanceIDs[instanceIdx]
+			class0Pr = results[instanceIdx][0]  
+			class1Pr = results[instanceIdx][1]
+			null0Pr = model.bnm.getSignificance(class0Pr,0)
+			null1Pr = model.bnm.getSignificance(class1Pr,1)		
+			llr = Math.log(null1Pr/null0Pr)		
+			modelsBySamples[modelName][instanceName] = llr
+		}
+	}else{	
+
+		for(instanceIdx in 0..< matchedInstances.numInstances()){		
+			instanceName = instanceIDs[instanceIdx]
+			class0Pr = results[instanceIdx][0]  
+			class1Pr = results[instanceIdx][1]
+			llr = Math.log(class1Pr/class0Pr)		
+			modelsBySamples[modelName][instanceName] = llr
+		}
 	}
 }
 
@@ -101,6 +115,7 @@ def ParseOptions(args){
 		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 		optional 'p','rootPath',[description: 'Root path appended to beginning of each model name.']
 				
+		flag 'N','useNullModel',[description: 'Use bootstrap null model instead of classifier confidence to compute LLR.']
 	  flag 'h','help',[default:false,description: 'Print script help.']	
 	
 	}

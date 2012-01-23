@@ -1,9 +1,11 @@
 #!/usr/bin/env groovy
 
+import static durbin.charts.Charts.*;
 import durbin.weka.* 
 import durbin.util.*
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.core.*
+
 
 err = System.err // sugar
 
@@ -16,13 +18,43 @@ err.print "Reading model ${options.modelFile} ..."
 model = (WekaMineModel) weka.core.SerializationHelper.read(options.modelFile);
 err.println "done."
 
-if (!options.attributeList){
+if ((!options.attributeList) && (!options.nullModel) && (!options.nullModelHistogram)){
 	println model.toString();
-}else{
+}
+
+if (options.attributeList){
 	println "Model attributes:"
 	println model.attributes().join("\n");
 }
 
+if (options.nullModel){
+	bnm = model.bnm
+	dynamicbin = bnm.nullDistribution[0]
+	values = dynamicbin.elements()
+	elements = values.elements()
+	println "Classifier distribution"
+	elements.each{
+		println it
+	}
+}
+
+if (options.nullModelHistogram){
+	fields = options.nullModelHistogram.split(";")
+	fileName = fields[0]
+	chartTitle = fields[1]
+	
+	bnm = model.bnm
+	dynamicbin = bnm.nullDistribution[0]
+	values = dynamicbin.elements()
+	elements = values.elements() as ArrayList
+	
+	chartTitle = chartTitle.replaceAll(/\\n/,"\n")
+		
+	histchart = hist(elements,chartTitle)
+	saveChart(histchart,fileName)
+}
+
+System.exit(0)
 
 /****************************************************
 * Parse the command line options, checking validity, printing help if needed. 
@@ -47,8 +79,10 @@ def ParseOptions(args){
 	parser.with{
 		
 		required 'm','modelFile',[description: 'wekaMine model file.']
+		optional 'c','nullModelHistogram',[description: 'Save histogram of null distribution to file. "filename;chart title"']
 
 		flag 'a','attributeList',[default:false,description: 'suppress classifier info and just output attribute list.']		
+		flag 'n','nullModel',[default:false,description: 'Print out null model values.']		
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
 
