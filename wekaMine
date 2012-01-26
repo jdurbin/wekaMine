@@ -104,6 +104,18 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		if (experiments.params.censoredAttribute){
 			instances = pipeline.removeUnclassifiableCensoredSamples(instances,clinical,experiments.params.censoredAttribute)
 		}
+		
+		// If a validation hold-out is requested, pull that set here.  Note that stratification ensres
+		// that the hold out will have the same mix of nominal class attributes as the full dataset. 
+		if (options.validationFraction){		
+			err.println "FEATURE DISABLED.  Feature is being tested and is not yet available. "
+			System.exit(1)
+			
+			holdoutInstances = pipeline.holdOutInstances(instances,options.validationFraction)	
+			err.println "Holding out ${holdoutInstances.numInstances()} stratified instances for validation."
+			instances = pipeline.remainingInstances(instances,options.validationFraction)
+			err.println "Using ${instances.numInstances()} stratified instances for experiment."
+		}
 
 		// Create an attribute selected classifier from the given experiment description..
 		asClassifier = pipeline.createAttributeSelectedClassifier()
@@ -129,7 +141,29 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}
 	
 		err.print "Appending test results..."
-		pipeline.appendSummary(out,jobIdx,instances)
+		if (options.validationFraction){
+			
+			// Create a classifier from all of the non-validation samples...
+			// Discretize the class attribute...
+			(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)
+			
+			// Remove ID attribute, since attribute evaluators and classifiers choke on it...
+			instances = pipeline.removeInstanceID(instances)
+			
+			// Apply the attribute selection algorithm to instances...			
+			instances = pipeline.selectAttributes(instances)
+			err.print("Build classifier ${exp.classifierStr}...")
+			exp.classifier.buildClassifier(instances);		
+			err.println("done.")
+			model = new WekaMineModel(instances,exp.classifier,cutoffs)	
+			
+			results = model.classify(holdoutInstances)
+			holdoutAccuracy = model.accuracy(results,clinical)
+			
+			pipeline.appendSummary(out,jobIdx,instances,)
+		}else{
+			pipeline.appendSummary(out,jobIdx,instances)
+		}
 		pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
 		pipeline.appendTestSamples(sout, jobIdx,instances)
 		err.println "done."
@@ -192,6 +226,17 @@ def ParseOptions(args){
 	 the maximum number of selected attributes (and their scores) to save in the output and 
 	 does not affect what attributes the classifier will see. 
 	
+	 An optional validation set can be held out from the cross-validation portion of the 
+	 experiment.  Each model will be trained on all data not in the evaluation set and 
+	 evaluated on the evaluation set.  The evaluation accuracy will be saved with roc and
+	 other parameters, as a convenience, but should not be used to pick the best model. The
+	 best model should be picked based on roc or other CV parameters, and the evaluation 
+	 accuracy used only after-the-fact to verify that the model does predict something on 
+	 an independent set.  That is, one should pretend that the evaluation set is only 
+	 applied to the one best model, after picking the best model.  It is applied to all models
+	 simply to avoid having to communicate the hold-out set between wekaMine and subsequent
+	 model selection/building/evaluation steps. 
+	
 	 
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
@@ -235,6 +280,9 @@ def ParseOptions(args){
 			  range = (experimentStart..experimentEnd)
 				return(range)
 			}]			
+			
+		optional 'v','validationFraction',[default:0.0,description: 'Fraction of samples to withold from cross-validation portion of experiment, evaluating only at end on fully trained model.',
+		validate:{it as double}]		
 
 		flag 't','evalTraining',[default:false,description:'If set, the classifier is evaluated on the training data as well as the test data in cross validation, output in *.trainingsamples.csv.  NOTE: This will slow down execution, possibly significantly.' ]
 		flag 'R','clinicalInstancesInRows',[default:false,description:'If set, clinical data will be assumed to be one instance per row. Default one instance per column.']		

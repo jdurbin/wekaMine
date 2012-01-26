@@ -52,8 +52,7 @@ if (options.clinical){
 	clinical = WekaMine.cleanUpInstances(clinical)
 
 	// Discretize the class attribute... (KJD... this should always be an explicit cutoff derived from experiment...)
-	(clinical,clinicalCutoffs) = WekaMine.discretizeClassAttribute(clinical,model.discretization,
-							model.classAttribute())			
+	(clinical,clinicalCutoffs) = WekaMine.discretizeClassAttribute(clinical,model.discretization,model.classAttribute())			
 							
 	err.println "clinicalCutoffs: $clinicalCutoffs" 																												
 }

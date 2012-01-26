@@ -97,7 +97,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		exp.classifier.buildClassifier(instances);		
 		err.println("done.")				
 
-		// Create an object to hold all the info we need to classify new instnces with 
+		// Create an object to hold all the info we need to classify new instances with 
 		// this model...	
 		model = new WekaMineModel(instances,exp.classifier,cutoffs)
 
