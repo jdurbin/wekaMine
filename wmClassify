@@ -20,7 +20,7 @@ err.println "done."
 //instances = WekaMine.readFromTable(options.data)
 instances = WekaMine.readNumericFromTable(options.data)
 
-// Create a new set of instances that match the model set... this may mean removing
+// Create a new set of instances that match the model shis may mean removing
 // some attributes that are not in the model and/or adding some that are in the model 
 // but not in the data (set as missing values in this case).   Performance on datasets
 // with different attribute sets will vary with algorithm and problem, but wekaMineClassify

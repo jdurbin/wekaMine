@@ -10,7 +10,9 @@ err = System.err // sugar
 options = ParseOptions(args)
 
 // Expand the configuration file into a list of experiments. 
-experiments = new WekaMineConfig(options.config)
+// Clinical file name is passed in so config can handle "ALL" attribute if present.
+// otherwise it is ignored...
+experiments = new WekaMineConfig(options.config,options.clinical)
 
 FoldSets foldsets;
 if (options.foldsetsFile){
@@ -23,7 +25,6 @@ if (options.experimentsPerJob){
 	WekaMine.writeClusterJobList(args,experiments.size(),options.experimentsPerJob,scriptFile)
 	System.exit(0)
 }
-
 
 err.println ""
 // Create output files, a summary output, a features output, and a samples output.
@@ -79,7 +80,7 @@ if (options.sampleSubset){
 // Perform each experiment described in the experiment spec...
 experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 	jobIdx = idx+options.experimentRange.getTo()
-	err.println "Experiment: $jobIdx"
+	err.println "Experiment: $jobIdx \t Class attribute: ${exp.classAttribute}"
 	try{
 	
 		// Creates a wekaMine pipeline...
