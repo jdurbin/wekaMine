@@ -161,7 +161,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			results = model.classify(holdoutInstances)
 			holdoutAccuracy = model.accuracy(results,clinical)
 			
-			pipeline.appendSummary(out,jobIdx,instances,)
+			pipeline.appendSummary(out,jobIdx,instances,holdoutAccuracy)
 		}else{
 			pipeline.appendSummary(out,jobIdx,instances)
 		}

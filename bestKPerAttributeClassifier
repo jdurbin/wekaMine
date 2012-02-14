@@ -15,14 +15,14 @@ if (args.size() < 2){
 K = args[0] as int 
 inputFile = args[1]
 
-// topTen is a 2DMap attributes vs classifiers, each entry is a list of 
+// topK is a 2DMap attributes vs classifiers, each entry is a list of 
 // file line number index, roc values.  e.g.: 
-// topTen[attribute][classifier] = [(idx,roc),(idx,roc),(idx,roc)...]
-// topTen['TIMEmeta']['SMO'] = [[0.9,20],[0.76,25],[0.65,30]]
+// topK[attribute][classifier] = [(idx,roc),(idx,roc),(idx,roc)...]
+// topK['TIMEmeta']['SMO'] = [[0.9,20],[0.76,25],[0.65,30]]
 
-err.print "Building index of top ten per attribute/clssifier type..."
+err.print "Building index of top $K per attribute/clssifier type..."
 
-def topTen = new TwoDMap()
+def topK = new TwoDMap()
 idx = 0;
 new File(inputFile).withReader{r->
 
@@ -43,7 +43,7 @@ new File(inputFile).withReader{r->
 		classifier = fields[classifierIdx]
 		roc = fields[rocIdx] as double
 		baseClassifier = WekaNames.getBaseClassifierType(classifier)
-		addIfTopTen(topTen,attribute,baseClassifier,roc,idx)				
+		addIfTopK(topK,attribute,baseClassifier,roc,idx)				
 		idx++
   }  
 }
@@ -52,11 +52,11 @@ err.println "done."
 
 err.print "Creating master save list..."
 saveSet = new HashSet()
-rowkeys = topTen.rowKeySet()
-colkeys = topTen.colKeySet()
+rowkeys = topK.rowKeySet()
+colkeys = topK.colKeySet()
 rowkeys.each{rk->
 	colkeys.each{ck->
-		list = topTen[rk][ck]
+		list = topK[rk][ck]
 		list.each{pair-> 
 			saveSet.add(pair[1])
 		}
@@ -81,10 +81,10 @@ err.println "done."
 /*****
 * Adds the roc,idx pair if it's in the top ten for this attribute,classifier pair. 
 */ 
-def addIfTopTen(topTen,attribute,baseClassifier,roc,idx){
+def addIfTopK(topK,attribute,baseClassifier,roc,idx){
 	
-	if (topTen.contains(attribute,baseClassifier)){
-		list = topTen[attribute][baseClassifier]
+	if (topK.contains(attribute,baseClassifier)){
+		list = topK[attribute][baseClassifier]
 		if (list.size() < K){
 			list << [roc,idx]
 		}else{
@@ -93,7 +93,7 @@ def addIfTopTen(topTen,attribute,baseClassifier,roc,idx){
 	}else{
 		list = []
 		list << [roc,idx]
-		topTen[attribute][baseClassifier] = list
+		topK[attribute][baseClassifier] = list
 	}	
 }
 
