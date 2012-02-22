@@ -16,8 +16,19 @@ options = ParseOptions(args)
 instances = WekaMine.readNumericFromTable(options.data)
 
 // read model list
-fileContents = new File(options.modelList).text
-modelList = fileContents.split("\n") as ArrayList
+def modelList = []
+if (options.modelList){
+	fileContents = new File(options.modelList).text
+	modelList = fileContents.split("\n") as ArrayList
+}
+
+// Or just read a directory of models...
+if (options.modelDir){
+		new File(options.modelDir).eachFileMatch(~/.*\.wmm/){modelName->
+			fullName = modelName.canonicalPath
+			modelList<<fullName
+		}
+}
 
 modelsBySamples = new TwoDMap()
 modelList.each{modelName->
@@ -109,8 +120,11 @@ def ParseOptions(args){
 
 	parser.with{
 		
-		required 'm','modelList',[description: 'A list of model file paths.']
+		
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+
+		optional 'm','modelList',[description: 'A list of model file paths. One of -m or -M required. ']
+    optional 'M','modelDir',[description: 'A directory of model files. Only files with .wmm extension will be considered. One of -m or -M required. ']
 
 		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 		optional 'p','rootPath',[description: 'Root path appended to beginning of each model name.']
@@ -119,10 +133,17 @@ def ParseOptions(args){
 	  flag 'h','help',[default:false,description: 'Print script help.']	
 	
 	}
-
+	
 	def options
 	try{
 	  options = parser.parse(args)
+	
+		if (!(options.modelDir || options.modelList)){
+			System.err.println "Model files must be specified with either -m or -M."
+			System.err<<parser.usage
+			System.exit(1)
+		}
+	
 	}catch(Exception e){
 	  System.err << parser.usage
 	  System.exit(1)

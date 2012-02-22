@@ -1,0 +1,104 @@
+#!/usr/bin/env groovy
+
+import durbin.util.*
+import durbin.weka.*
+
+err = System.err
+
+if (args.size() < 1){
+	err.println "Usage:\n"
+	err.println "\tbestPerAttributeReport resultsFile {showAdditionalStats} > bestk.csv\n"
+	System.exit(1)
+}
+
+inputFile = args[0]
+bReport = false;
+if (args.size() > 1) bReport = true;
+
+bestPerAttribute = [:]   // bestPerAttribute['survival'] = fields from row. 
+bestPerAttributeZeroR = [:] // bestPerAttributeZeroR['survival'] = fields from row. 
+maxPerAttributeZeroR = [:]
+minPerAttribute = [:] // minimum roc for given attribute
+maxPerAttribute = [:] // maximum roc for given attribute
+sumPerAttribute = [:] // sum of roc values for given attribute. 
+numPerAttribute = [:]
+
+def headings
+def heading2IdxMap = [:]
+def rocIdx,attributeIdx,classifierIdx
+new File(inputFile).withReader{r->
+
+  headings = r.readLine()
+  //println headings
+
+  headings = headings.split(",")
+  headings.eachWithIndex{h,i->heading2IdxMap[h] = i}   
+  rocIdx = heading2IdxMap['roc']
+  attributeIdx = heading2IdxMap['classAttr']
+  classifierIdx = heading2IdxMap['classifier']
+	
+  r.splitEachLine(","){fields->			
+  	attribute = fields[attributeIdx]
+		classifier = fields[classifierIdx]
+		roc = fields[rocIdx] as double
+		baseClassifier = WekaNames.getBaseClassifierType(classifier)
+		if (baseClassifier == null){
+			err.println "NULL classifier? "
+			err.println "classifierIdx: $classifierIdx"
+			err.println "$classifier"
+			err.println "$fields"
+			System.exit(1)
+		}
+		if (baseClassifier.contains("ZeroR")){
+			if (roc > maxPerAttributeZeroR[attribute]){
+				maxPerAttributeZeroR[attribute] = roc
+				bestPerAttributeZeroR[attribute] = fields
+			}
+		}else{
+			if (roc > maxPerAttribute[attribute]){
+				maxPerAttribute[attribute] = roc
+				bestPerAttribute[attribute] = fields
+			}
+			if (minPerAttribute[attribute] == null) minPerAttribute[attribute] = 200;
+			if (minPerAttribute[attribute] > roc){
+				minPerAttribute[attribute] = roc
+			}			
+		}
+		if (sumPerAttribute[attribute] == null) sumPerAttribute[attribute] = 0.0
+		if (numPerAttribute[attribute] == null) numPerAttribute[attribute] = 0.0
+		sumPerAttribute[attribute]+=roc;
+		numPerAttribute[attribute] += 1;
+  }  
+}
+
+if (!bReport){
+	// Save something we can build models from...
+	println headings.join(",")
+	bestPerAttribute.each{attribute,fields->
+		println fields.join(",")
+	}
+}else{
+	println "attribute,roc,mroc,deltaroc,minroc,maxroc,meanroc,$headings,*,${headings.join(',')}"
+	// Print a report for inspection...
+	bestPerAttribute.each{attribute,fields->	
+		roc = fields[rocIdx]	as double				
+		print "$attribute,$roc,"
+		if (bestPerAttributeZeroR.containsKey(attribute)){
+			zeroRfields = bestPerAttributeZeroR[attribute]
+			mroc = zeroRfields[rocIdx] as double
+			deltaroc = roc - mroc
+			//err.println "roc: $roc  mroc: $mroc   deltaroc: $deltaroc"
+			minroc = minPerAttribute[attribute]
+			maxroc = maxPerAttribute[attribute]
+			meanroc = sumPerAttribute[attribute]/numPerAttribute[attribute]
+			print "$mroc,$deltaroc,$minroc,$maxroc,$meanroc,"
+			f = fields.join(",")
+			z = zeroRfields.join(",")
+			println "$f,*,$z"
+		}else{
+			f = fields.join(",")
+			println "NA,$f,*,NA"
+		}
+	}
+}
+

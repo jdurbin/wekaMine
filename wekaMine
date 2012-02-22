@@ -12,17 +12,45 @@ options = ParseOptions(args)
 // Expand the configuration file into a list of experiments. 
 // Clinical file name is passed in so config can handle "ALL" attribute if present.
 // otherwise it is ignored...
-experiments = new WekaMineConfig(options.config,options.clinical)
+def totalExperiments
+if (options.config){
+	allExperiments = new WekaMineConfig(options.config,options.clinical)
+	err.println "${experiments.size()} experiments read from config. "
+	experiments = allExperiments[options.experimentRange]
+	totalExperiments = allExperiments.size()
+}else if (options.flatConfig){
+	err.print "Reading experiment list..."
+	experiments = new WekaMineConfig()
+	if (options.experimentsPerJob){
+		// If we're writing out a job list, don't actually read the whole file, just determine it's size
+		totalExperiments = experiments.readFlat(options.flatConfig,(0..0))
+	}else{
+		totalExperiments = experiments.readFlat(options.flatConfig,options.experimentRange)
+	}
+	err.println "${experiments.size()} experiments read out of $totalExperiments file."
+}
 
 FoldSets foldsets;
 if (options.foldsetsFile){
 	foldsets = new FoldSets(options.foldsetsFile)	
 }
 
+// Write out a flat list of experiments if requested...
+if (options.flatExperimentOut){
+	println WekaMineResult.expHeadingStr
+	System.out.withWriter{w->
+		allExperiments.each{experiment->
+			w << experiment.toOutputString()
+			w << "\n"
+		}
+	}
+	System.exit(0)
+}
+
 // Write out jobs and quit if that is requested...
 if (options.experimentsPerJob){
 	scriptFile = getClass().protectionDomain.codeSource.location.path	
-	WekaMine.writeClusterJobList(args,experiments.size(),options.experimentsPerJob,scriptFile)
+	WekaMine.writeClusterJobList(args,totalExperiments,options.experimentsPerJob,scriptFile)
 	System.exit(0)
 }
 
@@ -78,7 +106,8 @@ if (options.sampleSubset){
 }
 
 // Perform each experiment described in the experiment spec...
-experiments[options.experimentRange].eachWithIndex{exp,idx-> 
+//experiments[options.experimentRange].eachWithIndex{exp,idx->  Experiments now subseted before here...
+experiments.eachWithIndex{exp,idx-> 
 	jobIdx = idx+options.experimentRange.getTo()
 	err.println "Experiment: $jobIdx \t Class attribute: ${exp.classAttribute}"
 	try{
@@ -252,11 +281,14 @@ def ParseOptions(args){
 	parser.with{
 
 	  required 'o','output',[description: 'File where output should go. Generates three files *.summary.csv, *.features.csv, and *.samples.csv']
-	  required 'c','config',[description: 'Configuration file']  
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 	
 		optional 'k','experimentsPerJob',[description: 'When specified, wekaMine does not run but instead outputs a list of wekaMine commands, k experiments each, for the cluster.']
+		flag 'F','flatExperimentOut',[default:false,description: 'Does not perform experiments but merely writes their description to stdout.']
+
+	  optional 'c','config',[description: 'Configuration file.  One of -c or -C required. ']  
+		optional 'C','flatConfig',[description: 'A flat configuration file, one experiment per line. One of -c or -C required.']  
 
 		optional 'f','foldsetsFile',[default:null,description: "File specifying the cross validation foldsets to use."]
 	  optional 'm','maxFeaturesOut',[default: 100,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
@@ -295,6 +327,19 @@ def ParseOptions(args){
 	def options
 	try{
 	  options = parser.parse(args)
+	
+		if (!(options.config || options.flatConfig)){
+			System.err.println "A config file must be specified with either -c or -C."
+			System.err<<parser.usage
+			System.exit(1)
+		}		
+		
+		if (options.config && options.flatConfig){
+			System.err.println "Specify only ONE of options -c or -C "
+			System.err<<parser.usage
+			System.exit(1)
+		}
+		
 	}catch(Exception e){
 	  System.err << parser.usage
 	  System.exit(1)
