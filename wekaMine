@@ -15,7 +15,7 @@ options = ParseOptions(args)
 def totalExperiments
 if (options.config){
 	allExperiments = new WekaMineConfig(options.config,options.clinical)
-	err.println "${experiments.size()} experiments read from config. "
+	err.println "${allExperiments.size()} experiments read from config. "
 	experiments = allExperiments[options.experimentRange]
 	totalExperiments = allExperiments.size()
 }else if (options.flatConfig){
