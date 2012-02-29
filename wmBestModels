@@ -5,15 +5,10 @@ import durbin.weka.*
 
 err = System.err
 
-if (args.size() < 1){
-	err.println "Usage:\n"
-	err.println "\tbestPerAttributeReport resultsFile {showAdditionalStats} > bestk.csv\n"
-	System.exit(1)
-}
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+err.println ""
 
-inputFile = args[0]
-bReport = false;
-if (args.size() > 1) bReport = true;
 
 bestPerAttribute = [:]   // bestPerAttribute['survival'] = fields from row. 
 bestPerAttributeZeroR = [:] // bestPerAttributeZeroR['survival'] = fields from row. 
@@ -26,7 +21,7 @@ numPerAttribute = [:]
 def headings
 def heading2IdxMap = [:]
 def rocIdx,attributeIdx,classifierIdx
-new File(inputFile).withReader{r->
+new File(options.resultsFile).withReader{r->
 
   headings = r.readLine()
   //println headings
@@ -71,17 +66,28 @@ new File(inputFile).withReader{r->
   }  
 }
 
-if (!bReport){
+if (!options.report){
 	// Save something we can build models from...
 	println headings.join(",")
-	bestPerAttribute.each{attribute,fields->
+	bestPerAttribute.each{attribute,fields->		
+		if (options.minROC){
+			//err.println "fields[rocIdx] = "+fields[rocIdx]
+			roc = fields[rocIdx]	as double			
+			if (roc < options.minROC) return; // Don't output this one, below cutoff...
+		}
+		
 		println fields.join(",")
 	}
 }else{
 	println "attribute,roc,mroc,deltaroc,minroc,maxroc,meanroc,$headings,*,${headings.join(',')}"
 	// Print a report for inspection...
 	bestPerAttribute.each{attribute,fields->	
-		roc = fields[rocIdx]	as double				
+		roc = fields[rocIdx]	as double			
+		
+		if (options.minROC){
+			if (roc < options.minROC) return; // Don't output this one, below cutoff...
+		}				
+			
 		print "$attribute,$roc,"
 		if (bestPerAttributeZeroR.containsKey(attribute)){
 			zeroRfields = bestPerAttributeZeroR[attribute]
@@ -101,4 +107,45 @@ if (!bReport){
 		}
 	}
 }
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	
+	wmBestModels 
+	
+	Returns the top model for each attribute in the given file.  Can alternately output a report on the 
+	top models for each attribute.  
+	 
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+	
+	wmBestModels -R vijver2002.summary.csv -m 0.60 > vijver2002.bestPerAttribute.csv
+
+	''');
+
+	parser.with{
+		
+	 	required 'R','resultsFile',[description: 'wekaMine summary results.']
+		optional 'm','minROC',[description: 'ROC cutoff for output.  Only results with roc >= minROC will be included.',
+		validate:{return it as double}]
+		
+		flag 'r','report',[default:false,description: 'Output a report to stdout instead of another results file. ']		
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
+
 
