@@ -16,7 +16,6 @@ err = System.err // sugar
 
 // Get the command line options, print help if needed. 
 options = ParseOptions(args)
-err.println ""
 
 // Expand the configuration file or wekaMine results into a list of experiments.
 def experiments = [] 
@@ -56,6 +55,14 @@ if (options.config){
 	System.err.println "How did we get here?  Must specify one of -c, -R, or -E to define the model. Run with -h for options. "
 	System.exit(1)
 }
+
+// Write out jobs and quit if that is requested...
+if (options.experimentsPerJob){
+	scriptFile = getClass().protectionDomain.codeSource.location.path	
+	WekaMine.writeClusterJobList(args,experiments.size(),options.experimentsPerJob,scriptFile)
+	System.exit(0)
+}
+
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
 data = WekaMine.readNumericFromTable(options.data)
@@ -171,7 +178,6 @@ def ParseOptions(args){
 		flag 'T','topModel',[default: false,description: 'With -R option, will output a model corresponding to the best result in the results file.']
 		
 		optional 'E','experimentString',[description: 'A single experiment string. In single quotes, comma separated: attrEval,attrSearch,numAttributes,classifier.  Use keyword "none" to omit a field.']
-
 	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
 			// Convert it to a proper range. Default is all inclusive range. 
 			validate:{								
@@ -180,6 +186,9 @@ def ParseOptions(args){
 			  range = (experimentStart..experimentEnd)
 				return(range)
 			}]			
+
+		optional 'k','experimentsPerJob',[description: 'When specified as last option, wmSaveModel does not run but instead outputs a list of wmSaveModel commands, k experiments each, for the cluster.']
+
 		
 	  flag 'N','useClassName',[default:false,description: 'Tack on class name as part of modelFileName.']
 	  flag 'h','help',[default:false,description: 'Print script help.']
