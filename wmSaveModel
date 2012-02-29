@@ -123,9 +123,12 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Write out the model file...
 		def rootName = options.modelFileName
 		def cleanClass = exp.classAttribute.replaceAll(" ","_")
-		if (options.useClassName) rootName = "$rootName"+cleanClass
-		
-		outFile = "${rootName}_${jobIdx}.wmm"
+		if (options.useClassName) {
+			rootName = "$rootName"+cleanClass
+			outFile = "${rootName}.wmm"
+		}else{
+			outFile = "${rootName}_${jobIdx}.wmm"
+		}
 		err.print "Save model to $outFile ..."
 		SerializationHelper.write(outFile,model)
 		err.println "done."
