@@ -16,9 +16,14 @@ def totalExperiments
 if (options.config){
 	allExperiments = new WekaMineConfig(options.config,options.clinical)
 	err.println "${allExperiments.size()} experiments read from config. "
-	experiments = allExperiments[options.experimentRange]
+	//experiments = allExperiments[options.experimentRange]
 	totalExperiments = allExperiments.size()
+	experiments = allExperiments
 }else if (options.flatConfig){
+	
+	err.println "DISABLED TEMPORARIALY... need to reconcile code for this and normal cfg..."
+	System.exit(1);
+	
 	err.print "Reading experiment list..."
 	experiments = new WekaMineConfig()
 	if (options.experimentsPerJob){
@@ -107,7 +112,7 @@ if (options.sampleSubset){
 
 // Perform each experiment described in the experiment spec...
 //experiments[options.experimentRange].eachWithIndex{exp,idx->  Experiments now subseted before here...
-experiments.eachWithIndex{exp,idx-> 
+experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 	jobIdx = idx+options.experimentRange.getTo()
 	err.println "Experiment: $jobIdx \t Class attribute: ${exp.classAttribute}"
 	try{
