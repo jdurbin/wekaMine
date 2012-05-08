@@ -14,6 +14,7 @@ options = ParseOptions(args)
 // otherwise it is ignored...
 def totalExperiments
 if (options.config){
+	err.print "\nReading experiments from config..."
 	allExperiments = new WekaMineConfig(options.config,options.clinical)
 	err.println "${allExperiments.size()} experiments read from config. "
 	//experiments = allExperiments[options.experimentRange]
@@ -90,7 +91,14 @@ err.println ""
 
 // Print a heading to the output files unless heading is suppressed (say, for cluster jobs)
 if (!options.suppressHeading){
-	out << WekaMineResults.getFormattedSummaryHeading() << "\n"
+	
+	if (options.validationFraction){
+		out << WekaMineResults.getFormattedSummaryHeading() 
+		out << ",holdoutAcc"
+		out << "\n"
+	}else{	
+		out << WekaMineResults.getFormattedSummaryHeading() << "\n"
+	}
 	fout << WekaMineResults.getFormattedSummaryHeading() << "\n"
 	sout << WekaMineResults.getFormattedSummaryHeading() << "\n"
 }
@@ -114,6 +122,7 @@ if (options.sampleSubset){
 //experiments[options.experimentRange].eachWithIndex{exp,idx->  Experiments now subseted before here...
 experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 	jobIdx = idx+options.experimentRange.getTo()
+	err.println "------------------------------------------------"
 	err.println "Experiment: $jobIdx \t Class attribute: ${exp.classAttribute}"
 	try{
 	
@@ -136,6 +145,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)	
 		
 		// Remove censored samples that can't be put into a discretized class... 
+		// KJD Should these be removed?? Shouldn't their class just be set to unknown? 
 		if (experiments.params.censoredAttribute){
 			instances = pipeline.removeUnclassifiableCensoredSamples(instances,clinical,experiments.params.censoredAttribute)
 		}
@@ -143,12 +153,15 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// If a validation hold-out is requested, pull that set here.  Note that stratification ensres
 		// that the hold out will have the same mix of nominal class attributes as the full dataset. 
 		if (options.validationFraction){		
-			err.println "FEATURE DISABLED.  Feature is being tested and is not yet available. "
-			System.exit(1)
+			//err.println "FEATURE DISABLED.  Feature is being tested and is not yet available. "
+			//System.exit(1)
 			
-			holdoutInstances = pipeline.holdOutInstances(instances,options.validationFraction)	
-			err.println "Holding out ${holdoutInstances.numInstances()} stratified instances for validation."
+			holdoutInstances = pipeline.holdOutInstances(instances,options.validationFraction)
+			holdoutInstanceIDs = holdoutInstances.attributeValues("ID") as ArrayList							
+			err.println "Holding out ${holdoutInstances.numInstances()} stratified instances for validation:"
 			instances = pipeline.remainingInstances(instances,options.validationFraction)
+			err.println "***DEBUG:  num attributes: "+instances.numAttributes()
+			println holdoutInstanceIDs
 			err.println "Using ${instances.numInstances()} stratified instances for experiment."
 		}
 
@@ -175,30 +188,48 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
 		}
 	
-		err.print "Appending test results..."
-		if (options.validationFraction){
-			
+		if (options.validationFraction){						
+			/*****
+			* wmSaveModel...
+			*/
 			// Create a classifier from all of the non-validation samples...
-			// Discretize the class attribute...
-			(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)
-			
-			// Remove ID attribute, since attribute evaluators and classifiers choke on it...
-			instances = pipeline.removeInstanceID(instances)
-			
-			// Apply the attribute selection algorithm to instances...			
-			instances = pipeline.selectAttributes(instances)
-			err.print("Build classifier ${exp.classifierStr}...")
-			exp.classifier.buildClassifier(instances);		
+			err.println "***EVALUATE HOLDOUT***"
+			hinstances = pipeline.cleanUpInstances(instances)			
+			(hinstances,cutoffs) = pipeline.discretizeClassAttribute(hinstances)
+			err.println "Non-holdout instances class attribute discretized: $cutoffs"			
+			hinstances = pipeline.removeInstanceID(hinstances)							
+			err.println "DEBUG:  numAttributes: "+hinstances.numAttributes()	// This includes all attributes EXCEPt ID
+			hinstances = pipeline.selectAttributes(hinstances)
+			err.println "DEBUG:  numAttributes: "+hinstances.numAttributes() // This removes everything except the ones selected.
+			err.print "Train model with non-holdout instances..."
+			exp.classifier.buildClassifier(hinstances);
+			err.println "done."		
+			err.print("Create model object with classifier...")
+			model = new WekaMineModel(hinstances,exp.classifier,cutoffs)				
 			err.println("done.")
-			model = new WekaMineModel(instances,exp.classifier,cutoffs)	
-			
-			results = model.classify(holdoutInstances)
-			holdoutAccuracy = model.accuracy(results,clinical)
-			
-			pipeline.appendSummary(out,jobIdx,instances,holdoutAccuracy)
+						
+			/******
+			* wmClassify
+			*/ 
+			err.println("Classify holdouts with trained model...")
+			err.println "Holdout attributes: "+data.numAttributes()
+			holdoutprocessed = InstanceUtils.createInstancesToMatchAttributeList(holdoutInstances,model.attributes) 
+			err.println "holdoutprocessed attributes: "+holdoutprocessed.numAttributes()
+			err.println "holdInstances attributes: "+holdoutInstances.numAttributes()
+			holdoutprocessed = WekaMine.createEmptyClassAttribute(holdoutprocessed,model.className,model.classValues)
+			holdoutprocessed.setClassName(model.className)
+			results = model.classify(holdoutprocessed)
+			clinical.setClassName(model.className)
+			(clinicaldisc,cutoffs) = pipeline.discretizeClassAttribute(clinical)
+			holdoutAccuracy = accuracy(results,holdoutInstanceIDs,clinicaldisc,model)
+			err.println "\tHoldout accuracy: $holdoutAccuracy"		
+			err.println "*** END EVALUATE HOLDOUT ***"
+			err.print "Appending test results..."
+			pipeline.appendSummaryWithHoldout(out,jobIdx,hinstances,holdoutAccuracy)
 		}else{
+			err.print "Appending test results..."
 			pipeline.appendSummary(out,jobIdx,instances)
-		}
+		}		
 		pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
 		pipeline.appendTestSamples(sout, jobIdx,instances)
 		err.println "done."
@@ -210,10 +241,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}		
 		
 		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
-	  err.println "==========================================\n"
-					
-		// 			
-					
+	  err.println "==========================================\n"										
 	}catch (Exception e){
 		err.println "\n\n"
 		err.println e
@@ -351,3 +379,40 @@ def ParseOptions(args){
 	}	
 	return(options)
 }
+
+
+def accuracy(results,holdoutInstanceIDs,clinical,model){	
+	classValues = model.classValues
+	//err.println "\t$classValues"
+	double correct = 0;
+	double total = 0;
+	holdoutInstanceIdxs = clinical.nameListToIndexList(holdoutInstanceIDs)
+	holdoutInstanceIDs.eachWithIndex{instanceID,i->
+		instIdx = holdoutInstanceIdxs[i]
+		clinicalInst = clinical[instIdx]
+		clinicalValue = clinicalInst[model.className]
+		distForInstance = results[i]
+		//err.println "\t$instanceID\t$distForInstance\t$clinicalValue"
+		maxIdx = maxIdx(distForInstance)
+		if (classValues[maxIdx] == clinicalValue){
+			correct++
+		}
+		total++
+	}	
+	return(correct/total)
+}
+
+
+def maxIdx(dist){
+	def maxval = -999
+	def maxidx = -1
+	dist.eachWithIndex{val,i->
+		if (val > maxval){
+			maxval = val
+			maxidx = i
+		}		
+	}	
+	return(maxidx)		
+}
+
+
