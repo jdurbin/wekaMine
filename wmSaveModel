@@ -108,15 +108,31 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// this model...	
 		model = new WekaMineModel(instances,exp.classifier,cutoffs)
 
+		// If we have a nullModelFile, read it in and process the instances, otherwise use 
+		// instances. 
+		def nullData
+		if (options.nullModelFile){
+			nullData = pipeline.readNumericFromTable(options.nullModelFile)
+			nullData = pipeline.cleanUpInstances(nullData)
+			nullData = pipeline.removeInstanceID(nullData)
+			nullData = pipeline.selectAttributes(nullData)
+			// Generate null model without permuting anything...
+			if (!options.nullModelSamples){
+				model.computeBootstrapNullModel(nullData)
+			}			
+		}else{
+			nullData = instances
+		}
+
 		// Create and save a bootstrap null model if requested...
-		if (options.nullModelSamples){
+		if (options.nullModelSamples){					
 			err.println "Computing null model with ${options.nullModelSamples} bootstrap samples."
 			err.println "Note: This can take awhile. Also note that the null model will expand the size of the saved model."
 			samples = options.nullModelSamples as int
-			iterations = (double)samples/((double)instances.numInstances())
+			iterations = (double)samples/((double)nullData.numInstances())
 			iterations = Math.ceil(iterations)
 			err.println "This will require $iterations passes through permuted instances."
-			model.computeBootstrapNullModel(instances,iterations)
+			model.computeBootstrapNullModel(nullData,iterations)
 			err.println "done."
 		}		
 
@@ -176,7 +192,9 @@ def ParseOptions(args){
 	  optional 'c','config',[description: 'Configuration file']  
 		optional 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier(s). Will save one model per result in file.']
 
-		optional 'B','nullModelSamples',[description: 'Compute bootstrap null model (label permutations) and save that in model file. Option specifies how many points to compute.']
+		optional 'B','nullModelSamples',[description: 'Compute bootstrap null model (label permutations) and save that in model file. Option specifies how many points to compute.']		
+		optional 'n','nullBackgroundFile',[description: 'A data file in row x samples format that will be used to generate a background null model. If combined with -B, these samples will be permuted also.']
+		
 		
 		flag 'T','topModel',[default: false,description: 'With -R option, will output a model corresponding to the best result in the results file.']
 		
