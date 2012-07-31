@@ -5,6 +5,7 @@ import durbin.weka.FoldSets
 import durbin.util.*
 
 err = System.err // sugar
+def bExceptionOccurred = false
 
 // Get the command line options, print help if needed. 
 options = ParseOptions(args)
@@ -244,15 +245,25 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	  err.println "==========================================\n"										
 	}catch (Exception e){
 		err.println "\n\n"
-		err.println e
+		err.println e		
 		// Save info about exception..
+		bExceptionOccurred = true
 	}
+	
+	
+	if (bExceptionOccurred) {
+		err.println "An exception occurred during this run."
+		System.exit(1)
+	}else System.exit(0)
 	
 	// File doesn't have a close (as opposed to writer)... Are writes to File guaranteed to flush? 
 	//out.close()
 	//fout.close()
 	//sout.close()
 	//if (options.evalTraining) tout.close()
+	
+	// Quit with non-zero (positive) on exception. 
+		
 }
 
 
