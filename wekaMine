@@ -106,8 +106,10 @@ if (!options.suppressHeading){
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
 if (options.dataMayContainNominalValues){
+	err.println "Reading data with nominal values."
 	data = WekaMine.readFromTable(options.data)
 }else{
+	err.println "Reading numeric data."
 	data = WekaMine.readNumericFromTable(options.data)
 }
 //data = TableFileLoader.readNumeric(options.data,options.data,"\t");
@@ -118,6 +120,11 @@ if (options.sampleSubset){
 	data = WekaMine.subsetInstances(data,options.sampleSubset)
 	clinical = WekaMine.subsetInstances(clinical,options.sampleSubset)
 }
+
+//err.println "DEBUG: "+options.experimentRange
+//experiments[options.experimentRange].eachWithIndex{exp,idx-> 
+//	err.println "DEBUG experiment $idx"
+//}
 
 // Perform each experiment described in the experiment spec...
 //experiments[options.experimentRange].eachWithIndex{exp,idx->  Experiments now subseted before here...
@@ -183,7 +190,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}
 				
 		Evaluation2 eval 
-		if (options.foldsetsFile){
+		if (options.foldsetsFile){									
 			eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets,options.evalTraining)
 		}else{
 			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
@@ -245,16 +252,17 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	  err.println "==========================================\n"										
 	}catch (Exception e){
 		err.println "\n\n"
+		err.println "Exception occurred."
 		err.println e		
 		// Save info about exception..
 		bExceptionOccurred = true
 	}
-	
-	
-	if (bExceptionOccurred) {
-		err.println "An exception occurred during this run."
-		System.exit(1)
-	}else System.exit(0)
+}	
+
+if (bExceptionOccurred) {
+	err.println "An exception occurred during this run."
+	System.exit(1)
+}else System.exit(0)
 	
 	// File doesn't have a close (as opposed to writer)... Are writes to File guaranteed to flush? 
 	//out.close()
@@ -264,7 +272,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	
 	// Quit with non-zero (positive) on exception. 
 		
-}
+
 
 
 
