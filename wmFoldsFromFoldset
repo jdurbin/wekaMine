@@ -1,0 +1,99 @@
+#!/usr/bin/env groovy
+
+import durbin.weka.* 
+import durbin.util.*
+
+import weka.classifiers.meta.FilteredClassifier;
+import weka.filters.unsupervised.attribute.RemoveType;
+import weka.core.*
+import weka.filters.supervised.attribute.*
+import weka.filters.*
+import weka.attributeSelection.*
+
+WekaAdditions.enable() // Enable meta-class additions to weka API
+
+err = System.err // sugar
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+
+data = WekaMine.readNumericFromTable(options.data)
+
+foldSets = new FoldSets(options.foldSet)	
+for(int fs = 0;fs < foldSets.size();fs++){
+	FoldSet foldSet = foldSets.get(fs);
+	
+	int numFolds = foldSet.numFolds(); 
+	
+	System.err.println("\n\tFoldSet: "+(fs+1));		
+	System.err.println("\tnumFolds: "+numFolds);
+	for (int i = 0; i < numFolds; i++) {
+		System.err.println("\t\tFold:"+(i+1));
+		Instances train = CVUtils.trainCV(data,foldSet,i);
+		Instances test = CVUtils.testCV(data,foldSet,i);			
+		
+		trainName = "${options.outRoot}_${fs+1}_${i+1}_train.tab"
+		testName = "${options.outRoot}_${fs+1}_${i+1}_test.tab"
+		
+		print "\t\t\t"			
+	  WekaMine.saveDataFromInstances(trainName,train)
+		print "\t\t\t"
+		WekaMine.saveDataFromInstances(testName,test)
+	}
+	
+	// Save holdout if one is defined...
+	if (foldSet.bHasHoldout){
+		System.err.println("\t\tHoldout Set");
+		Instances holdout = CVUtils.testCV(data,foldSet,-1)
+		holdoutName = "${options.outRoot}_${fs+1}_holdout.tab"
+		print "\t\t\t"
+		WekaMine.saveDataFromInstances(holdoutName,holdout)
+	}
+	
+}
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	
+	wmFoldsFromFoldset generates a set of fold files from a fold file description. If the fold file
+	contains folds with number 0, that fold will be treated as a holdout set and written to its own 
+	file.  Stratified cross-validation folds files can be generated with wmGenFolds.  
+	 
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+	
+	wmFoldsFromFoldset -d data.tab -o test -f foldsfile.tab 
+	
+
+	''');
+
+	parser.with{
+		
+		required 'd','data',[description: 'data file.']
+		required 'o','outRoot',[description: 'root name for folds files']						
+		required 'f','foldSet',[description: 'Foldset file.  To input a defined foldset and output the data in folds.']
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
+
+/**
+saveDataFromInstances2, one 5x cv of 295 samples: 
+0m37.638s
+
+saveDataFromInstaqnces  one 5x cv of 295 samples:
+real	0m13.292s
+*/

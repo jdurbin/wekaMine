@@ -5,10 +5,11 @@ import durbin.util.*
 
 import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.unsupervised.attribute.RemoveType;
-import weka.core.*
+import weka.core.SerializationHelper;
 import weka.filters.supervised.attribute.*
 import weka.filters.*
 import weka.attributeSelection.*
+import weka.core.*
 
 WekaAdditions.enable() // Enable meta-class additions to weka API
 
@@ -16,33 +17,95 @@ err = System.err // sugar
 
 // Get the command line options, print help if needed. 
 options = ParseOptions(args)
+err.println ""
 
+// Expand the configuration file or wekaMine results into a list of experiments.
+def experiments = [] 
+if (options.config){
+	experiments = new WekaMineConfig(options.config,options.clinical)
+	params = experiments.params
+}else if (options.resultsFile){
+	wmr = new WekaMineResults(options.resultsFile)
+	experiments = wmr.toExperiments()
+	params = [:]
+}else if (options.experimentString){	
+	headingMap = WekaMineResult.defaultHeadingMap()
+	experiment = new ExperimentSpec(options.experimentString,headingMap)
+	experiments << experiment
+	params = [:]
+}else{
+	System.err.println "How did we get here?  Must specify one of -c, -R, or -E to define the model. Run with -h for options. "
+	System.exit(1)
+}
+
+// Read the data (expression, CNV, whatever) and the clinical from tab delimited files
 data = WekaMine.readNumericFromTable(options.data)
 
-foldSets = new FoldSets(options.foldSet)	
-for(int fs = 0;fs < foldSets.size();fs++){
-	FoldSet foldSet = foldSets.get(fs);
-	
-	int numFolds = foldSet.numFolds(); 
-	
-	System.err.println("\n\tFoldSet: "+(fs+1));		
-	System.err.println("\tnumFolds: "+numFolds);
-	for (int i = 0; i < numFolds; i++) {
-		System.err.println("\t\tFold:"+(i+1));
-		Instances train = CVUtils.trainCV(data,foldSet,i);
-		Instances test = CVUtils.testCV(data,foldSet,i);			
+def clinical
+if (options.clinical){
+	clinical = WekaMine.readFromTable(options.clinical)
+}
+
+// if holdout requested{
+int numFolds = options.numFolds + 1 // Add a fold for the hold-out set.
+
+// Perform each experiment described in the experiment spec...
+foldTable = new DynamicTable()
+experiments[options.experimentRange].eachWithIndex{exp,idx-> 
+	jobIdx = idx+options.experimentRange.getTo()
+	err.println "=================================="
+	err.println "Experiment: $jobIdx"
+	try{
 		
-		trainName = "${options.outRoot}_${fs+1}_${i+1}_train.tab"
-		testName = "${options.outRoot}_${fs+1}_${i+1}_test.tab"
+		// Creates a wekaMine pipeline...
+		pipeline = new WekaMine(data,clinical,exp,params)		
 		
-		print "\t\t\t"			
-	  WekaMine.saveDataFromInstances(trainName,train)
-		print "\t\t\t"
-		WekaMine.saveDataFromInstances(testName,test)
+		// Combines data and single class attribute from clinical into one set of instances...
+		// Unsupervised filters don't need clinical data. 
+		if (options.clinical){
+			instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
+		}else instances = data
+
+		// Clean up instances:
+		// * remove useless attributes
+		// * if not allowed, remove instances with negative class values
+		// * remove instances with missing class values	
+		instances = pipeline.cleanUpInstances(instances)
+
+		// Discretize the class attribute... Needed to do stratification...
+		err.println "classAttr: "+exp.classAttribute
+		(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)				
+			
+		instances.randomize(new Random());
+		if (instances.classAttribute().isNominal()) {
+		  instances.stratify(numFolds);
+		}
+		
+		allIDs = []
+		for (int i = 0; i < numFolds; i++) {		
+		  Instances test = data.testCV(numFolds, i);
+			IDs = test["ID"]
+			//println "Fold$i: ${IDs}"		
+			IDs.each{id->
+				//foldTable[exp.classAttribute][id] = i
+				foldTable[exp.classAttribute][id] = i
+			}
+		}
+											
+		// Write out the attribute selected tab file...
+		//pipeline.saveDataFromInstances2(options.outputFile,instances)
+			
+	}catch (Exception e){
+		err.println e
 	}
 }
 
+foldTable.write(options.outputFile,"\t")				
 
+
+
+//============================================================================
+// 
 
 /****************************************************
 * Parse the command line options, checking validity, printing help if needed. 
@@ -50,22 +113,33 @@ for(int fs = 0;fs < foldSets.size();fs++){
 def ParseOptions(args){
 	parser = new Parser(description: '''
 	
-	wmGenFolds creates a set of cross-validation folds.  Currently it only works from a foldset file, but 
-	soon it will generate them from scratch also. 
-	 
+	Generates a folds file from the given data, classAttributes, and discretizations. 
+	
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
 	Example:
-	
-	wmGenFolds -f foldset -o folds/test
 
 	''');
 
 	parser.with{
-		
-		required 'd','data',[description: 'data file.']
-		required 'f','foldSet',[description: 'foldSet file.']
-		required 'o','outRoot',[description: 'root name for folds files']
+
+	  required 'o','outputFile',[description: 'File name for where output.']
+	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format. Required for supervised filters, optional for unsupervised.']
+		required 'f','numFolds',[description: 'Number of folds to generate.',validate:{it as int}]
+
+	  optional 'c','config',[description: 'Configuration file']  
+		optional 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier(s). Will save one model per result in file.']		
+		optional 'E','experimentString',[description: 'A single experiment string. In single quotes, comma separated: attrEval,attrSearch,numAttributes,none,classAttr,discretization.  Use keyword "none" to omit a field.']
+
+	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
+			// Convert it to a proper range. Default is all inclusive range. 
+			validate:{								
+		 		experimentStart = (it.split(","))[0] as int
+		 		experimentEnd = (it.split(","))[1] as int 
+			  range = (experimentStart..experimentEnd)
+				return(range)
+			}]			
 		
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
@@ -73,6 +147,13 @@ def ParseOptions(args){
 	def options
 	try{
 	  options = parser.parse(args)
+	
+		if ((!options.config && !options.resultsFile && !options.experimentString) || (options.help)){
+			System.err.println "Must specify one of -c, -R, or -E to define the model. Run with -h for options. "
+			System.err<<parser.usage
+			System.exit(1)
+		}
+	
 	}catch(Exception e){
 	  System.err << parser.usage
 	  System.exit(1)
@@ -80,11 +161,3 @@ def ParseOptions(args){
 	
 	return(options)
 }
-
-/**
-saveDataFromInstances2, one 5x cv of 295 samples: 
-0m37.638s
-
-saveDataFromInstaqnces  one 5x cv of 295 samples:
-real	0m13.292s
-*/

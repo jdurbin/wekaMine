@@ -177,9 +177,9 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		asClassifier = pipeline.createAttributeSelectedClassifier()
 						
 		// Perform the cross validation
-		err.println "AttSel:  ${exp.attrEvalStr} numAttrs: ${exp.numAttributes}"
+		err.println "AttSel:  ${exp.attrEvalStr}; ${exp.attrSearchStr} numAttrs: ${exp.numAttributes}"
 		err.println "Classifier: ${exp.classifierStr}"
-		err.print "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ${exp.classAttribute} ..."
+		err.println "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ${exp.classAttribute} ..."
 
 		// Use seed or randomize with clock...
 		def rng;
