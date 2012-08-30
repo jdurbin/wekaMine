@@ -56,7 +56,7 @@ try{
 	noIDinstances = WekaMine.removeInstanceID(instances)
 		
 	// Apply the attribute selection algorithm to instances...			
-	noIDinstances = WekaMine.applyFilter(noIDinstances,options.filter)
+	noIDinstances = WekaMine.applyUnsupervisedFilter(noIDinstances,options.filter)
 		
 	// Put the ID back into the attribute selected instances...
 	// KJD: Note that addID below assumes same number of instances in same order. 

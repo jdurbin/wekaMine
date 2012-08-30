@@ -39,7 +39,9 @@ if (options.config){
 
 FoldSets foldsets;
 if (options.foldsetsFile){
+	err.print "Reading foldset ${options.foldsetsFile}..."
 	foldsets = new FoldSets(options.foldsetsFile)	
+	err.println " ${foldsets.size()} foldsets read."
 }
 
 // Write out a flat list of experiments if requested...
@@ -138,9 +140,13 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
 		pipeline.dataName = options.data
 		
+		// Apply unsupervised filter if any...  Filter could be MultiFilter implementing
+		// several transforms combined. 		
+		filteredData = pipeline.applyUnsupervisedFilter(data)		
+						
 		// Combines data and single class attribute from clinical into one set of instances...
 		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
-		instances = pipeline.createInstancesFromDataAndClinical(data,clinical)	
+		instances = pipeline.createInstancesFromDataAndClinical(filteredData,clinical)	
 		err.println "Combined instances: "+instances.numInstances()
 		
 		// Clean up instances:
@@ -148,7 +154,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// * if not allowed, remove instances with negative class values
 		// * remove instances with missing class values	
 		instances = pipeline.cleanUpInstances(instances)
-
+			
 		// Discretize the class attribute...
 		(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)	
 		
@@ -177,8 +183,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		asClassifier = pipeline.createAttributeSelectedClassifier()
 						
 		// Perform the cross validation
-		err.println "AttSel:  ${exp.attrEvalStr}; ${exp.attrSearchStr} numAttrs: ${exp.numAttributes}"
-		err.println "Classifier: ${exp.classifierStr}"
+		err.println "ATTRIBUTE SELECTION: AttSel:  ${exp.attrEvalStr}; ${exp.attrSearchStr} numAttrs: ${exp.numAttributes}"
+		err.println "CLASSIFIER: ${exp.classifierStr}"
 		err.println "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ${exp.classAttribute} ..."
 
 		// Use seed or randomize with clock...
@@ -190,7 +196,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}
 				
 		Evaluation2 eval 
-		if (options.foldsetsFile){									
+		if (options.foldsetsFile){		
 			eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets,options.evalTraining)
 		}else{
 			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
@@ -220,7 +226,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			* wmClassify
 			*/ 
 			err.println("Classify holdouts with trained model...")
-			err.println "Holdout attributes: "+data.numAttributes()
+			err.println "Holdout attributes: "+filteredData.numAttributes()
 			holdoutprocessed = InstanceUtils.createInstancesToMatchAttributeList(holdoutInstances,model.attributes) 
 			err.println "holdoutprocessed attributes: "+holdoutprocessed.numAttributes()
 			err.println "holdInstances attributes: "+holdoutInstances.numAttributes()
