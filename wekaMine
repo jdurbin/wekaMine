@@ -152,11 +152,14 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		err.println "Combined instances: "+instances.numInstances()
 		
 		// Remove instances in the holdout set.  Since holdouts are stratified, there is a 
-		// different holdout for each class attribute. 		
+		// different holdout for each class attribute. 		WARNING: Stratification is only 
+		// valid for a particular class attribute discretization, so mixing multiple discretizations
+		// in config will result in holdouts that are no longer stratified. 
 		if (options.holdoutSet){
+			err.println "Removing ${options.holdoutSet[exp.classAttribute].size()} holdout samples for ${exp.classAttribute}..."
 			instances = WekaMine.removeInstances(instances,options.holdoutSet[exp.classAttribute])
+			err.println "done."
 		}
-		
 		
 		// Clean up instances:
 		// * remove useless attributes
@@ -359,7 +362,7 @@ def ParseOptions(args){
 
 		optional 'f','foldsetsFile',[default:null,description: "File specifying the cross validation foldsets to use."]
 	  optional 'm','maxFeaturesOut',[default: 100,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
-		optional 'H','holdoutSet',[default:null,description: "File listing samples not to use.  All other samples will be included from experiments"
+		optional 'S','holdoutSet',[default:null,description: "File listing samples not to use.  All other samples will be included from experiments",
 			validate:{
 				if (it != null){				
 					// Read in the samplesToOmit... 
