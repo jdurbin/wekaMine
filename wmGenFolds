@@ -100,9 +100,18 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	}
 }
 
+// Write the foldset file to a file..
 foldTable.write(options.outputFile,"\t")				
 
-
+// print the holdout set for each attribute to stdout
+foldTable.eachRowKeyWithColumnMap{key,attributeRow->
+	// fold 0 is holdout...
+	samples = []
+	attributeRow.each{k,v->
+		if (v == 0) samples << k
+	}
+	println "$key\t${samples.join('\t')}"
+}
 
 //============================================================================
 // 
@@ -113,7 +122,8 @@ foldTable.write(options.outputFile,"\t")
 def ParseOptions(args){
 	parser = new Parser(description: '''
 	
-	Generates a folds file from the given data, classAttributes, and discretizations. 
+	Generates a folds file from the given data, classAttributes, and discretizations. Saves the 
+	folds to the foldsfile and outputs the holdout set to stdout. 
 	
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
@@ -139,8 +149,8 @@ def ParseOptions(args){
 		 		experimentEnd = (it.split(","))[1] as int 
 			  range = (experimentStart..experimentEnd)
 				return(range)
-			}]			
-		
+			}]
+
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
 

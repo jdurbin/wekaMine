@@ -123,12 +123,6 @@ if (options.sampleSubset){
 	clinical = WekaMine.subsetInstances(clinical,options.sampleSubset)
 }
 
-if (options.holdoutSet){
-	data = WekaMine.removeInstances(data,options.holdoutSet)
-	clinical = WekaMine.removeInstances(clinical,options.holdoutSet)
-}
-
-
 //err.println "DEBUG: "+options.experimentRange
 //experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 //	err.println "DEBUG experiment $idx"
@@ -156,6 +150,13 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
 		instances = pipeline.createInstancesFromDataAndClinical(filteredData,clinical)	
 		err.println "Combined instances: "+instances.numInstances()
+		
+		// Remove instances in the holdout set.  Since holdouts are stratified, there is a 
+		// different holdout for each class attribute. 		
+		if (options.holdoutSet){
+			instances = WekaMine.removeInstances(instances,options.holdoutSet[exp.classAttribute])
+		}
+		
 		
 		// Clean up instances:
 		// * remove useless attributes
@@ -358,13 +359,17 @@ def ParseOptions(args){
 
 		optional 'f','foldsetsFile',[default:null,description: "File specifying the cross validation foldsets to use."]
 	  optional 'm','maxFeaturesOut',[default: 100,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
-		optional 'h','holdoutSet',[default:null,description: "File listing samples not to use.  All other samples will be included from experiments"
+		optional 'H','holdoutSet',[default:null,description: "File listing samples not to use.  All other samples will be included from experiments"
 			validate:{
 				if (it != null){				
 					// Read in the samplesToOmit... 
-					def samplesToOmit = []
-					new File(it).eachLine{samplesToOmit << it}
-					return(samplesToOmit)
+					samplesToOmitByClassAttribute = [:]
+					new File(it).splitEachLine("\t"){fields->
+						classAttr = fields[0]
+						samplesToOmit = fields[1..-1]
+						samplesToOmitByClassAttribute[classAttr] = samplesToOmit
+					}
+					return(samplesToOmitByClassAttribute)
 				}else {
 						return(it)							
 				}
