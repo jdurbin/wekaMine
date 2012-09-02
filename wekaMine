@@ -123,6 +123,12 @@ if (options.sampleSubset){
 	clinical = WekaMine.subsetInstances(clinical,options.sampleSubset)
 }
 
+if (options.holdoutSet){
+	data = WekaMine.removeInstances(data,options.holdoutSet)
+	clinical = WekaMine.removeInstances(clinical,options.holdoutSet)
+}
+
+
 //err.println "DEBUG: "+options.experimentRange
 //experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 //	err.println "DEBUG experiment $idx"
@@ -141,7 +147,9 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		pipeline.dataName = options.data
 		
 		// Apply unsupervised filter if any...  Filter could be MultiFilter implementing
-		// several transforms combined. 		
+		// several transforms combined. 		Note: As it is, the data is filtered before 
+		// the class attribute has even been added.  You can filter it after the class attribute
+		// has been added if the classAttribute is set and the filter option is set to ignore class.
 		filteredData = pipeline.applyUnsupervisedFilter(data)		
 						
 		// Combines data and single class attribute from clinical into one set of instances...
@@ -350,6 +358,18 @@ def ParseOptions(args){
 
 		optional 'f','foldsetsFile',[default:null,description: "File specifying the cross validation foldsets to use."]
 	  optional 'm','maxFeaturesOut',[default: 100,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
+		optional 'h','holdoutSet',[default:null,description: "File listing samples not to use.  All other samples will be included from experiments"
+			validate:{
+				if (it != null){				
+					// Read in the samplesToOmit... 
+					def samplesToOmit = []
+					new File(it).eachLine{samplesToOmit << it}
+					return(samplesToOmit)
+				}else {
+						return(it)							
+				}
+			}
+		]
 		optional 's','sampleSubset',[default:null,description: "File listing samples to use.  All other samples will be excluded from analysis.",
 			validate:{
 				if (it != null){				
