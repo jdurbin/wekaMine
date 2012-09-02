@@ -39,7 +39,7 @@ if (options.config){
 }
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-data = WekaMine.readNumericFromTable(options.data)
+//data = WekaMine.readNumericFromTable(options.data)
 
 def clinical
 if (options.clinical){
@@ -58,23 +58,24 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	try{
 		
 		// Creates a wekaMine pipeline...
-		pipeline = new WekaMine(data,clinical,exp,params)		
+		//pipeline = new WekaMine(data,clinical,exp,params)		
 		
 		// Combines data and single class attribute from clinical into one set of instances...
 		// Unsupervised filters don't need clinical data. 
-		if (options.clinical){
-			instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
-		}else instances = data
+		//if (options.clinical){
+		//	instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
+		//}else instances = data
 
 		// Clean up instances:
 		// * remove useless attributes
 		// * if not allowed, remove instances with negative class values
 		// * remove instances with missing class values	
-		instances = pipeline.cleanUpInstances(instances)
+		//instances = pipeline.cleanUpInstances(instances)
 
 		// Discretize the class attribute... Needed to do stratification...
 		err.println "classAttr: "+exp.classAttribute
-		(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)				
+		clinical.setClassName(exp.classAttribute)
+		(instances,cutoffs) = WekaMine.discretizeClassAttribute(clinical,exp.discretization,exp.classAttribute)				
 			
 		instances.randomize(new Random());
 		if (instances.classAttribute().isNominal()) {
@@ -83,7 +84,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		
 		allIDs = []
 		for (int i = 0; i < numFolds; i++) {		
-		  Instances test = data.testCV(numFolds, i);
+		  Instances test = instances.testCV(numFolds, i);
 			IDs = test["ID"]
 			//println "Fold$i: ${IDs}"		
 			IDs.each{id->
@@ -122,7 +123,7 @@ foldTable.eachRowKeyWithColumnMap{key,attributeRow->
 def ParseOptions(args){
 	parser = new Parser(description: '''
 	
-	Generates a folds file from the given data, classAttributes, and discretizations. Saves the 
+	Generates a folds file from the given clinical data, classAttributes, and discretizations. Saves the 
 	folds to the foldsfile and outputs the holdout set to stdout. 
 	
 	Written by: James Durbin (kdurbin@ucsc.edu)
@@ -134,7 +135,7 @@ def ParseOptions(args){
 	parser.with{
 
 	  required 'o','outputFile',[description: 'File name for where output.']
-	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+	  //required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format. Required for supervised filters, optional for unsupervised.']
 		required 'f','numFolds',[description: 'Number of folds to generate.',validate:{it as int}]
 
