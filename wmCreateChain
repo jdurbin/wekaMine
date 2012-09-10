@@ -80,7 +80,7 @@ modelList.each{modelName->
 			null0Pr = model.bnm.getSignificance(class0Pr,0)
 			null1Pr = model.bnm.getSignificance(class1Pr,1)		
 			llr = Math.log(null1Pr/null0Pr)		
-			modelsBySamples[modelName][instanceName] = llr
+			modelsBySamples[modelName][instanceName] = llr.round(7)
 		}
 	}else if (options.writeAll){
 			instanceName = instanceIDs[instanceIdx]
@@ -88,7 +88,7 @@ modelList.each{modelName->
 			class1Pr = results[instanceIdx][1]
 			null0Pr = model.bnm.getSignificance(class0Pr,0)
 			null1Pr = model.bnm.getSignificance(class1Pr,1)
-			outStr = "$class0Pr,$class1Pr,$null0Pr,$null1Pr"
+			outStr = "${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
 			modelsBySamples[modelName][instanceName] = outStr
 	}else{	
 		for(instanceIdx in 0..< matchedInstances.numInstances()){		
@@ -96,7 +96,7 @@ modelList.each{modelName->
 			class0Pr = results[instanceIdx][0]  
 			class1Pr = results[instanceIdx][1]
 			llr = Math.log(class1Pr/class0Pr)		
-			modelsBySamples[modelName][instanceName] = llr
+			modelsBySamples[modelName][instanceName] = llr.round(7)
 		}
 	}
 
@@ -106,7 +106,7 @@ def out = System.out
 if (options.outputFile) out = new File(options.outputFile)
 
 err.print "Writing ${options.outputFile}.."
-modelsBySamples.writeTable(out){it.round(7)}
+modelsBySamples.writeTable(out)
 err.println "done."
 
 
