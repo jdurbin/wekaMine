@@ -83,6 +83,7 @@ modelList.each{modelName->
 			modelsBySamples[modelName][instanceName] = llr.round(7)
 		}
 	}else if (options.writeAll){
+		for(instanceIdx in 0..< matchedInstances.numInstances()){
 			instanceName = instanceIDs[instanceIdx]
 			class0Pr = results[instanceIdx][0]  
 			class1Pr = results[instanceIdx][1]
@@ -90,6 +91,7 @@ modelList.each{modelName->
 			null1Pr = model.bnm.getSignificance(class1Pr,1)
 			outStr = "${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
 			modelsBySamples[modelName][instanceName] = outStr
+		}
 	}else{	
 		for(instanceIdx in 0..< matchedInstances.numInstances()){		
 			instanceName = instanceIDs[instanceIdx]
