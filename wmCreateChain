@@ -104,11 +104,8 @@ modelList.each{modelName->
 
 }
 
-def out = System.out
-if (options.outputFile) out = new File(options.outputFile)
-
 err.print "Writing ${options.outputFile}.."
-modelsBySamples.writeTable(out)
+modelsBySamples.write(options.outputFile)
 err.println "done."
 
 
