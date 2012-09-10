@@ -148,6 +148,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		err.print "Save model to $outFile ..."
 		SerializationHelper.write(outFile,model)
 		err.println "done."
+		
+		instances = null;
+		samples = null;
+		model = null;
 			
 	}catch (Exception e){
 		err.println e

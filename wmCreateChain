@@ -30,7 +30,7 @@ if (options.modelDir){
 		}
 }
 
-modelsBySamples = new TwoDMap()
+modelsBySamples = new DynamicTable()
 modelList.each{modelName->
 	
 	if (options.rootPath) modelPath = options.rootPath
@@ -82,8 +82,15 @@ modelList.each{modelName->
 			llr = Math.log(null1Pr/null0Pr)		
 			modelsBySamples[modelName][instanceName] = llr
 		}
+	}else if (options.writeAll){
+			instanceName = instanceIDs[instanceIdx]
+			class0Pr = results[instanceIdx][0]  
+			class1Pr = results[instanceIdx][1]
+			null0Pr = model.bnm.getSignificance(class0Pr,0)
+			null1Pr = model.bnm.getSignificance(class1Pr,1)
+			outStr = "$class0Pr,$class1Pr,$null0Pr,$null1Pr"
+			modelsBySamples[modelName][instanceName] = outStr
 	}else{	
-
 		for(instanceIdx in 0..< matchedInstances.numInstances()){		
 			instanceName = instanceIDs[instanceIdx]
 			class0Pr = results[instanceIdx][0]  
@@ -92,6 +99,7 @@ modelList.each{modelName->
 			modelsBySamples[modelName][instanceName] = llr
 		}
 	}
+
 }
 
 def out = System.out
@@ -119,8 +127,7 @@ def ParseOptions(args){
 	''');
 
 	parser.with{
-		
-		
+				
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 
 		optional 'm','modelList',[description: 'A list of model file paths. One of -m or -M required. ']
@@ -128,7 +135,8 @@ def ParseOptions(args){
 
 		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 		optional 'p','rootPath',[description: 'Root path appended to beginning of each model name.']
-				
+
+		flag 'W','writeAll',[description: 'Write both probabilities and bootstrap null probabilities for each value like: pr1,pr2,null1,null2']
 		flag 'N','useNullModel',[description: 'Use bootstrap null model instead of classifier confidence to compute LLR.']
 	  flag 'h','help',[default:false,description: 'Print script help.']	
 	

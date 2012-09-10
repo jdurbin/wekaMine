@@ -136,6 +136,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	err.println "Experiment: $jobIdx \t Class attribute: ${exp.classAttribute}"
 	try{
 	
+		//err.println "DEBUG: ${exp.classifierStr}"
+		//err.println "DEBUG: ${exp.attrEvalStr}"
+		//err.println "DEBUG: ${exp.classAttribute}"
+		
 		// Creates a wekaMine pipeline...
 		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
 		pipeline.dataName = options.data
@@ -151,22 +155,23 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		instances = pipeline.createInstancesFromDataAndClinical(filteredData,clinical)	
 		err.println "Combined instances: "+instances.numInstances()
 		
+		
 		// Remove instances in the holdout set.  Since holdouts are stratified, there is a 
 		// different holdout for each class attribute. 		WARNING: Stratification is only 
 		// valid for a particular class attribute discretization, so mixing multiple discretizations
 		// in config will result in holdouts that are no longer stratified. 
-		if (options.holdoutSet){
-			err.println "Removing ${options.holdoutSet[exp.classAttribute].size()} holdout samples for ${exp.classAttribute}..."
+		if (options.holdoutSet){			
+			err.print "Removing ${options.holdoutSet[exp.classAttribute].size()} holdout samples for ${exp.classAttribute}..."
 			instances = WekaMine.removeInstances(instances,options.holdoutSet[exp.classAttribute])
 			err.println "done."
-		}
-		
+		}				
+				
 		// Clean up instances:
 		// * remove useless attributes
 		// * if not allowed, remove instances with negative class values
 		// * remove instances with missing class values	
 		instances = pipeline.cleanUpInstances(instances)
-			
+					
 		// Discretize the class attribute...
 		(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)	
 		
@@ -205,7 +210,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			rng = new Random();
 		}else{
 			rng = new Random(experiments.params.cvSeed)
-		}
+		}						
 				
 		Evaluation2 eval 
 		if (options.foldsetsFile){		
