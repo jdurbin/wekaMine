@@ -101,11 +101,10 @@ modelList.each{modelName->
 			modelsBySamples[modelName][instanceName] = llr.round(7)
 		}
 	}
-
 }
 
 err.print "Writing ${options.outputFile}.."
-modelsBySamples.write(options.outputFile)
+modelsBySamples.write(options.outputFile,"\t")
 err.println "done."
 
 
