@@ -40,10 +40,15 @@ instances = InstanceUtils.createInstancesToMatchAttributeList(instances,model.at
 instances = WekaMine.createEmptyClassAttribute(instances,model.className,model.classValues)
 instances.setClassName(model.className)
 
+// Apply unsupervised filter
+instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)		
+
 // If a clinical file is given, also output whether or not the prediction matches
 // the clinical value...
 if (options.clinical){
 	clinical = WekaMine.readFromTable(options.clinical)
+
+	err.println "model.classAttribute: "+model.classAttribute()
 
 	// Remove instances with missing class value...
 	clinical.setClassName(model.classAttribute())

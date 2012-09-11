@@ -63,7 +63,10 @@ modelList.each{modelName->
 	// Add an empty class attribute so that classifiers don't choke ? Odd...
 	matchedInstances = WekaMine.createEmptyClassAttribute(matchedInstances,model.className,model.classValues)
 	matchedInstances.setClassName(model.className)
-	
+		
+	// Apply unsupervised filter
+	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
+		
 	// Model knows everything else needed to process the data... so have at it...
 	// Results is a list, one item per instance, each item is a distribution for instance
 	// results[0] == model.class0 probability, results[1] == model.class1 probability. 
@@ -89,7 +92,9 @@ modelList.each{modelName->
 			class1Pr = results[instanceIdx][1]
 			null0Pr = model.bnm.getSignificance(class0Pr,0)
 			null1Pr = model.bnm.getSignificance(class1Pr,1)
-			outStr = "${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
+			att0 = model.classValues[0]
+			att1 = model.classValues[1]
+			outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
 			modelsBySamples[modelName][instanceName] = outStr
 		}
 	}else{	

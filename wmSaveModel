@@ -76,7 +76,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	try{
 		
 		// Creates a wekaMine pipeline...
-		pipeline = new WekaMine(data,clinical,exp,params)				
+		pipeline = new WekaMine(data,clinical,exp,params)			
+		
+		// Apply unsupervised filter
+		data = pipeline.applyUnsupervisedFilter(data)	
 		
 		// Combines data and single class attribute from clinical into one set of instances...
 		// KJD: apparently, the order is not guaranteed to match between instances and data...
@@ -106,7 +109,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 
 		// Create an object to hold all the info we need to classify new instances with 
 		// this model...	
-		model = new WekaMineModel(instances,exp.classifier,cutoffs)
+		//model = new WekaMineModel(instances,exp.classifier,cutoffs)
+		model = new WekaMineModel(instances,exp.classifier,cutoffs,exp.filter)
 
 		// If we have a nullModelFile, read it in and process the instances, otherwise use 
 		// instances. 
@@ -149,6 +153,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		SerializationHelper.write(outFile,model)
 		err.println "done."
 		
+		// Encourage garbage collection maybe...
 		instances = null;
 		samples = null;
 		model = null;
