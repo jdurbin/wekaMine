@@ -3,6 +3,7 @@
 import durbin.weka.* 
 import durbin.weka.FoldSets
 import durbin.util.*
+import java.lang.management.*
 
 err = System.err // sugar
 def bExceptionOccurred = false
@@ -123,6 +124,14 @@ if (options.sampleSubset){
 	clinical = WekaMine.subsetInstances(clinical,options.sampleSubset)
 }
 
+// Use seed or randomize with clock...
+def rng;
+if (experiments.params.cvSeed == -1){
+	rng = new Random();
+}else{
+	rng = new Random(experiments.params.cvSeed)
+}
+
 //err.println "DEBUG: "+options.experimentRange
 //experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 //	err.println "DEBUG experiment $idx"
@@ -131,7 +140,7 @@ if (options.sampleSubset){
 // Perform each experiment described in the experiment spec...
 //experiments[options.experimentRange].eachWithIndex{exp,idx->  Experiments now subseted before here...
 experiments[options.experimentRange].eachWithIndex{exp,idx-> 
-	jobIdx = idx+options.experimentRange.getTo()
+	jobIdx = idx+options.experimentRange.getFrom()
 	err.println "------------------------------------------------"
 	err.println "Experiment: $jobIdx \t Class attribute: ${exp.classAttribute}"
 	try{
@@ -202,15 +211,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Perform the cross validation
 		err.println "ATTRIBUTE SELECTION: AttSel:  ${exp.attrEvalStr}; ${exp.attrSearchStr} numAttrs: ${exp.numAttributes}"
 		err.println "CLASSIFIER: ${exp.classifierStr}"
-		err.println "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ${exp.classAttribute} ..."
-
-		// Use seed or randomize with clock...
-		def rng;
-		if (experiments.params.cvSeed == -1){
-			rng = new Random();
-		}else{
-			rng = new Random(experiments.params.cvSeed)
-		}						
+		err.println "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ${exp.classAttribute} ..."			
 				
 		Evaluation2 eval 
 		if (options.foldsetsFile){		
@@ -272,6 +273,31 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}		
 		
 		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
+		
+		// Report memory usage and encourage garbage collection...
+		err.println "\n"
+		err.println getHeapSpace()
+		
+		// Get current size of heap in bytes
+		err.println "HeapSize: "+Runtime.getRuntime().totalMemory() / 1000000000.0
+
+		// Get maximum size of heap in bytes. The heap cannot grow beyond this size.
+		// Any attempt will result in an OutOfMemoryException.
+		err.println "Max Heap Size:"+Runtime.getRuntime().maxMemory() / 1000000000.0
+		
+		// Get amount of free memory within the heap in bytes. This size will increase
+		// after garbage collection and decrease as new objects are created.
+		err.println "Free Memory:"+Runtime.getRuntime().freeMemory() / 1000000000.0
+		
+		filteredData = null
+		instances = null
+		asClassifier = null
+		eval = null
+		err.print "Collecting garbage..."
+		System.gc()
+		err.println "done."
+		err.println getHeapSpace()
+			
 	  err.println "==========================================\n"										
 	}catch (Exception e){
 		err.println "\n\n"
@@ -471,6 +497,12 @@ def maxIdx(dist){
 		}		
 	}	
 	return(maxidx)		
+}
+
+def getHeapSpace(){
+	mxmemory = ManagementFactory.getMemoryMXBean()
+	heap = mxmemory.getHeapMemoryUsage()
+	return("$heap")
 }
 
 
