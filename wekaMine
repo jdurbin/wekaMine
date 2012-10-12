@@ -38,6 +38,8 @@ if (options.config){
 	err.println "${experiments.size()} experiments read out of $totalExperiments file."
 }
 
+printHeapSpace()
+
 FoldSets foldsets;
 if (options.foldsetsFile){
 	err.print "Reading foldset ${options.foldsetsFile}..."
@@ -153,17 +155,22 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
 		pipeline.dataName = options.data
 		
+		printHeapSpace()
+		
 		// Apply unsupervised filter if any...  Filter could be MultiFilter implementing
 		// several transforms combined. 		Note: As it is, the data is filtered before 
 		// the class attribute has even been added.  You can filter it after the class attribute
 		// has been added if the classAttribute is set and the filter option is set to ignore class.
-		filteredData = pipeline.applyUnsupervisedFilter(data)		
+		instances = pipeline.applyUnsupervisedFilter(data)	
+		
+		printHeapSpace()	
 						
 		// Combines data and single class attribute from clinical into one set of instances...
 		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
-		instances = pipeline.createInstancesFromDataAndClinical(filteredData,clinical)	
+		instances = pipeline.createInstancesFromDataAndClinical(instances,clinical)	
 		err.println "Combined instances: "+instances.numInstances()
 		
+		printHeapSpace()
 		
 		// Remove instances in the holdout set.  Since holdouts are stratified, there is a 
 		// different holdout for each class attribute. 		WARNING: Stratification is only 
@@ -278,16 +285,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		err.println "\n"
 		err.println getHeapSpace()
 		
-		// Get current size of heap in bytes
-		err.println "HeapSize: "+Runtime.getRuntime().totalMemory() / 1000000000.0
-
-		// Get maximum size of heap in bytes. The heap cannot grow beyond this size.
-		// Any attempt will result in an OutOfMemoryException.
-		err.println "Max Heap Size:"+Runtime.getRuntime().maxMemory() / 1000000000.0
-		
-		// Get amount of free memory within the heap in bytes. This size will increase
-		// after garbage collection and decrease as new objects are created.
-		err.println "Free Memory:"+Runtime.getRuntime().freeMemory() / 1000000000.0
+		printHeapSpace()			
 		
 		filteredData = null
 		instances = null
@@ -505,4 +503,17 @@ def getHeapSpace(){
 	return("$heap")
 }
 
+
+void printHeapSpace(){
+	// Get current size of heap in bytes
+	System.err.println("HeapSize: "+(Runtime.getRuntime().totalMemory() / 1000000000.0));
+
+	// Get maximum size of heap in bytes. The heap cannot grow beyond this size.
+	// Any attempt will result in an OutOfMemoryException.
+	System.err.println("Max Heap Size:"+(Runtime.getRuntime().maxMemory() / 1000000000.0));
+	
+	// Get amount of free memory within the heap in bytes. This size will increase
+	// after garbage collection and decrease as new objects are created.
+	System.err.println("Free Memory:"+(Runtime.getRuntime().freeMemory() / 1000000000.0));
+}
 
