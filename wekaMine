@@ -163,6 +163,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// has been added if the classAttribute is set and the filter option is set to ignore class.
 		instances = pipeline.applyUnsupervisedFilter(data)	
 		
+		
+		
 		printHeapSpace()	
 						
 		// Combines data and single class attribute from clinical into one set of instances...

@@ -11,101 +11,89 @@ err.println ""
 
 
 bestPerAttribute = [:]   // bestPerAttribute['survival'] = fields from row. 
-bestPerAttributeZeroR = [:] // bestPerAttributeZeroR['survival'] = fields from row. 
-maxPerAttributeZeroR = [:]
 minPerAttribute = [:] // minimum roc for given attribute
 maxPerAttribute = [:] // maximum roc for given attribute
 sumPerAttribute = [:] // sum of roc values for given attribute. 
 numPerAttribute = [:]
 
-def headings
-def heading2IdxMap = [:]
-def rocIdx,attributeIdx,classifierIdx
-new File(options.resultsFile).withReader{r->
+t = new OnlineTable(options.resultsFile)
 
-  headings = r.readLine()
-  //println headings
-
-  headings = headings.split(",")
-  headings.eachWithIndex{h,i->heading2IdxMap[h] = i}   
-  rocIdx = heading2IdxMap['roc']
-  attributeIdx = heading2IdxMap['classAttr']
-  classifierIdx = heading2IdxMap['classifier']
+t.eachRow{row->
+	baseClassifier = WekaNames.getBaseClassifierType(row.classifier)
+	if (baseClassifier == null){
+		err.println "NULL classifier? "
+		err.println "classifierIdx: $classifierIdx"
+		err.println "$classifier"
+		err.println "${row.values()}"
+		System.exit(1)
+	}
 	
-  r.splitEachLine(","){fields->			
-  	attribute = fields[attributeIdx]
-		classifier = fields[classifierIdx]
-		roc = fields[rocIdx] as double
-		baseClassifier = WekaNames.getBaseClassifierType(classifier)
-		if (baseClassifier == null){
-			err.println "NULL classifier? "
-			err.println "classifierIdx: $classifierIdx"
-			err.println "$classifier"
-			err.println "$fields"
-			System.exit(1)
-		}
-		if (baseClassifier.contains("ZeroR")){
-			if (roc > maxPerAttributeZeroR[attribute]){
-				maxPerAttributeZeroR[attribute] = roc
-				bestPerAttributeZeroR[attribute] = fields
-			}
-		}else{
-			if (roc > maxPerAttribute[attribute]){
-				maxPerAttribute[attribute] = roc
-				bestPerAttribute[attribute] = fields
-			}
-			if (minPerAttribute[attribute] == null) minPerAttribute[attribute] = 200;
-			if (minPerAttribute[attribute] > roc){
-				minPerAttribute[attribute] = roc
-			}			
-		}
-		if (sumPerAttribute[attribute] == null) sumPerAttribute[attribute] = 0.0
-		if (numPerAttribute[attribute] == null) numPerAttribute[attribute] = 0.0
-		sumPerAttribute[attribute]+=roc;
-		numPerAttribute[attribute] += 1;
-  }  
+	roc = row.roc as double
+	if (roc > maxPerAttribute[row.classAttr]){
+		maxPerAttribute[row.classAttr] = roc
+		bestPerAttribute[row.classAttr] = row
+	}
+	
+	if (minPerAttribute[row.classAttr] == null) minPerAttribute[row.classAttr] = 200;
+	if (minPerAttribute[row.classAttr] > roc){
+		minPerAttribute[row.classAttr] = roc
+	}			
+	
+	// Sum, for calculating average roc. 	
+	if (sumPerAttribute[row.classAttr] == null) sumPerAttribute[row.classAttr] = 0.0
+	if (numPerAttribute[row.classAttr] == null) numPerAttribute[row.classAttr] = 0.0
+	sumPerAttribute[row.classAttr]+=roc;
+	numPerAttribute[row.classAttr]+= 1;  	
 }
 
 if (!options.report){
-	// Save something we can build models from...
-	println headings.join(",")
-	bestPerAttribute.each{attribute,fields->		
-		if (options.minROC){
-			//err.println "fields[rocIdx] = "+fields[rocIdx]
-			roc = fields[rocIdx]	as double			
-			if (roc < options.minROC) return; // Don't output this one, below cutoff...
-		}
-		
-		println fields.join(",")
+	// Save something we can build models from...	
+	println t.headings().join(",")
+
+	bestPerAttribute.each{attribute,rowMap->		
+		majorityAcc = computeMajorityAcc(rowMap)					
+		roc = rowMap.roc	as double			
+		delta = roc-majorityAcc
+		if (roc < options.minROC) return; // Don't output this one, below cutoff...
+		if (delta < options.minDeltaMajority) return; 
+		println rowMap.values().join(",")
 	}
-}else{
-	println "attribute,roc,mroc,deltaroc,minroc,maxroc,meanroc,$headings,*,${headings.join(',')}"
+}else{		
+	println "attribute,roc,majority acc,deltaroc,minroc,maxroc,meanroc,${t.headings()},*,${t.headings().join(',')}"
 	// Print a report for inspection...
-	bestPerAttribute.each{attribute,fields->	
-		roc = fields[rocIdx]	as double			
+	bestPerAttribute.each{attribute,rowMap->	
+		majorityAcc = computeMajorityAcc(rowMap)					
+		roc = rowMap.roc	as double			
+		delta = roc-majorityAcc
 		
-		if (options.minROC){
-			if (roc < options.minROC) return; // Don't output this one, below cutoff...
-		}				
+		if (roc < options.minROC) return; // Don't output this one, below cutoff...
+		if (delta < options.minDeltaMajority) return; 
 			
 		print "$attribute,$roc,"
-		if (bestPerAttributeZeroR.containsKey(attribute)){
-			zeroRfields = bestPerAttributeZeroR[attribute]
-			mroc = zeroRfields[rocIdx] as double
-			deltaroc = roc - mroc
-			//err.println "roc: $roc  mroc: $mroc   deltaroc: $deltaroc"
-			minroc = minPerAttribute[attribute]
-			maxroc = maxPerAttribute[attribute]
-			meanroc = sumPerAttribute[attribute]/numPerAttribute[attribute]
-			print "$mroc,$deltaroc,$minroc,$maxroc,$meanroc,"
-			f = fields.join(",")
-			z = zeroRfields.join(",")
-			println "$f,*,$z"
-		}else{
-			f = fields.join(",")
-			println "NA,$f,*,NA"
-		}
+		minroc = minPerAttribute[attribute]
+		maxroc = maxPerAttribute[attribute]
+		meanroc = sumPerAttribute[attribute]/numPerAttribute[attribute]
+		print "$majorityAcc,$delta,$minroc,$maxroc,$meanroc,"
+		f = rowMap.values().join(",")
+		println "$f"
 	}
+}
+
+def computeMajorityAcc(row){
+	tp = row.tp1 as double
+	fp = row.fp1 as double
+	tn = row.tn1 as double
+	fn = row.fn1 as double
+		
+	samples = tp+fp+tn+fn
+	
+	pos = tp+fn
+	neg = tn+fp
+	
+	if (pos > neg) fracCorrect = pos/(pos+neg)
+	else fracCorrect = neg/(pos+neg)
+		
+	return(fracCorrect)
 }
 
 /****************************************************
@@ -130,8 +118,11 @@ def ParseOptions(args){
 	parser.with{
 		
 	 	required 'R','resultsFile',[description: 'wekaMine summary results.']
-		optional 'm','minROC',[description: 'ROC cutoff for output.  Only results with roc >= minROC will be included.',
+		optional 'm','minROC',[default:0,description: 'ROC cutoff for output.  Only results with roc >= minROC will be included.',
 		validate:{return it as double}]
+		optional 'D','minDeltaMajority',[default:0,description: 'Minimum roc delta from the majority classifier.',
+		validate:{return it as double}]
+
 		
 		flag 'r','report',[default:false,description: 'Output a report to stdout instead of another results file. ']		
 	  flag 'h','help',[default:false,description: 'Print script help.']
