@@ -1,0 +1,355 @@
+#!/usr/bin/env groovy 
+
+/*
+additional_chemo_therapy,binary
+sample_type,dichotomize
+days_to_tumor_recurrence,median,censored=vital_status:LIVING
+days_to_tumor_recurrence,quartile,censored=vital_status:LIVING
+additional_radiation_therapy,binary
+*/
+
+import durbin.util.*
+import durbin.weka.WekaMine as WM
+import weka.core.*
+import hep.aida.bin.DynamicBin1D;
+
+err = System.err
+
+options = ParseOptions(args)
+
+clinicalInstances = WM.readFromTable(options.clinFileName,true) // input instances...
+//clinicalInstances = WM.readNominalFromTable(clinFileName,true) // input instances...
+//attrPrefix = args[2]
+
+output = new TwoDMap()
+
+new File(options.filterTemplate).splitEachLine(","){fields->
+	attributeName = fields[0]
+	discretization = fields[1]
+	if (fields.size() > 2){
+		censoredStatus = fields[2]
+	}else censoredStatus = null
+		
+	switch(discretization){
+		case 'dichotomize':
+				dichotomize(output,clinicalInstances,attributeName)		
+				break;
+				
+		case 'median':
+				medianFilter(output,clinicalInstances,attributeName,censoredStatus)
+				break;
+				
+		case 'upperQuartile':
+				upperQuartileFilter(output,clinicalInstances,attributeName,censoredStatus)
+				break;
+				
+		case 'lowerQuartile':
+				lowerQuartileFilter(output,clinicalInstances,attributeName,censoredStatus)
+				break;				
+				
+		case 'none':
+				noFilter(output,clinicalInstances,attributeName)
+				break;
+	}																																																			
+}
+
+output.printTable("\t","?")
+
+
+
+/***
+* 
+*/ 
+def upperQuartileFilter(output,inInstances,attributeName,censoredStatus){
+	
+	// compute the median...
+	values = inInstances.attributeValues(attributeName)
+	bin = new DynamicBin1D()
+	values.each{
+		if (it != Double.NaN) bin.add(it)
+	}
+	upperquantile = bin.quantile(0.75)
+	err.println "Upper quartile for $attributeName = $upperquantile"
+	
+	// go through instances, recording if value is above or below upper quantile.....	
+	inInstances.each{inst->
+		instName = inst["ID"]
+		outAttributeName = "${options.attrPrefix}${attributeName}_upperquartile"
+		
+		def atval
+		val = inst[attributeName]
+		
+		//err.println "val: $val"
+		if (val != Double.NaN){
+			val = val as double					
+			if (val <= upperquantile){
+				atval = "leq"
+			}else{
+				atval = "gt"
+			}
+		}else{
+			atval = "null"
+		}		
+		
+		atval = handleCensoring(inst,censoredStatus,atval)		
+		
+		output[instName][outAttributeName] = atval
+	}	
+}
+
+
+
+/***
+* 
+*/ 
+def lowerQuartileFilter(output,inInstances,attributeName,censoredStatus){		
+	// compute the median...
+	values = inInstances.attributeValues(attributeName)
+	bin = new DynamicBin1D()
+	values.each{
+		if (it != Double.NaN) bin.add(it)
+	}
+	lowerquantile = bin.quantile(0.25)
+	
+	err.println "Lower quartile for $attributeName = $lowerquantile"
+	
+	// go through instances, recording if value is above or below upper quantile.....	
+	inInstances.each{inst->
+		instName = inst["ID"]
+		outAttributeName = "${options.attrPrefix}${attributeName}_lowerquartile"
+		
+		def atval
+		val = inst[attributeName]
+		
+		//err.println "val: $val"
+		if (val != Double.NaN){
+			val = val as double					
+			if (val <= lowerquantile){
+				atval = "leq"
+			}else{
+				atval = "gt"
+			}
+		}else{
+			atval = "null"
+		}		
+		
+		atval = handleCensoring(inst,censoredStatus,atval)
+		
+		output[instName][outAttributeName] = atval
+	}	
+}
+
+/***
+* 
+*/ 
+def medianFilter(output,inInstances,attributeName,censoredStatus){
+	
+	// compute the median...
+	values = inInstances.attributeValues(attributeName)
+			
+	bin = new DynamicBin1D()
+	values.each{
+		if (it.class != Double){
+			err.println "\tit.class="+it.class
+			err.println "it = **${it}**"
+		}else if (it != Double.NaN) bin.add(it)
+	}
+	
+	//err.println "Vals for $attributeName: $values"
+	
+	median = bin.median()
+	err.println "Median for $attributeName = $median"
+	
+	// go through instances, recording if value is above or below median...	
+	inInstances.each{inst->
+		instName = inst["ID"]
+		outAttributeName = "${options.attrPrefix}${attributeName}_median"
+		
+		def atval
+		val = inst[attributeName]
+		
+		//err.println "val: $val"
+		if (val != Double.NaN){
+			val = val as double					
+			if (val <= median){
+				atval = "leq"
+			}else{
+				atval = "gt"
+			}
+		}else{
+			atval = "null"
+		}
+		
+		atval = handleCensoring(inst,censoredStatus,atval)
+		
+		//err.println "atval: $atval"
+		output[instName][outAttributeName] = atval
+	}	
+}
+
+/***
+*
+*/ 
+def handleCensoring(inst,censoredStatus,atval){
+	if (censoredStatus == null) return(atval)
+	
+	cfields = censoredStatus.split(":")
+	censorAttribute = cfields[0]
+	censorValence = cfields[1]
+	
+	cval = inst[censorAttribute]
+	
+	if (cval == "?"){  // we don't know if they are alive or dead
+		if (atval == "gt") return(atval) // but if they lived past cutoff, then the must have been alive then
+		else return("?") // otherwise we just don't know...		
+	}else{	
+		if (cval == censorValence){
+			if (atval == "gt") return(atval) 
+			else return("?") // if they are alive and survival days is less than cutoff, we don't know if they made it to cutoff or not, so unknown.
+		}else{
+			return(atval) // If they are dead, the survival days is real survival days...
+		}
+	} 		
+}
+
+/**
+* Don't do anything, just copy it to output...
+*/ 
+def noFilter(output,inInst,attributeName){
+	err.println "noFilter $attributeName"
+	inInst.each{inst->
+		instName = inst["ID"]
+		outAttributeName = "${options.attrPrefix}${attributeName}"
+		output[instName][outAttributeName] = inst[attributeName]			
+	}		
+}
+
+
+/**
+*	Takes a nominal variable with > 2 attribute values and converts it into 
+* a series of dichotomized variables.  For example, given three 
+* attribute values:
+* 
+* {a,b,c}
+* 
+* this will becomes three separate dichotomized attributes:
+* a_nota
+* b_notb
+* c_notc
+* 
+*/
+def dichotomize(outTable,instIn,attributeName){
+	attVals = instIn.attributeValues(attributeName) as ArrayList
+	attValSet = attVals as Set
+	
+	//err.println "attValSet: "+attValSet
+	
+	// For each value, create a dichotomized variable, put it directly in the table...
+	attValSet.each{currentAttVal->		
+		
+		if (currentAttVal == Double.NaN) return;
+		if (currentAttVal == "null") return;
+		if (currentAttVal == "?") return;
+		
+		if (currentAttVal.class == Double){
+			currentAttVal = "Val=$currentAttVal" as String
+		}						
+		currentAttVal = currentAttVal.replaceAll("'","") // weka or wekaMine is adding ' sometimes. 
+		
+		newAttName = "${options.attrPrefix}${attributeName}_${currentAttVal}_vs_not${currentAttVal}" as String				
+		
+		// Go through the instances, create a variable that is either value or not_value
+		instIn.each{inst->
+			instName = inst["ID"]
+			instVal = inst[attributeName]
+		
+			if (instVal.class == Double) instVal = "Val=$instVal" as String
+			
+			//err.println "instVal = **$instVal**"
+			//err.println "currentAttVal = **$currentAttVal**"
+			//err.println "MATCH: "+(instVal == currentAttVal)
+			
+			if (instVal == currentAttVal){
+				val = "$currentAttVal"
+			}else{
+				val = "not_$currentAttVal"
+			}			
+			outTable[instName][newAttName] = val									
+		}	
+	}			
+}
+
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+ wmDichotomize takes a file in samples (rows) x variable (columns) format and a description
+ file that specifies which variables to dichotomize and how.  Output is written to stdout. 
+ Each line of the description file lists one attribute, a comma, and the dichotimization 
+ to be performed on the attribute. The dichotimizations available are:
+ 
+   dichotimize   Converts a multi-value variable with k values into k separate binary variables. 
+   median        Converts the numeric variable into above median and below median. 
+   upperQuartile Converts the numeric variable into above upperQuartile and below upperQuartile
+   lowerQuartile Converts the numeric variable into above lowerQuartile and below lowerQuartile
+   none          Copies the variable unaltered to the output. 
+ 
+ So, a description file might look like:
+ 
+   days_to_death,median
+   days_to_death,lowerQuartile
+   days_to_death,upperQuartile
+   er_status,none
+   cancer_stage,dichotomize
+ 
+ Note that days_to_death is listed three times, so it will create three separate variables 
+ in the output, one split on median, one split on lowerQuartile, and one split on upperQuartile. 
+ In the case of cancer_stage, suppose the stages are I, II, and III.  This will then create
+ three output variables:
+ 
+   cancer_stage_I_vs_notI
+   cancer_stage_II_vs_notII
+   cancer_stage_III_vs_notIII
+ 
+ One final note, wmDichotomize can also filter out ambiguous censored samples. To do this, 
+ add another comma separated field with the censored status variable name, a colon, and 
+ the censored label.  For example:
+ 
+   days_to_death,median,vital_status:LIVING
+   days_to_death,lowerQuartile,vital_status:LIVING
+   days_to_death,upperQuartile,vital_status:LIVING
+ 
+ This will result in any days_to_death that is ambiguous given the split (e.g. median) 
+ being saved in the file as a '?' (weka notation for missing value).  
+ 
+ Example:
+
+  wmDichotomize -c tcga_BRCA.clin -t brca_clinsel_small.csv > dichotomized.clin
+ 
+ Written by: James Durbin (kdurbin@ucsc.edu)
+ 
+	''');
+
+	parser.with{
+		
+		required 'c','clinFileName',[description:'File containing meta-data to be dichotomized.']
+		required 't','filterTemplate',[description:'Template describing what variables to dichotomize and how.']
+
+		optional 'p','attrPrefix',[default:"",description:'Option prefix to add to every dichotomized attribute.']
+				
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+		
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
