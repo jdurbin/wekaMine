@@ -142,7 +142,6 @@ def ParseOptions(args){
 		flag 'W','writeAll',[description: 'Write both probabilities and bootstrap null probabilities for each value like: pr1,pr2,null1,null2']
 		flag 'N','useNullModel',[description: 'Use bootstrap null model instead of classifier confidence to compute LLR.']
 	  flag 'h','help',[default:false,description: 'Print script help.']	
-	
 	}
 	
 	def options

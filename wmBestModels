@@ -59,7 +59,7 @@ if (!options.report){
 		println rowMap.values().join(",")
 	}
 }else{		
-	println "attribute,roc,majority acc,deltaroc,minroc,maxroc,meanroc,${t.headings()},*,${t.headings().join(',')}"
+	println "attribute,roc,majority acc,deltaroc,minroc,maxroc,meanroc,${t.headings().join(',')}"
 	// Print a report for inspection...
 	bestPerAttribute.each{attribute,rowMap->	
 		majorityAcc = computeMajorityAcc(rowMap)					

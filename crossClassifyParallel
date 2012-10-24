@@ -1,0 +1,119 @@
+#!/usr/bin/env groovy
+
+/**
+This version is for "single" models.  That is, models that are made on the full set of samples, and not
+specially created for each pair. 
+*/
+import durbin.util.*
+import durbin.weka.*
+import jsc.datastructures.PairedData
+import jsc.correlation.KendallCorrelation
+
+err = System.err
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+rowRange = options.experimentRange
+
+predictions = new DoubleTable(options.data,"\t")
+
+// Make a list of jobs. 
+if (options.experimentsPerJob){
+	scriptFile = getClass().protectionDomain.codeSource.location.path	
+	WekaMine.writeClusterJobList(args,predictions.rows(),options.experimentsPerJob,scriptFile)	
+	System.exit(0)
+}
+
+rowNames = predictions.rowNames
+rowName2Idx = [:]
+rowNames.eachWithIndex{r,i->
+	rowName2Idx[r] = i
+}
+
+// Go through the rows computing kendall's tau for each pair of classifications...
+//outputTable = new DoubleTable(rowNames as ArrayList,rowNames as ArrayList)
+outputTable = new TwoDMap()
+rowRange.each{row1Idx->
+//rowNames.each{rowName->
+	rowName = rowNames[row1Idx]
+	err.print "Processing row $row1Idx $rowName..."
+	rowNames.each{colName->
+		//row1Idx = rowName2Idx[rowName]
+		row2Idx = rowName2Idx[colName]
+		row1 = predictions[row1Idx]
+		row2 = predictions[row2Idx]
+		pd = new PairedData(row1.asArray(),row2.asArray())					
+		kc = new KendallCorrelation(pd)
+		tau = kc.getR()
+		// Significance of the correlation...
+		sig = kc.getSP()
+		if (tau == Double.NaN) tau = 0.0 
+				
+		if (options.significance){
+         err.println sig
+			if (sig >= (options.significance as Double)){
+				outputTable[rowName][colName] = tau
+			}else{
+				outputTable[rowName][colName] = 0
+			}
+		}else{				
+			outputTable[rowName][colName] = tau
+		}
+		//err.print "."
+	}
+	err.println "done."
+}
+
+outFileName = options.outFileRoot + "${rowRange.from}_${rowRange.to}"
+//err.println "filename: $outFileName"
+
+//lines = outputTable.getLines("\t",nulVal = "null",heading=true)
+//outFile = new File(outFileName)
+//lines.each{
+//	outFile << it
+//	outFile << "\n"
+//}
+//outputTable.writeTable(outFileName,"\t","null")
+//println outputTable
+outFile = new File(outFileName)
+outputTable.writeTable(outFile,"\t","null"){
+	it
+}
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+Cross correlate rows of table.  That is, compute Kendalls tau for rows x rows table cells. 
+
+	''');
+
+	parser.with{
+
+	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+		required 'o','outFileRoot', [description: 'Root file name for output.']
+	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
+			// Convert it to a proper range. Default is all inclusive range. 
+			validate:{								
+		 		experimentStart = (it.split(","))[0] as int
+		 		experimentEnd = (it.split(","))[1] as int 
+			  range = (experimentStart..experimentEnd)
+				return(range)
+			}]	
+			
+		optional 's','significance',[description: 'Zero all values below this correlation significance threshold.']		
+
+		optional 'k','experimentsPerJob',[description: 'When specified as last option, wmSaveModel does not run but instead outputs a list of wmSaveModel commands, k experiments each, for the cluster.']
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}		
+	return(options)
+}
