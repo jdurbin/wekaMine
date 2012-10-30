@@ -63,7 +63,7 @@ if (options.clinical){
 }
 
 // Model knows everything else needed to process the data... so have at it...
-results = model.classify(instances)
+ArrayList<Classification> results = model.classify(instances)
 
 def out = System.out
 if (options.outputFile) out = new File(options.outputFile)
