@@ -85,7 +85,7 @@ outputTable.writeTable(outFile,"\t","null"){
 */ 
 def ParseOptions(args){
 	parser = new Parser(description: '''
-Cross correlate rows of table.  That is, compute Kendalls tau for rows x rows table cells. 
+Cross correlate rows of table.  That is, compute Kdendalls tau for rows x rows table cells. 
 
 	''');
 

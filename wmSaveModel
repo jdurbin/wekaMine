@@ -104,13 +104,14 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		instances = pipeline.selectAttributes(instances)	
 											
 		err.print("Build classifier ${exp.classifierStr}...")
-		exp.classifier.buildClassifier(instances);		
+			model = new WekaMineModel(instances,exp.classifier,cutoffs,exp.filter)
+		//exp.classifier.buildClassifier(instances);		
 		err.println("done.")				
 
 		// Create an object to hold all the info we need to classify new instances with 
 		// this model...	
 		//model = new WekaMineModel(instances,exp.classifier,cutoffs)
-		model = new WekaMineModel(instances,exp.classifier,cutoffs,exp.filter)
+		//model = new WekaMineModel(instances,exp.classifier,cutoffs,exp.filter)
 
 		// If we have a nullModelFile, read it in and process the instances, otherwise use 
 		// instances. 
