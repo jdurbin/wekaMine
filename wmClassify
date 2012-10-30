@@ -74,6 +74,7 @@ if (options.clinical){
 }
 
 
+
 /****************************************************
 * Parse the command line options, checking validity, printing help if needed. 
 */ 
