@@ -70,43 +70,26 @@ modelList.each{modelName->
 	// Model knows everything else needed to process the data... so have at it...
 	// Results is a list, one item per instance, each item is a distribution for instance
 	// results[0] == model.class0 probability, results[1] == model.class1 probability. 
-	results = model.classify(matchedInstances)
+	ArrayList<Classification>  results = model.classify(matchedInstances)
 	
 	// KJD should have an option to take the name of the class you want to report...
 	// (i.e. brain or not-brain).  Currently just takes first class value.  Also, this is 
 	// poorly defined for multi-class distributions. 
-	if (options.useNullModel){	
-		for(instanceIdx in 0..< matchedInstances.numInstances()){		
-			instanceName = instanceIDs[instanceIdx]
-			class0Pr = results[instanceIdx][0]  
-			class1Pr = results[instanceIdx][1]
-			null0Pr = model.bnm.getSignificance(class0Pr,0)
-			null1Pr = model.bnm.getSignificance(class1Pr,1)		
-			llr = Math.log(null1Pr/null0Pr)		
-			modelsBySamples[modelName][instanceName] = llr.round(7)
-		}
-	}else if (options.writeAll){
-		for(instanceIdx in 0..< matchedInstances.numInstances()){
-			instanceName = instanceIDs[instanceIdx]
-			class0Pr = results[instanceIdx][0]  
-			class1Pr = results[instanceIdx][1]
-			null0Pr = model.bnm.getSignificance(class0Pr,0)
-			null1Pr = model.bnm.getSignificance(class1Pr,1)
-			att0 = model.classValues[0]
-			att1 = model.classValues[1]
-			outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
-			modelsBySamples[modelName][instanceName] = outStr
-		}
-	}else{	
-		for(instanceIdx in 0..< matchedInstances.numInstances()){		
-			instanceName = instanceIDs[instanceIdx]
-			class0Pr = results[instanceIdx][0]  
-			class1Pr = results[instanceIdx][1]
-			llr = Math.log(class1Pr/class0Pr)		
-			modelsBySamples[modelName][instanceName] = llr.round(7)
-		}
+	for(instanceIdx in 0..< matchedInstances.numInstances()){
+		instanceName = instanceIDs[instanceIdx]		
+		class0Pr = results[instanceIdx].prForValues[0]  
+		class1Pr = results[instanceIdx].prForValues[1]		
+		null0Pr = model.bnm.getSignificance(class0Pr,0)
+		null1Pr = model.bnm.getSignificance(class1Pr,1)
+		att0 = results.classValues[0]
+		att1 = results.classValues[1]
+		outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
+		modelsBySamples[modelName][instanceName] = outStr
 	}
 }
+
+def prForValues = []
+def classNames = []
 
 err.print "Writing ${options.outputFile}.."
 modelsBySamples.write(options.outputFile,"\t")
@@ -139,8 +122,8 @@ def ParseOptions(args){
 		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 		optional 'p','rootPath',[description: 'Root path appended to beginning of each model name.']
 
-		flag 'W','writeAll',[description: 'Write both probabilities and bootstrap null probabilities for each value like: pr1,pr2,null1,null2']
-		flag 'N','useNullModel',[description: 'Use bootstrap null model instead of classifier confidence to compute LLR.']
+		//flag 'W','writeAll',[description: 'Write both probabilities and bootstrap null probabilities for each value like: pr1,pr2,null1,null2']
+		//flag 'N','useNullModel',[description: 'Use bootstrap null model instead of classifier confidence to compute LLR.']
 	  flag 'h','help',[default:false,description: 'Print script help.']	
 	}
 	

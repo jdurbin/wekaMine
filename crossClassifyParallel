@@ -31,7 +31,7 @@ rowNames.eachWithIndex{r,i->
 }
 
 // Go through the rows computing kendall's tau for each pair of classifications...
-//outputTable = new DoubleTable(rowNames as ArrayList,rowNames as ArrayList)
+//outputTable = new DynamicTable()
 outputTable = new TwoDMap()
 rowRange.each{row1Idx->
 //rowNames.each{rowName->
