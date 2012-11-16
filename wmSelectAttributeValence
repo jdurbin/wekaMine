@@ -9,17 +9,15 @@ options = ParseOptions(args)
 
 attribute2valence = [:]
 new OnlineTable(options.valenceFile).eachRow{row->
-	attribute2valence[row.attribute] = valence
+	attribute2valence[row.attribute] = row.valence
 }
 
-attributes = attribute2valence.keySet()
-
 // Go through file, choosing the output with specified valence...
-new File(options.chainFile).withReader{r->
+new File(options.chainOutputFile).withReader{r->
 	heading = r.readLine()
 	println heading
 	r.splitEachLine("\t"){fields->
-		attributeName = fields[0]							
+		attributeName = fields[0]	
 		values = fields[1..-1]				
 		newvalues = []
 		values.each{valblock->						
@@ -31,24 +29,23 @@ new File(options.chainFile).withReader{r->
 			p1 = v[3] as double
 			cf0 = v[4] as double
 			cf1 = v[5] as double		
-				
+							
 			if (attribute2valence.containsKey(attributeName)){
 				valence = attribute2valence[attributeName]
 				if (valence == state0){
-					attributeName = "$attributeName($state0)"
+					newAttributeName = "$attributeName($state0)"
 					newvalues << p0
 				}else if (valence == state1){
-					attributeName = "$attributeName($state1)"
+					newAttributeName = "$attributeName($state1)"
 					newvalues << p1
 				}else{
 					err.println "ERROR unknown valence $valence. Does not match either $state0 or $state1"
 				}								
 			}else{
-				err.println "ERROR: $attributeName does not appear in ${args[0]}"
+				err.println "ERROR: $attributeName does not appear in ${options.valenceFile}"
 			}				
-			newvalues << newvalblock		
 		}
-		println "$attributeName\t${newvalues.join('\t')}"
+		println "$newAttributeName\t${newvalues.join('\t')}"
 	}
 }
 
@@ -61,10 +58,10 @@ def ParseOptions(args){
 	their probabilities, and the null value distribution derived confidence in these values. For
 	example:
 	 
-	BRCAcluster_cluster3_vs_notcluster3     cluster3,not_cluster3,0.0,1.0,0.009762,1.0      cluster3,not_cluster3,0.0,1.0,0.7592494,0.2413699
+	BRCAcluster_cluster3_vs_notcluster3     cluster3,not_cluster3,0.0,1.0,0.009762,1.0 ....
 
 	This script selects the valence of each attribute to use. For example, survival_time 
-  we may want to look at the probability gt_median, or lt_median, depending on 
+	we may want to look at the probability gt_median, or lt_median, depending on 
 	the circumstances. The valence is specified in a csv valence file with format like:
 	
 	  attribute,valence
