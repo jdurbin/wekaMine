@@ -1,0 +1,95 @@
+#!/usr/bin/env groovy
+
+import durbin.util.*
+
+err = System.err
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+
+attribute2valence = [:]
+new OnlineTable(options.valenceFile).eachRow{row->
+	attribute2valence[row.attribute] = valence
+}
+
+attributes = attribute2valence.keySet()
+
+// Go through file, choosing the output with specified valence...
+new File(options.chainFile).withReader{r->
+	heading = r.readLine()
+	println heading
+	r.splitEachLine("\t"){fields->
+		attributeName = fields[0]							
+		values = fields[1..-1]				
+		newvalues = []
+		values.each{valblock->						
+			v = valblock.split(",",-1)
+						
+			state0 = v[0]
+			state1 = v[1]
+			p0 = v[2] as double
+			p1 = v[3] as double
+			cf0 = v[4] as double
+			cf1 = v[5] as double		
+				
+			if (attribute2valence.containsKey(attributeName)){
+				valence = attribute2valence[attributeName]
+				if (valence == state0){
+					attributeName = "$attributeName($state0)"
+					newvalues << p0
+				}else if (valence == state1){
+					attributeName = "$attributeName($state1)"
+					newvalues << p1
+				}else{
+					err.println "ERROR unknown valence $valence. Does not match either $state0 or $state1"
+				}								
+			}else{
+				err.println "ERROR: $attributeName does not appear in ${args[0]}"
+			}				
+			newvalues << newvalblock		
+		}
+		println "$attributeName\t${newvalues.join('\t')}"
+	}
+}
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	wmCreateChain outputs all the information about a classification: both classes, 
+	their probabilities, and the null value distribution derived confidence in these values. For
+	example:
+	 
+	BRCAcluster_cluster3_vs_notcluster3     cluster3,not_cluster3,0.0,1.0,0.009762,1.0      cluster3,not_cluster3,0.0,1.0,0.7592494,0.2413699
+
+	This script selects the valence of each attribute to use. For example, survival_time 
+  we may want to look at the probability gt_median, or lt_median, depending on 
+	the circumstances. The valence is specified in a csv valence file with format like:
+	
+	  attribute,valence
+	  survival_time,lt_median
+	  tumorStage,stageI
+	
+	''');
+
+	parser.with{
+
+	  required 'v','valenceFile', [description: 'CSV file specifying valence for each attribute.']
+		required 'c','chainOutputFile', [description: 'ChainFile']
+		//optional 's','significance',[description: 'Replace values below this threshold with random values.']		
+
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}		
+	return(options)
+}
+
+

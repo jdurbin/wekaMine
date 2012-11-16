@@ -132,6 +132,17 @@ if (options.sampleSubset){
 	clinical = WekaMine.subsetInstances(clinical,options.sampleSubset)
 }
 
+printHeapSpace()			
+
+// Occasionally we're given a data file that is a huge superset of the clinical file
+// as a consession to RAM, remove all instances from data except those in the clinical file..
+err.print "Removing data instances not in clinical, before size = ${data.numInstances()}..."
+clinicalNames = clinical.attributeValues("ID")
+data = WekaMine.subsetInstances(data,clinicalNames)
+err.println "done. After data.size=${data.numInstances()}"
+System.gc()
+printHeapSpace()			
+
 // Use seed or randomize with clock...
 def rng;
 if (experiments.params.cvSeed == -1){
@@ -152,10 +163,6 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	err.println "------------------------------------------------"
 	err.println "Experiment: $jobIdx \t Class attribute: ${exp.classAttribute}"
 	try{
-	
-		//err.println "DEBUG: ${exp.classifierStr}"
-		//err.println "DEBUG: ${exp.attrEvalStr}"
-		//err.println "DEBUG: ${exp.classAttribute}"
 		
 		// Creates a wekaMine pipeline...
 		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
@@ -169,14 +176,20 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// has been added if the classAttribute is set and the filter option is set to ignore class.
 		instances = pipeline.applyUnsupervisedFilter(data)	
 		
-		
-		
+		//err.println "DEBUG ${instances.attributeValues('BRAF')}"
+						
 		printHeapSpace()	
 						
 		// Combines data and single class attribute from clinical into one set of instances...
 		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
 		instances = pipeline.createInstancesFromDataAndClinical(instances,clinical)	
 		err.println "Combined instances: "+instances.numInstances()
+		System.gc()
+		
+		//err.println "DEBUG ${data.attributeValues('BRAF')}"
+		//err.print "DEBUG CLASS ATTRX: "
+		//err.println "${instances.attributeValues('OVk4_Proliferative_vs_notProliferative')}"
+		
 		
 		printHeapSpace()
 		
@@ -189,6 +202,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			instances = WekaMine.removeInstances(instances,options.holdoutSet[exp.classAttribute])
 			err.println "done."
 		}				
+		
+		//err.println "instances.size="+instances.size()		
+		//err.println "DEBUG ${instances.attributeValues('BRAF')}"
+		//err.println "DEBUG CLASS ATTR: ${instances.attributeValues('OVk4_Proliferative_vs_notProliferative')}"
 				
 		// Clean up instances:
 		// * remove useless attributes

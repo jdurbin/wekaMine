@@ -50,12 +50,17 @@ rowRange.each{row1Idx->
 		if (tau == Double.NaN) tau = 0.0 
 				
 		if (options.significance){
-         err.println sig
 			if (sig >= (options.significance as Double)){
 				outputTable[rowName][colName] = tau
 			}else{
 				outputTable[rowName][colName] = 0
 			}
+		else if (options.rndSig){
+				if (sig >= (options.rndSig as Double)){
+					outputTable[rowName][colName] = tau
+				}else{
+					outputTable[rowName][colName] = rng.nextDouble() // replace with random number that will be uncorrelated.a
+				}
 		}else{				
 			outputTable[rowName][colName] = tau
 		}
@@ -102,6 +107,7 @@ Cross correlate rows of table.  That is, compute Kdendalls tau for rows x rows t
 				return(range)
 			}]	
 			
+		//optional 's','significance',[description: 'Zero all values below this correlation significance threshold.']		
 		optional 's','significance',[description: 'Zero all values below this correlation significance threshold.']		
 
 		optional 'k','experimentsPerJob',[description: 'When specified as last option, wmSaveModel does not run but instead outputs a list of wmSaveModel commands, k experiments each, for the cluster.']
