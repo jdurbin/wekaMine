@@ -78,11 +78,16 @@ modelList.each{modelName->
 	for(instanceIdx in 0..< matchedInstances.numInstances()){
 		instanceName = instanceIDs[instanceIdx]		
 		class0Pr = results[instanceIdx].prForValues[0]  
-		class1Pr = results[instanceIdx].prForValues[1]		
+		class1Pr = results[instanceIdx].prForValues[1]
+		
+		// The class names for the two classes...				
+		att0 = results[instanceIdx].classValues[0] 
+		att1 = results[instanceIdx].classValues[1]
+		
+		// Get the null model significance for the two probabilities...		
 		null0Pr = model.bnm.getSignificance(class0Pr,0)
 		null1Pr = model.bnm.getSignificance(class1Pr,1)
-		att0 = results.classValues[0]
-		att1 = results.classValues[1]
+		
 		outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
 		modelsBySamples[modelName][instanceName] = outStr
 	}
