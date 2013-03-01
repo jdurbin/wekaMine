@@ -34,10 +34,12 @@ new File(options.chainOutputFile).withReader{r->
 				valence = attribute2valence[attributeName]
 				if (valence == state0){
 					newAttributeName = "$attributeName($state0)"
-					newvalues << p0
+					if (options.useConfidence) newvalues << cf0
+					else newvalues << p0
 				}else if (valence == state1){
 					newAttributeName = "$attributeName($state1)"
-					newvalues << p1
+					if (options.useConfidence) newvalues << cf1
+					else newvalues << p1
 				}else{
 					err.println "ERROR unknown valence $valence. Does not match either $state0 or $state1"
 				}								
@@ -75,7 +77,7 @@ def ParseOptions(args){
 	  required 'v','valenceFile', [description: 'CSV file specifying valence for each attribute.']
 		required 'c','chainOutputFile', [description: 'ChainFile']
 		//optional 's','significance',[description: 'Replace values below this threshold with random values.']		
-
+		flag 'C','useConfidence',[default:false,description 'When selected, background model confidence is used instead of classifier probabilities.']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
 

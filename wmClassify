@@ -33,14 +33,24 @@ instances = WekaMine.readNumericFromTable(options.data)
 // The model has no ID, so we save the ID for later reporting...
 instanceIDs = instances.attributeValues("ID") as ArrayList
 
+//err.println "instanceIDs.size() = "+instanceIDs.size()
+
+//err.println "model.attributes.size = "+model.attributes.size()
+
 //instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)  // 17 seconds
 instances = InstanceUtils.createInstancesToMatchAttributeList(instances,model.attributes) // 3-5 seconds. 
+
+// Since the model doesn't have an ID attribute, instances will not have an ID attribute after
+// this matching exercise...
+names = instances.attributeNames()
+println names
 
 // Add an empty class attribute so that classifiers don't choke ?
 instances = WekaMine.createEmptyClassAttribute(instances,model.className,model.classValues)
 instances.setClassName(model.className)
 
 // Apply unsupervised filter
+// KJD This function expects there to be an ID 
 instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)		
 
 // If a clinical file is given, also output whether or not the prediction matches
