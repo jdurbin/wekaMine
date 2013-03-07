@@ -20,6 +20,11 @@ err.println "done."
 //instances = WekaMine.readFromTable(options.data)
 instances = WekaMine.readNumericFromTable(options.data)
 
+// Apply unsupervised filter
+// KJD This function expects there to be an ID 
+err.println "model.filter.class = "+model.filter.class
+instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
+
 // Create a new set of instances that match the model shis may mean removing
 // some attributes that are not in the model and/or adding some that are in the model 
 // but not in the data (set as missing values in this case).   Performance on datasets
@@ -38,7 +43,20 @@ instanceIDs = instances.attributeValues("ID") as ArrayList
 //err.println "model.attributes.size = "+model.attributes.size()
 
 //instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)  // 17 seconds
+err.println "model.attributes:"+model.attributes
 instances = InstanceUtils.createInstancesToMatchAttributeList(instances,model.attributes) // 3-5 seconds. 
+
+println "\nAFTER creatInstancesToMatchAttributeList"
+
+// ERG|2078 
+// MAGED4B|81557, MAGED4|728239, KIAA0087|9808
+//println "INSTANCE[0]:"
+//println instances[0]['ERG|2078']
+//println instances[0]['MAGED4B|81557']
+//println instances[0]['MAGED4|728239']
+//println instances[0]['KIAA0087|9808']
+//println instances[0]['LOC100190920|100190920']
+//println "============================"
 
 // Since the model doesn't have an ID attribute, instances will not have an ID attribute after
 // this matching exercise...
@@ -49,9 +67,6 @@ println names
 instances = WekaMine.createEmptyClassAttribute(instances,model.className,model.classValues)
 instances.setClassName(model.className)
 
-// Apply unsupervised filter
-// KJD This function expects there to be an ID 
-instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)		
 
 // If a clinical file is given, also output whether or not the prediction matches
 // the clinical value...
@@ -119,6 +134,10 @@ def ParseOptions(args){
 	def options
 	try{
 	  options = parser.parse(args)
+		if (options.clinical){
+			err.println "DISABLED.  Matching to clinical has some bug.  Until it's fixed, the -i option is disabled."
+			System.exit(1)
+		}
 	}catch(Exception e){
 	  System.err << parser.usage
 	  System.exit(1)
