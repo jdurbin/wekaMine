@@ -43,7 +43,10 @@ modelList.each{modelName->
 	if ((options.useNullModel) && (model.bnm == null)){
 		err.println "ERROR: Attempt to use bootstrap null model, but none found in $modelName"
 		System.exit(1)
-	}
+	}	
+	
+	// Apply unsupervised filter
+	filteredInstances = WekaMine.applyUnsupervisedFilter(instances,model.filter)
 
 	// Create a new set of instances that match the model set... this may mean removing
 	// some attributes that are not in the model and/or adding some that are in the model 
@@ -56,16 +59,16 @@ modelList.each{modelName->
 	// attribute selected subset of the model...
 
 	// The model has no ID, so we save the ID for later reporting...
-	instanceIDs = instances.attributeValues("ID") as ArrayList
+	instanceIDs = filteredInstances.attributeValues("ID") as ArrayList
 
-	matchedInstances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)
+	matchedInstances = WekaMine.createInstancesToMatchAttributeList(filteredInstances,model.attributes)
 
 	// Add an empty class attribute so that classifiers don't choke ? Odd...
 	matchedInstances = WekaMine.createEmptyClassAttribute(matchedInstances,model.className,model.classValues)
 	matchedInstances.setClassName(model.className)
 		
 	// Apply unsupervised filter
-	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
+	//instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
 		
 	// Model knows everything else needed to process the data... so have at it...
 	// Results is a list, one item per instance, each item is a distribution for instance
@@ -90,11 +93,15 @@ modelList.each{modelName->
 		
 		outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
 		modelsBySamples[modelName][instanceName] = outStr
+		
+		err.println "modelName: $modelName  instanceName: $instanceName \t outStr:$outStr"
+		
 	}
 }
 
 def prForValues = []
 def classNames = []
+
 
 err.print "Writing ${options.outputFile}.."
 modelsBySamples.write(options.outputFile,"\t")
@@ -120,11 +127,12 @@ def ParseOptions(args){
 	parser.with{
 				
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+		required 'o','outputFile',[description: 'Output file.']
 
 		optional 'm','modelList',[description: 'A list of model file paths. One of -m or -M required. ']
     optional 'M','modelDir',[description: 'A directory of model files. Only files with .wmm extension will be considered. One of -m or -M required. ']
 
-		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
+
 		optional 'p','rootPath',[description: 'Root path appended to beginning of each model name.']
 
 		//flag 'W','writeAll',[description: 'Write both probabilities and bootstrap null probabilities for each value like: pr1,pr2,null1,null2']
