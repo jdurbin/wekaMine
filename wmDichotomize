@@ -337,7 +337,7 @@ def ParseOptions(args){
 
 	parser.with{
 		
-		required 'c','clinFileName',[description:'File containing meta-data to be dichotomized.']
+		required 'c','clinFileName',[description:'File containing meta-data to be dichotomized (sample rows x feature columns)']
 		required 't','filterTemplate',[description:'Template describing what variables to dichotomize and how.']
 
 		optional 'p','attrPrefix',[default:"",description:'Option prefix to add to every dichotomized attribute.']

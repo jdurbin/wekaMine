@@ -522,6 +522,15 @@ def maxIdx(dist){
 	return(maxidx)		
 }
 
+static void printHeapSpace(){
+	MemoryMXBean mxmemory = ManagementFactory.getMemoryMXBean();
+	MemoryUsage heap = mxmemory.getHeapMemoryUsage();
+	System.err.println("\t---- Heap Committed: "+heap.getCommitted()/1000000000.0);
+	System.err.println("\t---- Heap Used: "+heap.getUsed()/1000000000.0);
+	System.err.println("\t---- Heap Max: "+heap.getMax()/1000000000.0);
+}
+
+
 def getHeapSpace(){
 	mxmemory = ManagementFactory.getMemoryMXBean()
 	heap = mxmemory.getHeapMemoryUsage()
@@ -529,7 +538,7 @@ def getHeapSpace(){
 }
 
 
-void printHeapSpace(){
+void printHeapSpace_meh(){
 	// Get current size of heap in bytes
 	System.err.println("HeapSize: "+(Runtime.getRuntime().totalMemory() / 1000000000.0));
 
