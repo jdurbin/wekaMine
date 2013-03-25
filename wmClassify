@@ -22,9 +22,14 @@ instances = WekaMine.readNumericFromTable(options.data)
 
 // Apply unsupervised filter
 // KJD This function expects there to be an ID 
-err.println "model.filter.class = "+model.filter.class
-instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
-
+if (model.filter.class == null){
+	err.println "No pre-processing filter specified in model."
+}else{
+	err.println "Applying filter: "+model.filter.class
+	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
+}
+	
+	
 // Create a new set of instances that match the model shis may mean removing
 // some attributes that are not in the model and/or adding some that are in the model 
 // but not in the data (set as missing values in this case).   Performance on datasets
@@ -67,7 +72,6 @@ println names
 instances = WekaMine.createEmptyClassAttribute(instances,model.className,model.classValues)
 instances.setClassName(model.className)
 
-
 // If a clinical file is given, also output whether or not the prediction matches
 // the clinical value...
 if (options.clinical){
@@ -89,6 +93,13 @@ if (options.clinical){
 
 // Model knows everything else needed to process the data... so have at it...
 ArrayList<Classification> results = model.classify(instances)
+
+// If holdout was given, filter out all results not in the holdout so that we report 
+// only those results.  
+if (options.holdout){
+	holdoutMap = readHoldout(options.holdout)	
+}
+
 
 def out = System.out
 if (options.outputFile) out = new File(options.outputFile)
@@ -127,6 +138,8 @@ def ParseOptions(args){
 
 		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+		
+		optional 'H','holdout',[description: 'Only classify samples in holdout file.']
 		
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}

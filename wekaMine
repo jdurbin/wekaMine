@@ -38,7 +38,7 @@ if (options.config){
 	err.println "${experiments.size()} experiments read out of $totalExperiments file."
 }
 
-printHeapSpace()
+printHeapSpace(options.verbose)
 
 FoldSets foldsets;
 if (options.foldsetsFile){
@@ -75,15 +75,17 @@ def rangeStr = "$from.$to"
 
 fileOut = "${options.output}${rangeStr}.summary.csv" as String
 err.println "Creating output file $fileOut"
-out = new File(fileOut)
+out = newOverwrite(fileOut)
 
 featuresOut = "${options.output}${rangeStr}.features.csv" as String
 err.println "Creating features output file $featuresOut"
-fout = new File(featuresOut)
+//fout = new File(featuresOut)
+fout = newOverwrite(featuresOut)
 
 samplesOut = "${options.output}${rangeStr}.testsamples.csv" as String
 err.println "Creating samples output file $samplesOut"
-sout = new File(samplesOut)
+//sout = new File(samplesOut)
+sout = newOverwrite(samplesOut)
 
 // Output information about training set if requested. 
 def tout
@@ -132,7 +134,7 @@ if (options.sampleSubset){
 	clinical = WekaMine.subsetInstances(clinical,options.sampleSubset)
 }
 
-printHeapSpace()			
+printHeapSpace(options.verbose)		
 
 // Occasionally we're given a data file that is a huge superset of the clinical file
 // as a consession to RAM, remove all instances from data except those in the clinical file..
@@ -141,7 +143,7 @@ clinicalNames = clinical.attributeValues("ID")
 data = WekaMine.subsetInstances(data,clinicalNames)
 err.println "done. After data.size=${data.numInstances()}"
 System.gc()
-printHeapSpace()			
+printHeapSpace(options.verbose)		
 
 // Use seed or randomize with clock...
 def rng;
@@ -168,7 +170,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
 		pipeline.dataName = options.data
 		
-		printHeapSpace()
+		printHeapSpace(options.verbose)
 		
 		// Apply unsupervised filter if any...  Filter could be MultiFilter implementing
 		// several transforms combined. 		Note: As it is, the data is filtered before 
@@ -178,7 +180,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		
 		//err.println "DEBUG ${instances.attributeValues('BRAF')}"
 						
-		printHeapSpace()	
+		printHeapSpace(options.verbose)	
 						
 		// Combines data and single class attribute from clinical into one set of instances...
 		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
@@ -191,7 +193,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		//err.println "${instances.attributeValues('OVk4_Proliferative_vs_notProliferative')}"
 		
 		
-		printHeapSpace()
+		printHeapSpace(options.verbose)
 		
 		// Remove instances in the holdout set.  Since holdouts are stratified, there is a 
 		// different holdout for each class attribute. 		WARNING: Stratification is only 
@@ -308,9 +310,9 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		
 		// Report memory usage and encourage garbage collection...
 		err.println "\n"
-		err.println getHeapSpace()
+		//err.println getHeapSpace()
 		
-		printHeapSpace()			
+		printHeapSpace(options.verbose)			
 		
 		filteredData = null
 		instances = null
@@ -414,6 +416,7 @@ def ParseOptions(args){
 	  optional 'c','config',[description: 'Configuration file.  One of -c or -C required. ']  
 		optional 'C','flatConfig',[description: 'A flat configuration file, one experiment per line. One of -c or -C required.']  
 
+		optional 'V','verbose',[description: 'Output verbose info, like RAM usage, etc.']
 		optional 'f','foldsetsFile',[default:null,description: "File specifying the cross validation foldsets to use."]
 	  optional 'm','maxFeaturesOut',[default: 100,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
 		optional 'S','holdoutSet',[default:null,description: "File listing samples not to use.  All other samples will be included from experiments",
@@ -522,7 +525,9 @@ def maxIdx(dist){
 	return(maxidx)		
 }
 
-static void printHeapSpace(){
+static void printHeapSpace(verbose){
+	if (!verbose) return;
+	
 	MemoryMXBean mxmemory = ManagementFactory.getMemoryMXBean();
 	MemoryUsage heap = mxmemory.getHeapMemoryUsage();
 	System.err.println("\t---- Heap Committed: "+heap.getCommitted()/1000000000.0);
@@ -535,6 +540,15 @@ def getHeapSpace(){
 	mxmemory = ManagementFactory.getMemoryMXBean()
 	heap = mxmemory.getHeapMemoryUsage()
 	return("$heap")
+}
+
+def newOverwrite(fileName){
+	f = new File(fileName)
+	if (f.exists()){
+		f.delete()
+		f.createNewFile()
+	}
+	return(f)
 }
 
 
