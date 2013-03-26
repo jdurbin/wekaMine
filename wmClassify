@@ -28,7 +28,12 @@ if (model.filter.class == null){
 	err.println "Applying filter: "+model.filter.class
 	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
 }
-	
+
+if (options.holdoutSet){			
+	err.print "Removing ALL except ${options.holdoutSet[exp.classAttribute].size()} holdout samples for ${model.className}..."
+	instances = WekaMine.subsetInstances(instances,options.holdoutSet[model.className])
+	err.println "done."
+}
 	
 // Create a new set of instances that match the model shis may mean removing
 // some attributes that are not in the model and/or adding some that are in the model 
@@ -48,25 +53,15 @@ instanceIDs = instances.attributeValues("ID") as ArrayList
 //err.println "model.attributes.size = "+model.attributes.size()
 
 //instances = WekaMine.createInstancesToMatchAttributeList(instances,model.attributes)  // 17 seconds
-err.println "model.attributes:"+model.attributes
+//err.println "model.attributes:"+model.attributes
 instances = InstanceUtils.createInstancesToMatchAttributeList(instances,model.attributes) // 3-5 seconds. 
-
-println "\nAFTER creatInstancesToMatchAttributeList"
-
-// ERG|2078 
-// MAGED4B|81557, MAGED4|728239, KIAA0087|9808
-//println "INSTANCE[0]:"
-//println instances[0]['ERG|2078']
-//println instances[0]['MAGED4B|81557']
-//println instances[0]['MAGED4|728239']
-//println instances[0]['KIAA0087|9808']
-//println instances[0]['LOC100190920|100190920']
-//println "============================"
 
 // Since the model doesn't have an ID attribute, instances will not have an ID attribute after
 // this matching exercise...
 names = instances.attributeNames()
-println names
+
+err.println "Model Attribute Names:"
+err.println names
 
 // Add an empty class attribute so that classifiers don't choke ?
 instances = WekaMine.createEmptyClassAttribute(instances,model.className,model.classValues)
@@ -83,7 +78,7 @@ if (options.clinical){
 	clinical.setClassName(model.classAttribute())
 
 	// Remove instances with negative class value. 
-	clinical = WekaMine.cleanUpInstances(clinical)
+	//clinical = WekaMine.cleanUpInstances(clinical)
 
 	// Discretize the class attribute... (KJD... this should always be an explicit cutoff derived from experiment...)
 	(clinical,clinicalCutoffs) = WekaMine.discretizeClassAttribute(clinical,model.discretization,model.classAttribute())			
@@ -100,11 +95,10 @@ if (options.holdout){
 	holdoutMap = readHoldout(options.holdout)	
 }
 
-
 def out = System.out
 if (options.outputFile) out = new File(options.outputFile)
 if (options.clinical){
-	model.printResultsAndCompare(out,results,instanceIDs,clinical)
+	model.printResultsAndCompare(out,results,instanceIDs,clinical)				
 }else{
 	model.printResults(out,results,instanceIDs)
 }
@@ -138,8 +132,23 @@ def ParseOptions(args){
 
 		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
-		
-		optional 'H','holdout',[description: 'Only classify samples in holdout file.']
+				
+		optional 'S','holdoutSet',[default:null,description: "Only classify samples in holdout file. Holdout samples indexed by className. All other samples will be excluded from analysis.",
+		validate:{
+			if (it != null){				
+				// Read in the samplesToOmit... 
+				samplesToOmitByClassAttribute = [:]
+				new File(it).splitEachLine("\t"){fields->
+					classAttr = fields[0]
+					samplesToOmit = fields[1..-1]
+					samplesToOmitByClassAttribute[classAttr] = samplesToOmit
+				}
+				return(samplesToOmitByClassAttribute)
+			}else {
+					return(it)							
+			}
+		}
+	]
 		
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
@@ -147,10 +156,10 @@ def ParseOptions(args){
 	def options
 	try{
 	  options = parser.parse(args)
-		if (options.clinical){
-			err.println "DISABLED.  Matching to clinical has some bug.  Until it's fixed, the -i option is disabled."
-			System.exit(1)
-		}
+		//if (options.clinical){
+		//	err.println "DISABLED.  Matching to clinical has some bug.  Until it's fixed, the -i option is disabled."
+		//	System.exit(1)
+		//}
 	}catch(Exception e){
 	  System.err << parser.usage
 	  System.exit(1)

@@ -24,7 +24,7 @@ if (options.config){
 	params = experiments.params
 }else if (options.resultsFile){
 	wmr = new WekaMineResults(options.resultsFile)
-		
+			
 	if (options.topModel){	
 		err.print "Determining top model..."
 		// Find the top result...
@@ -63,10 +63,18 @@ if (options.experimentsPerJob){
 	System.exit(0)
 }
 
+FoldSets holdout;
+if (options.holdoutFile){
+	err.print "Reading holdout ${options.holdoutFile}..."
+	holdout = new FoldSets(options.holdoutFile)	
+	err.println " ${holdout.size()} holdouts read."
+}
+
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
-data = WekaMine.readNumericFromTable(options.data)
+rawdata = WekaMine.readNumericFromTable(options.data)
 clinical = WekaMine.readFromTable(options.clinical)
+def data
 
 // Perform each experiment described in the experiment spec...
 experiments[options.experimentRange].eachWithIndex{exp,idx-> 
@@ -76,15 +84,23 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	try{
 		
 		// Creates a wekaMine pipeline...
-		pipeline = new WekaMine(data,clinical,exp,params)			
+		pipeline = new WekaMine(rawdata,clinical,exp,params)			
+		
+		if (options.holdoutSet){			
+			err.print "Removing ${options.holdoutSet[exp.classAttribute].size()} holdout samples for ${exp.classAttribute}..."
+			data = WekaMine.removeInstances(rawdata,options.holdoutSet[exp.classAttribute])
+			err.println "done."
+		}else{
+			data = rawdata  
+		}		
 		
 		// Apply unsupervised filter
-		data = pipeline.applyUnsupervisedFilter(data)	
-		
+		instances = pipeline.applyUnsupervisedFilter(data)	
+								
 		// Combines data and single class attribute from clinical into one set of instances...
 		// KJD: apparently, the order is not guaranteed to match between instances and data...
 		// I don't depend on the order, but it's something to keep in mind...
-		instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
+		instances = pipeline.createInstancesFromDataAndClinical(instances,clinical,exp.classAttribute)	
 
 		// Clean up instances:
 		// * remove useless attributes
@@ -183,7 +199,7 @@ def ParseOptions(args){
 	
 	Documentation for the config file can be found here:  
 
-	https://cancer2.cse.ucsc.edu/mediawiki/index.php/WekaClassifierConfig
+	https://github.com/jdurbin/wekaMine/wiki/Wekamine-config
 
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
@@ -204,6 +220,22 @@ def ParseOptions(args){
 
 		optional 'B','nullModelSamples',[description: 'Compute bootstrap null model (label permutations) and save that in model file. Option specifies how many points to compute.']		
 		optional 'n','nullBackgroundFile',[description: 'A data file in row x samples format that will be used to generate a background null model. If combined with -B, these samples will be permuted also.']
+		optional 'S','holdoutSet',[default:null,description: "File listing samples not to use.  All other samples will be included in training model.",
+			validate:{
+				if (it != null){				
+					// Read in the samplesToOmit... 
+					samplesToOmitByClassAttribute = [:]
+					new File(it).splitEachLine("\t"){fields->
+						classAttr = fields[0]
+						samplesToOmit = fields[1..-1]
+						samplesToOmitByClassAttribute[classAttr] = samplesToOmit
+					}
+					return(samplesToOmitByClassAttribute)
+				}else {
+						return(it)							
+				}
+			}
+		]
 		
 		
 		flag 'T','topModel',[default: false,description: 'With -R option, will output a model corresponding to the best result in the results file.']

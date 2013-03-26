@@ -3,7 +3,7 @@
 import durbin.weka.* 
 import durbin.weka.FoldSets
 import durbin.util.*
-import java.lang.management.*
+import java.lang.maNagement.*
 
 err = System.err // sugar
 def bExceptionOccurred = false
@@ -321,7 +321,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		err.print "Collecting garbage..."
 		System.gc()
 		err.println "done."
-		err.println getHeapSpace()
+		//err.println getHeapSpace()
 			
 	  err.println "==========================================\n"										
 	}catch (Exception e){
@@ -373,7 +373,7 @@ def ParseOptions(args){
 	 The actual experiments and experimental options are provided by the config file (-c). 
 	 Documentation for this config file can be found here:  
 
-	 https://cancer2.cse.ucsc.edu/mediawiki/index.php/WekaClassifierConfig
+	 https://github.com/jdurbin/wekaMine/wiki/Wekamine-config
 
 	 Note that the config file can specify a number of attributes to use in attribute 
 	 selection, or -1 to auto-select (the details of which varies from attribute selection 
@@ -551,17 +551,4 @@ def newOverwrite(fileName){
 	return(f)
 }
 
-
-void printHeapSpace_meh(){
-	// Get current size of heap in bytes
-	System.err.println("HeapSize: "+(Runtime.getRuntime().totalMemory() / 1000000000.0));
-
-	// Get maximum size of heap in bytes. The heap cannot grow beyond this size.
-	// Any attempt will result in an OutOfMemoryException.
-	System.err.println("Max Heap Size:"+(Runtime.getRuntime().maxMemory() / 1000000000.0));
-	
-	// Get amount of free memory within the heap in bytes. This size will increase
-	// after garbage collection and decrease as new objects are created.
-	System.err.println("Free Memory:"+(Runtime.getRuntime().freeMemory() / 1000000000.0));
-}
 
