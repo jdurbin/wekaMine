@@ -38,9 +38,8 @@ if (options.holdoutSet){
 	err.print "Removing ALL except ${holdoutForClass.size()} holdout samples for ${model.className}..."
 	instances = WekaMine.subsetInstances(instances,holdoutForClass)
 	err.println "done."
-}else{
-	err.println "WTF?"
 }
+
 	
 // Create a new set of instances that match the model shis may mean removing
 // some attributes that are not in the model and/or adding some that are in the model 

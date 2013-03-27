@@ -73,16 +73,16 @@ def from = options.experimentRange.getFrom()
 def to = options.experimentRange.getTo()
 def rangeStr = "$from.$to"
 
-fileOut = "${options.output}${rangeStr}.summary.csv" as String
+fileOut = "${options.output}${rangeStr}.summary.tab" as String
 err.println "Creating output file $fileOut"
 out = newOverwrite(fileOut)
 
-featuresOut = "${options.output}${rangeStr}.features.csv" as String
+featuresOut = "${options.output}${rangeStr}.features.tab" as String
 err.println "Creating features output file $featuresOut"
 //fout = new File(featuresOut)
 fout = newOverwrite(featuresOut)
 
-samplesOut = "${options.output}${rangeStr}.testsamples.csv" as String
+samplesOut = "${options.output}${rangeStr}.testsamples.tab" as String
 err.println "Creating samples output file $samplesOut"
 //sout = new File(samplesOut)
 sout = newOverwrite(samplesOut)
@@ -90,7 +90,7 @@ sout = newOverwrite(samplesOut)
 // Output information about training set if requested. 
 def tout
 if (options.evalTraining){
-	trainingOut = "${options.output}${rangeStr}.trainingsamples.csv" as String	
+	trainingOut = "${options.output}${rangeStr}.trainingsamples.tab" as String	
 	err.println "Creating samples output file $trainingOut"
 	tout = new File(trainingOut)	
 }
@@ -400,13 +400,13 @@ def ParseOptions(args){
 
 	 wekaMine  \\
 	 -d data/paradigm_results.txt -i data/collisonclinical.small.tab \\
-	 -c exp/cfgExample2.txt -r 0,19 -s include.samples -o results/expout.csv
+	 -c exp/cfgExample2.txt -r 0,19 -s include.samples -o results/expout.tab
 
 	''');
 
 	parser.with{
 
-	  required 'o','output',[description: 'File where output should go. Generates three files *.summary.csv, *.features.csv, and *.samples.csv']
+	  required 'o','output',[description: 'File where output should go. Generates three files *.summary.tab, *.features.tab, and *.samples.tab']
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 	
@@ -460,9 +460,9 @@ def ParseOptions(args){
 		optional 'v','validationFraction',[default:0.0,description: 'Fraction of samples to withold from cross-validation portion of experiment, evaluating only at end on fully trained model.',
 		validate:{it as double}]		
 
-		flag 't','evalTraining',[default:false,description:'If set, the classifier is evaluated on the training data as well as the test data in cross validation, output in *.trainingsamples.csv.  NOTE: This will slow down execution, possibly significantly.' ]
+		flag 't','evalTraining',[default:false,description:'If set, the classifier is evaluated on the training data as well as the test data in cross validation, output in *.trainingsamples.tab.  NOTE: This will slow down execution, possibly significantly.' ]
 		flag 'R','clinicalInstancesInRows',[default:false,description:'If set, clinical data will be assumed to be one instance per row. Default one instance per column.']		
-		flag 'H','suppressHeading',[default:false,description: 'Suppress heading for summary.csv. (to make easier to cat cluster job outputs)']
+		flag 'H','suppressHeading',[default:false,description: 'Suppress heading for summary.tab. (to make easier to cat cluster job outputs)']
 		flag 'N','dataMayContainNominalValues',[default:false,description: 'Option to read datafile in as mixed numeric/nominal.  Slower than default all numeric. ']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}

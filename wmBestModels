@@ -111,7 +111,7 @@ def ParseOptions(args){
 
 	Example:
 	
-	wmBestModels -R vijver2002.summary.csv -m 0.60 > vijver2002.bestPerAttribute.csv
+	wmBestModels -R vijver2002.summary.tab -m 0.60 > vijver2002.bestPerAttribute.tab
 
 	''');
 
