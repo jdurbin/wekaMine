@@ -20,4 +20,5 @@ Required: durbinlib 45c7fa7..63b9ca4
 		from model selection and model training.  You can further supply this -S option to wmClassify to 
 		classify and (with -i option) compare to ONLY the holdout samples.   
          
-3.	All input and output files to wekaMine are now tab delimited.  
+3.	All input and output files to wekaMine are now tab delimited. 
+4.	Removed all extraneous info from wmClassify output so that output is a proper table.
