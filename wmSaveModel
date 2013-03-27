@@ -205,7 +205,7 @@ def ParseOptions(args){
 
 	Example:
 
-	wekaMineSaveModel  -d lin2008.tab -i lin2008.clinical.tab -c cfg.txt -o lin2008.wekaMine.wmm
+	wmSaveModel  -d lin2008.tab -i lin2008.clinical.tab -c cfg.txt -o lin2008.wekaMine.wmm
 
 	''');
 

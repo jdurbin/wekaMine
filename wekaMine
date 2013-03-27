@@ -3,7 +3,7 @@
 import durbin.weka.* 
 import durbin.weka.FoldSets
 import durbin.util.*
-import java.lang.maNagement.*
+import java.lang.management.*
 
 err = System.err // sugar
 def bExceptionOccurred = false

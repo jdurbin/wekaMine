@@ -29,10 +29,17 @@ if (model.filter.class == null){
 	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
 }
 
-if (options.holdoutSet){			
-	err.print "Removing ALL except ${options.holdoutSet[exp.classAttribute].size()} holdout samples for ${model.className}..."
-	instances = WekaMine.subsetInstances(instances,options.holdoutSet[model.className])
+
+if (options.holdoutSet){
+	err.println options.holdoutSet			
+	holdoutForClass = options.holdoutSet[model.className]
+	err.println "DEBUG: holdoutForClass.class "+holdoutForClass.class  // java.util.RandomAccessSubList
+	err.println holdoutForClass
+	err.print "Removing ALL except ${holdoutForClass.size()} holdout samples for ${model.className}..."
+	instances = WekaMine.subsetInstances(instances,holdoutForClass)
 	err.println "done."
+}else{
+	err.println "WTF?"
 }
 	
 // Create a new set of instances that match the model shis may mean removing
@@ -89,11 +96,6 @@ if (options.clinical){
 // Model knows everything else needed to process the data... so have at it...
 ArrayList<Classification> results = model.classify(instances)
 
-// If holdout was given, filter out all results not in the holdout so that we report 
-// only those results.  
-if (options.holdout){
-	holdoutMap = readHoldout(options.holdout)	
-}
 
 def out = System.out
 if (options.outputFile) out = new File(options.outputFile)
@@ -145,7 +147,7 @@ def ParseOptions(args){
 				}
 				return(samplesToOmitByClassAttribute)
 			}else {
-					return(it)							
+				return(it)							
 			}
 		}
 	]
