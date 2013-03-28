@@ -22,7 +22,7 @@ instances = WekaMine.readNumericFromTable(options.data)
 
 // Apply unsupervised filter
 // KJD This function expects there to be an ID 
-if (model.filter.class == null){
+if (model.filter == null){
 	err.println "No pre-processing filter specified in model."
 }else{
 	err.println "Applying filter: "+model.filter.class
