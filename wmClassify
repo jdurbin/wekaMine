@@ -97,7 +97,7 @@ ArrayList<Classification> results = model.classify(instances)
 
 def out = System.out
 if (options.outputFile) {
-	out = new File(options.outputFile)	
+	out = newOverwrite(options.outputFile)	
 }
 
 if (options.clinical){
@@ -170,3 +170,13 @@ def ParseOptions(args){
 	
 	return(options)
 }
+
+def newOverwrite(fileName){
+	f = new File(fileName)
+	if (f.exists()){
+		f.delete()
+		f.createNewFile()
+	}
+	return(f)
+}
+
