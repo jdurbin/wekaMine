@@ -96,7 +96,10 @@ ArrayList<Classification> results = model.classify(instances)
 
 
 def out = System.out
-if (options.outputFile) out = new File(options.outputFile)
+if (options.outputFile) {
+	out = new File(options.outputFile)	
+}
+
 if (options.clinical){
 	model.printResultsAndCompare(out,results,instanceIDs,clinical)				
 }else{
