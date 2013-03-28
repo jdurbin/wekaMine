@@ -31,13 +31,12 @@ if (model.filter == null){
 
 
 if (options.holdoutSet){
-	err.println options.holdoutSet			
 	holdoutForClass = options.holdoutSet[model.className]
-	err.println "DEBUG: holdoutForClass.class "+holdoutForClass.class  // java.util.RandomAccessSubList
 	err.println holdoutForClass
 	err.print "Removing ALL except ${holdoutForClass.size()} holdout samples for ${model.className}..."
+	err.print "before ${instances.numInstances()}..."
 	instances = WekaMine.subsetInstances(instances,holdoutForClass)
-	err.println "done."
+	err.println "done. After: ${instances.numInstances()}"
 }
 
 	
