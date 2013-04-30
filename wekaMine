@@ -165,7 +165,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	err.println "------------------------------------------------"
 	err.println "Experiment: $jobIdx \t Class attribute: ${exp.classAttribute}"
 	try{
-		
+						
 		// Creates a wekaMine pipeline...
 		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
 		pipeline.dataName = options.data
@@ -175,7 +175,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Apply unsupervised filter if any...  Filter could be MultiFilter implementing
 		// several transforms combined. 		Note: As it is, the data is filtered before 
 		// the class attribute has even been added.  You can filter it after the class attribute
-		// has been added if the classAttribute is set and the filter option is set to ignore class.
+		// has been added if the classAttribute is set and the filter option is set to ignore class.b	
 		instances = pipeline.applyUnsupervisedFilter(data)	
 		
 		//err.println "DEBUG ${instances.attributeValues('BRAF')}"
@@ -191,7 +191,6 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		//err.println "DEBUG ${data.attributeValues('BRAF')}"
 		//err.print "DEBUG CLASS ATTRX: "
 		//err.println "${instances.attributeValues('OVk4_Proliferative_vs_notProliferative')}"
-		
 		
 		printHeapSpace(options.verbose)
 		
@@ -240,12 +239,15 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}
 
 		// Create an attribute selected classifier from the given experiment description..
+		if (exp.numAttributes > instances.numAttributes()){
+			exp.numAttributes = -1;
+		}				
 		asClassifier = pipeline.createAttributeSelectedClassifier()
 						
 		// Perform the cross validation
 		err.println "ATTRIBUTE SELECTION: AttSel:  ${exp.attrEvalStr}; ${exp.attrSearchStr} numAttrs: ${exp.numAttributes}"
 		err.println "CLASSIFIER: ${exp.classifierStr}"
-		err.println "Crossvalidating (${experiments.params.cvFolds} folds) model on ${instances.numInstances()} instances ${exp.classAttribute} ..."			
+		err.println "Crossvalidating model on ${instances.numInstances()} instances ${exp.classAttribute} ..."			
 				
 		Evaluation2 eval 
 		if (options.foldsetsFile){		

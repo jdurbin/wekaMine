@@ -69,11 +69,11 @@ if (!options.report){
 		if (roc < options.minROC) return; // Don't output this one, below cutoff...
 		if (delta < options.minDeltaMajority) return; 
 			
-		print "$attribute,$roc,"
+		print "$attribute\t$roc\t"
 		minroc = minPerAttribute[attribute]
 		maxroc = maxPerAttribute[attribute]
 		meanroc = sumPerAttribute[attribute]/numPerAttribute[attribute]
-		print "$majorityAcc,$delta,$minroc,$maxroc,$meanroc,"
+		print "$majorityAcc\t$delta\t$minroc\t$maxroc\t$meanroc\t"
 		f = rowMap.values().join("\t")
 		println "$f"
 	}

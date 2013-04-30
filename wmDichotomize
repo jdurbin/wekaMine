@@ -288,7 +288,7 @@ def dichotomize(outTable,instIn,attributeName){
 */ 
 def ParseOptions(args){
 	parser = new Parser(description: '''
- wmDichotomize takes a file in samples (rows) x variable (columns) format and a description
+ wmDichotomize takes a file in ***samples (rows) x variable (columns)*** format and a description
  file that specifies which variables to dichotomize and how.  Output is written to stdout. 
  Each line of the description file lists one attribute, a comma, and the dichotimization 
  to be performed on the attribute. The dichotimizations available are:

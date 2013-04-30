@@ -15,6 +15,7 @@ err = System.err
 options = ParseOptions(args)
 rowRange = options.experimentRange
 
+
 predictions = new DoubleTable(options.data,"\t")
 
 // Make a list of jobs. 
@@ -30,10 +31,20 @@ rowNames.eachWithIndex{r,i->
 	rowName2Idx[r] = i
 }
 
+println rowRange.getFrom()
+println rowRange.getTo()
+
+if (rowRange.getFrom() == -1){
+	rowRange = (rowRange.getTo()..rowNames.size()-1)
+}else{
+	err.println rowRange
+}
+println "Fixed rowRange: "+rowRange
+
 // Go through the rows computing kendall's tau for each pair of classifications...
-//outputTable = new DynamicTable()
+//outputTable = new DoubleTable(rowNames as ArrayList,rowNames as ArrayList)
 outputTable = new TwoDMap()
-rowRange.each{row1Idx->
+for(row1Idx in rowRange){
 //rowNames.each{rowName->
 	rowName = rowNames[row1Idx]
 	err.print "Processing row $row1Idx $rowName..."
@@ -42,25 +53,24 @@ rowRange.each{row1Idx->
 		row2Idx = rowName2Idx[colName]
 		row1 = predictions[row1Idx]
 		row2 = predictions[row2Idx]
+		
+		if (options.omitMissingValues){
+			(row1,row2) = omitMissingValues(options.omitMissingValues,row1,row2)
+		}
+		
 		pd = new PairedData(row1.asArray(),row2.asArray())					
 		kc = new KendallCorrelation(pd)
 		tau = kc.getR()
-		// Significance of the correlation...
 		sig = kc.getSP()
 		if (tau == Double.NaN) tau = 0.0 
-				
-		if (options.significance){
-			if (sig >= (options.significance as Double)){
+		
+		if (options.zeroSignificance){
+			//err.println "$sig  ${options.zeroSignificance}  sig>=zs: ${sig >= options.zeroSignificance}"
+			if (sig >= options.zeroSignificance){
 				outputTable[rowName][colName] = tau
 			}else{
 				outputTable[rowName][colName] = 0
 			}
-		else if (options.rndSig){
-				if (sig >= (options.rndSig as Double)){
-					outputTable[rowName][colName] = tau
-				}else{
-					outputTable[rowName][colName] = rng.nextDouble() // replace with random number that will be uncorrelated.a
-				}
 		}else{				
 			outputTable[rowName][colName] = tau
 		}
@@ -85,18 +95,43 @@ outputTable.writeTable(outFile,"\t","null"){
 	it
 }
 
+
+/***
+* if either row1 or row2 contain missing values at a position, don't include that 
+* value in the correlation. 
+*/ 
+def omitMissingValues(missingValue,row1,row2){
+	def newrow1 = []
+	def newrow2 = []
+	
+	for(int i in 0..<row1.size()){
+		if ((row1[i] != missingValue) && (row2[i] != missingValue)){
+			newrow1 << row1[i]
+			newrow2 << row2[i]
+		}				
+	}
+	rrow1 = new DoubleVector(newrow1)
+	rrow2 = new DoubleVector(newrow2)
+	
+	return([rrow1,rrow2])
+}
+
 /****************************************************
 * Parse the command line options, checking validity, printing help if needed. 
 */ 
 def ParseOptions(args){
 	parser = new Parser(description: '''
-Cross correlate rows of table.  That is, compute Kdendalls tau for rows x rows table cells. 
+Cross correlate rows of table.  That is, compute kendalls tau for rows x rows table cells. 
+Input is a models x samples file. 
+Output is a models x models file.
 
+Note that the output of wmCrossClassify includes lots of extra information. This must be
+converted to a simple file of confidences with wmSelectAttributeValence
 	''');
 
 	parser.with{
 
-	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+	  required 'd','data', [description: 'Data file in models (row) by samples (col) format.']
 		required 'o','outFileRoot', [description: 'Root file name for output.']
 	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
 			// Convert it to a proper range. Default is all inclusive range. 
@@ -106,10 +141,17 @@ Cross correlate rows of table.  That is, compute Kdendalls tau for rows x rows t
 			  range = (experimentStart..experimentEnd)
 				return(range)
 			}]	
-			
-		//optional 's','significance',[description: 'Zero all values below this correlation significance threshold.']		
-		optional 's','significance',[description: 'Zero all values below this correlation significance threshold.']		
-
+		
+		optional 'O','omitMissingValues',[description: "Will any pairs where one or both members contain this 'missing value' value.",
+		validate:{
+			it as double
+		}]
+		
+		optional 'z','zeroSignificance',[description: 'Zero all correlation values below this significance threshold.',
+		validate:{
+			it as double
+		}
+		]		
 		optional 'k','experimentsPerJob',[description: 'When specified as last option, wmSaveModel does not run but instead outputs a list of wmSaveModel commands, k experiments each, for the cluster.']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}

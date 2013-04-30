@@ -29,22 +29,35 @@ new File(options.chainOutputFile).withReader{r->
 			p1 = v[3] as double
 			cf0 = v[4] as double
 			cf1 = v[5] as double		
-							
+			
+			def valuetouse
+			def conftouse
 			if (attribute2valence.containsKey(attributeName)){
 				valence = attribute2valence[attributeName]
 				if (valence == state0){
 					newAttributeName = "$attributeName($state0)"
-					if (options.useConfidence) newvalues << cf0
-					else newvalues << p0
+					if (options.useConfidence) valuetouse= cf0
+					else valuetouse = p0
+					
+					conftouse = cf0
 				}else if (valence == state1){
 					newAttributeName = "$attributeName($state1)"
-					if (options.useConfidence) newvalues << cf1
-					else newvalues << p1
+					if (options.useConfidence) valuetouse = cf1
+					else valuetouse = p1
+					
+					conftouse = cf1
 				}else{
 					err.println "ERROR unknown valence $valence. Does not match either $state0 or $state1"
-				}								
+				}
+								
+				if (options.onlyOutputSignificant){
+					if (conftouse >= 0.05) newvalues << valuetouse
+					else newvalues << -1
+				}else{
+					newvalues << valuetouse
+				}																
 			}else{
-				err.println "ERROR: $attributeName does not appear in ${options.valenceFile}"
+				err.println "ERROR: [$attributeName] does not appear in ${options.valenceFile}"
 			}				
 		}
 		println "$newAttributeName\t${newvalues.join('\t')}"
@@ -77,7 +90,8 @@ def ParseOptions(args){
 	  required 'v','valenceFile', [description: 'CSV file specifying valence for each attribute.']
 		required 'c','chainOutputFile', [description: 'ChainFile']
 		//optional 's','significance',[description: 'Replace values below this threshold with random values.']		
-		flag 'C','useConfidence',[default:false,description 'When selected, background model confidence is used instead of classifier probabilities.']
+		flag 'C','useConfidence',[default:false,description: 'When selected, background model confidence is used instead of classifier probabilities.']
+		flag 's','onlyOutputSignificant',[default:false,description: 'When selected, only values where null confidence > 0.05 will be output. Non significant will output as -1']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
 

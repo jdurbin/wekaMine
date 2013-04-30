@@ -56,6 +56,8 @@ if (options.config){
 	System.exit(1)
 }
 
+err.println "${experiments.size()} experiments read."
+
 // Write out jobs and quit if that is requested...
 if (options.experimentsPerJob){
 	scriptFile = getClass().protectionDomain.codeSource.location.path	
@@ -76,6 +78,12 @@ rawdata = WekaMine.readNumericFromTable(options.data)
 clinical = WekaMine.readFromTable(options.clinical)
 def data
 
+experiments.each{e->
+	err.println "Experiment class: ${e.classAttribute}"		
+}
+err.println "clinical attributes: "+clinical.attributeNames()
+
+
 // Perform each experiment described in the experiment spec...
 experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 	jobIdx = idx+options.experimentRange.getTo()
@@ -86,13 +94,24 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Creates a wekaMine pipeline...
 		pipeline = new WekaMine(rawdata,clinical,exp,params)			
 		
+		err.println "CHECK1"
+		
 		if (options.holdoutSet){			
-			err.print "Removing ${options.holdoutSet[exp.classAttribute].size()} holdout samples for ${exp.classAttribute}..."
-			data = WekaMine.removeInstances(rawdata,options.holdoutSet[exp.classAttribute])
+			err.print "Removing ${options.holdoutSet[exp.classAttribute]?.size()} holdout samples for ${exp.classAttribute}..."
+			
+			if (options.holdoutSet.keySet().contains(exp.classAttribute)){			
+				data = WekaMine.removeInstances(rawdata,options.holdoutSet[exp.classAttribute])
+			}else{
+				msg = "Holdout set doesn't contain expected attribute: ${exp.classAttribute}"
+				msg += "\nHoldout contains keys: ${options.holdoutSet.keySet()}"
+				throw new Exception(msg)
+			}
 			err.println "done."
 		}else{
 			data = rawdata  
 		}		
+		
+		err.println "CHECK2"
 		
 		// Apply unsupervised filter
 		instances = pipeline.applyUnsupervisedFilter(data)	
