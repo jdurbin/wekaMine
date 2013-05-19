@@ -199,9 +199,9 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// valid for a particular class attribute discretization, so mixing multiple discretizations
 		// in config will result in holdouts that are no longer stratified. 
 		if (options.holdoutSet){			
-			err.print "Removing ${options.holdoutSet[exp.classAttribute].size()} holdout samples for ${exp.classAttribute}..."
+			err.print "Removing ${options.holdoutSet[exp.classAttribute].size()} holdout samples out of ${instances.numInstances()} for ${exp.classAttribute}..."
 			instances = WekaMine.removeInstances(instances,options.holdoutSet[exp.classAttribute])
-			err.println "done."
+			err.println "done. ${instances.numInstances()} instances remaining."
 		}				
 		
 		//err.println "instances.size="+instances.size()		
@@ -221,22 +221,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// KJD Should these be removed?? Shouldn't their class just be set to unknown? 
 		if (experiments.params.censoredAttribute){
 			instances = pipeline.removeUnclassifiableCensoredSamples(instances,clinical,experiments.params.censoredAttribute)
-		}
-		
-		// If a validation hold-out is requested, pull that set here.  Note that stratification ensres
-		// that the hold out will have the same mix of nominal class attributes as the full dataset. 
-		if (options.validationFraction){		
-			//err.println "FEATURE DISABLED.  Feature is being tested and is not yet available. "
-			//System.exit(1)
-			
-			holdoutInstances = pipeline.holdOutInstances(instances,options.validationFraction)
-			holdoutInstanceIDs = holdoutInstances.attributeValues("ID") as ArrayList							
-			err.println "Holding out ${holdoutInstances.numInstances()} stratified instances for validation:"
-			instances = pipeline.remainingInstances(instances,options.validationFraction)
-			err.println "***DEBUG:  num attributes: "+instances.numAttributes()
-			println holdoutInstanceIDs
-			err.println "Using ${instances.numInstances()} stratified instances for experiment."
-		}
+		}				
 
 		// Create an attribute selected classifier from the given experiment description..
 		if (exp.numAttributes > instances.numAttributes()){
@@ -256,59 +241,20 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
 		}
 	
-		if (options.validationFraction){						
-			/*****
-			* wmSaveModel...
-			*/
-			// Create a classifier from all of the non-validation samples...
-			err.println "***EVALUATE HOLDOUT***"
-			hinstances = pipeline.cleanUpInstances(instances)			
-			(hinstances,cutoffs) = pipeline.discretizeClassAttribute(hinstances)
-			err.println "Non-holdout instances class attribute discretized: $cutoffs"			
-			hinstances = pipeline.removeInstanceID(hinstances)							
-			err.println "DEBUG:  numAttributes: "+hinstances.numAttributes()	// This includes all attributes EXCEPt ID
-			hinstances = pipeline.selectAttributes(hinstances)
-			err.println "DEBUG:  numAttributes: "+hinstances.numAttributes() // This removes everything except the ones selected.
-			err.print "Train model with non-holdout instances..."
-			exp.classifier.buildClassifier(hinstances);
-			err.println "done."		
-			err.print("Create model object with classifier...")
-			model = new WekaMineModel(hinstances,exp.classifier,cutoffs)				
-			err.println("done.")
-						
-			/******
-			* wmClassify
-			*/ 
-			err.println("Classify holdouts with trained model...")
-			err.println "Holdout attributes: "+filteredData.numAttributes()
-			holdoutprocessed = InstanceUtils.createInstancesToMatchAttributeList(holdoutInstances,model.attributes) 
-			err.println "holdoutprocessed attributes: "+holdoutprocessed.numAttributes()
-			err.println "holdInstances attributes: "+holdoutInstances.numAttributes()
-			holdoutprocessed = WekaMine.createEmptyClassAttribute(holdoutprocessed,model.className,model.classValues)
-			holdoutprocessed.setClassName(model.className)
-			results = model.classify(holdoutprocessed)
-			clinical.setClassName(model.className)
-			(clinicaldisc,cutoffs) = pipeline.discretizeClassAttribute(clinical)
-			holdoutAccuracy = accuracy(results,holdoutInstanceIDs,clinicaldisc,model)
-			err.println "\tHoldout accuracy: $holdoutAccuracy"		
-			err.println "*** END EVALUATE HOLDOUT ***"
-			err.print "Appending test results..."
-			pipeline.appendSummaryWithHoldout(out,jobIdx,hinstances,holdoutAccuracy)
-		}else{
-			err.print "Appending test results..."
-			pipeline.appendSummary(out,jobIdx,instances)
-		}		
+		err.print "Appending test results..."
+		pipeline.appendSummary(out,jobIdx,instances)
 		pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
 		pipeline.appendTestSamples(sout, jobIdx,instances)
 		err.println "done."
-		
+				
 		if (options.evalTraining){			
 			err.print "Append training results..."
 			pipeline.appendTrainingSamples(tout,jobIdx,instances)
 			err.println "done."
 		}		
 		
-		err.println "done. AUC=${eval.weightedAreaUnderROC()}"
+		err.println pipeline.eval.toMatrixString("\nCV TEST SAMPLE CONFUSION MATRIX:")		
+		err.println "AUC: ${eval.weightedAreaUnderROC()} for ${exp.classAttribute}"
 		
 		// Report memory usage and encourage garbage collection...
 		err.println "\n"
@@ -459,8 +405,8 @@ def ParseOptions(args){
 				return(range)
 			}]			
 			
-		optional 'v','validationFraction',[default:0.0,description: 'Fraction of samples to withold from cross-validation portion of experiment, evaluating only at end on fully trained model.',
-		validate:{it as double}]		
+		//optional 'v','validationFraction',[default:0.0,description: 'Fraction of samples to withold from cross-validation portion of experiment, evaluating only at end on fully trained model.',
+		//validate:{it as double}]		
 
 		flag 't','evalTraining',[default:false,description:'If set, the classifier is evaluated on the training data as well as the test data in cross validation, output in *.trainingsamples.tab.  NOTE: This will slow down execution, possibly significantly.' ]
 		flag 'R','clinicalInstancesInRows',[default:false,description:'If set, clinical data will be assumed to be one instance per row. Default one instance per column.']		
