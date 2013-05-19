@@ -42,77 +42,110 @@ if (options.config){
 //data = WekaMine.readNumericFromTable(options.data)
 
 def clinical
-if (options.clinical){
-	clinical = WekaMine.readFromTable(options.clinical)
-}
+clinical = WekaMine.readFromTable(options.clinical)
+data = WekaMine.readNumericFromTable(options.data)
 
 // if holdout requested{
-int numFolds = options.numFolds + 1 // Add a fold for the hold-out set.
+int numFolds = options.numFolds 
 
-// Perform each experiment described in the experiment spec...
+def rng = new Random()
+if (options.randomSeed){
+	rng = new Random(options.randomSeed as int)
+}
+
 foldTable = new DynamicTable()
-experiments[options.experimentRange].eachWithIndex{exp,idx-> 
-	jobIdx = idx+options.experimentRange.getTo()
-	err.println "=================================="
-	err.println "Experiment: $jobIdx"
+holdoutMap = [:]
+holdoutIDs = []
+// Perform each experiment described in the experiment spec...
+experiments.eachWithIndex{exp,idx-> 
+	err.println "--------------------------------"
+	err.println "ClassAttr: "+exp.classAttribute
 	try{
 		
-		// Creates a wekaMine pipeline...
-		//pipeline = new WekaMine(data,clinical,exp,params)		
-		
-		// Combines data and single class attribute from clinical into one set of instances...
-		// Unsupervised filters don't need clinical data. 
-		//if (options.clinical){
-		//	instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
-		//}else instances = data
-
-		// Clean up instances:
-		// * remove useless attributes
-		// * if not allowed, remove instances with negative class values
-		// * remove instances with missing class values	
-		//instances = pipeline.cleanUpInstances(instances)
-
-		// Discretize the class attribute... Needed to do stratification...
-		err.println "classAttr: "+exp.classAttribute
 		clinical.setClassName(exp.classAttribute)
-		(instances,cutoffs) = WekaMine.discretizeClassAttribute(clinical,exp.discretization,exp.classAttribute)				
+		
+		err.print "\t"	
+		instances = WekaMine.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
+		err.println "\tCombined instances: "+instances.numInstances()
+	
+		err.print "\tRemoving instances with missing class value.  Before: ${instances.numInstances()} "
+		instances.deleteWithMissingClass();
+		err.println "After: ${instances.numInstances()}"
+		
+		// Discretize the class attribute... Needed to do stratification...
+		err.print "\tDiscretization: "
+		(instances,cutoffs) = WekaMine.discretizeClassAttribute(instances,exp.discretization,exp.classAttribute)				
+
+		// Generate holdout
+		Instances instancesMinusHoldout				
+		if (options.holdoutFraction > 0){
+			instances.randomize(rng);
+			if (instances.classAttribute().isNominal()) {
+	  		instances.stratify(numFolds);
+			}
 			
-		instances.randomize(new Random());
-		if (instances.classAttribute().isNominal()) {
-		  instances.stratify(numFolds);
+			numInst = instances.numInstances()
+			holdoutFolds = (double)numInst/(double)(numInst*options.holdoutFraction)
+			//err.println "numInst: $numInst  frac: ${options.holdoutFraction}  hfolds: $holdoutFolds"
+		
+			Instances holdout = instances.testCV(holdoutFolds as int,0)
+			holdoutIDs = holdout["ID"]		
+		
+			holdoutMap[exp.classAttribute] = holdoutIDs // save holdout IDs for this attribute.
+		
+			instancesMinusHoldout = WekaMine.removeInstances(instances,holdoutIDs)
+			err.println "\t${holdoutIDs.size()} holdout samples set aside. ${instancesMinusHoldout.numInstances()} instances remaining for cross-validaion."
+		}else{
+			instancesMinusHouldout = instances
 		}
 		
+		//err.println "holdoutSamples: $holdoutIDs"
 		allIDs = []
-		for (int i = 0; i < numFolds; i++) {		
-		  Instances test = instances.testCV(numFolds, i);
-			IDs = test["ID"]
-			//println "Fold$i: ${IDs}"		
-			IDs.each{id->
-				//foldTable[exp.classAttribute][id] = i
-				foldTable[exp.classAttribute][id] = i
+		for(repetition in 0..<options.foldRepetitions){
+			err.print "\tFold repetition $repetition  "
+			attributeFoldName = "${exp.classAttribute}_Rep${repetition}"
+			err.println "Saving ${numFolds} folds as $attributeFoldName"
+			
+			instancesMinusHoldout.randomize(rng);
+			if (instancesMinusHoldout.classAttribute().isNominal()) {
+		  	instancesMinusHoldout.stratify(numFolds);
+			}
+		
+			if (holdoutIDs.size() > 0){
+				holdoutIDs.each{id->
+					foldTable[attributeFoldName][id]= 0 // fold 0 is holdout.
+				}
+			}	
+						
+			for (int i = 0; i < numFolds; i++) {		
+				Instances test = instancesMinusHoldout.testCV(numFolds, i);
+				IDs = test["ID"]
+				//println "Fold$i: ${IDs}"		
+				IDs.each{id->
+					//foldTable[exp.classAttribute][id] = i
+					foldTable[attributeFoldName][id] = i+1 // (folds are numbered 1 to n) 
+				}			
 			}
 		}
-											
+		
 		// Write out the attribute selected tab file...
-		//pipeline.saveDataFromInstances2(options.outputFile,instances)
-			
-	}catch (Exception e){
-		err.println e
-	}
+		//pipeline.saveDataFromInstances2(options.outputFile,instances)					
+		}catch (Exception e){
+			err.println e
+		}
 }
 
 // Write the foldset file to a file..
 foldTable.write(options.outputFile,"\t")				
 
-// print the holdout set for each attribute to stdout
-foldTable.eachRowKeyWithColumnMap{key,attributeRow->
-	// fold 0 is holdout...
-	samples = []
-	attributeRow.each{k,v->
-		if (v == 0) samples << k
+// Print the holdout set for each attribute..
+if (holdoutMap.size() > 0){
+	holdoutMap.each{k,v->
+		print "$k\t"
+		println v.join("\t")
 	}
-	println "$key\t${samples.join('\t')}"
 }
+
 
 //============================================================================
 // 
@@ -123,12 +156,25 @@ foldTable.eachRowKeyWithColumnMap{key,attributeRow->
 def ParseOptions(args){
 	parser = new Parser(description: '''
 	
-	Generates a folds file from the given clinical data, classAttributes, and discretizations. Saves the 
-	folds to the foldsfile and outputs the holdout set to stdout. 
+	Generates a folds file from the given clinical data, data, classAttributes, and discretizations. Saves the 
+	folds to the foldsfile and outputs the holdout set, if any, to stdout.  A skeleton .cfg file is needed to describe
+	the attributes that will be used in the experiment and the discretization, which is needed to properly 
+	stratify the samples.  The data file is needed because a wekaMine experiment will run on the intersection of
+	samples between the data and clinical files, so wmGenFolds needs both files to compute that intersection so 
+	that it can partition just the subset of samples that will actually be used in the experiment. 	
+	
+	Note that when there is a holdout, those sample names will be output to stdout AND those samples will be labeled 
+	as fold 0 in the output file. 	
+	
+	Note also that the holdout is fixed across fold repetitions.  So if you have 5 times 5x cross validation folds, the 
+	holdout will be the same for all of these.  This means that the 0's in the folds file should be on the same sample for
+	any given attribute, while the rest of the numbers should be scrambled. 
 	
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
 	Example:
+	
+	wmGenFolds -o folds/folds5x5 -x 5 -f 5 -c cfg/holdout.cfg -H 0.1 -d data/GBM_tumor -i data/GBM.clin > folds/holdout10Pct.tab
 
 	''');
 
@@ -137,20 +183,18 @@ def ParseOptions(args){
 	  required 'o','outputFile',[description: 'File name for where output.']
 	  //required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format. Required for supervised filters, optional for unsupervised.']
+		required 'd','data',[description: 'Data file in attribute (row) by samples (col) format.']
 		required 'f','numFolds',[description: 'Number of folds to generate.',validate:{it as int}]
 
 	  optional 'c','config',[description: 'Configuration file']  
 		optional 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier(s). Will save one model per result in file.']		
 		optional 'E','experimentString',[description: 'A single experiment string. In single quotes, comma separated: attrEval,attrSearch,numAttributes,none,classAttr,discretization.  Use keyword "none" to omit a field.']
-
-	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
-			// Convert it to a proper range. Default is all inclusive range. 
-			validate:{								
-		 		experimentStart = (it.split(","))[0] as int
-		 		experimentEnd = (it.split(","))[1] as int 
-			  range = (experimentStart..experimentEnd)
-				return(range)
-			}]
+		optional 'x','foldRepetitions',[default:"1",description: 'Number of times to repeat numFolds CV (e.g. 5 for 5x k-fold CV)',
+		validate:{it as int}]
+		optional 's','randomSeed',[description: 'Seed for random number generator. Default seeds with clock.']
+			
+		optional 'H','holdoutFraction',[default:0,description: 'Fraction of net samples (intersection of data+clinical) to set aside as holdout.',
+		validate:{it as double}]
 
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
