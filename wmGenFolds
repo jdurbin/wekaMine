@@ -136,6 +136,7 @@ experiments.eachWithIndex{exp,idx->
 }
 
 // Write the foldset file to a file..
+foldTable.defaultVal = -1
 foldTable.write(options.outputFile,"\t")				
 
 // Print the holdout set for each attribute..
