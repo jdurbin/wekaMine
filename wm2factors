@@ -1,0 +1,61 @@
+#!/usr/bin/env groovy 
+
+import durbin.util.*
+
+println "classAttribute\tfilter\tattributeSelection\tclassifier\tnumAttributes\ttp1\tfp1\ttn1\tfn1\troc"
+new OnlineTable(args[0]).eachRow{row->
+	filter = parseFilter(row.filter)
+	attrSel = parseAttrSel(row.attrEval)
+	classifier = parseClassifier(row.classifier)
+	println "${row.classAttr}\t$filter\t$attrSel\t$classifier\t${row.numAttrs}\t${row.tp1}\t${row.fp1}\t${row.tn1}\t${row.fn1}\t${row.roc}"
+}
+
+
+
+def parseClassifier(filter){
+	modifier =""
+	basefilter = ""
+	switch(filter){
+		case ~/.*Balanced.*/: basefilter="BalancedRandomForest";break;
+		case ~/.*trees\.Random.*/: basefilter="RandomForest";break;
+		case ~/.*SimpleLogistic.*/: basefilter="Logistic";break;
+		case ~/.*SMO.*/: basefilter="SVM";break;		
+		default: basefilter=filter;break;
+	}		
+	
+	switch(filter){
+		case ~/.*RBF.*/: modifier="RBF Kernel";break;
+		case ~/.*PolyKernel.*/: 
+		if (filter.contains("E 2.0")) modifier = "Quadratic Kernel"
+		if (filter.contains("E 1.0")) modifier = "Linear Kernel"
+		break;	
+	}
+	return("$basefilter $modifier")	
+}
+
+
+def parseAttrSel(filter){
+	basefilter = ""
+	switch(filter){
+		case ~/.*ReliefF.*/: basefilter="ReliefF";break;
+		case ~/.*InfoGain.*/: basefilter="InfoGain";break;
+		default: basefilter=filter;break;
+	}		
+	return("$basefilter")	
+}
+
+
+
+def parseFilter(filter){
+	prefilter =""
+	basefilter = ""
+	switch(filter){
+		case ~/.*Exponential.*/: basefilter="ExpNorm";break;
+		case ~/.*None.*/: basefilter="None";break;
+		case ~/.*Normalize.*/: basefilter="Normalize";break;
+		case ~/.*Standardize.*/: basefilter="Standardize";break;	
+		default: basefilter=filter;break;
+	}		
+	if (filter.contains("log")) prefilter = "log+"	
+	return("$prefilter$basefilter")	
+}
