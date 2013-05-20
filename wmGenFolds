@@ -100,7 +100,10 @@ experiments.eachWithIndex{exp,idx->
 		}
 		
 		// Determine if there are enough examples of each class left for the number of folds requested. 
-		if (!verifyClassRepresentationForFolds(instancesMinusHoldout,numFolds)) return;
+		if (!verifyClassRepresentationForFolds(instancesMinusHoldout,numFolds)) {			
+			err.println "SKIPPING: ${exp.classAttribute} in folds file as some class values wouldn't be represented in each fold."
+			return;
+		}
 				
 		//err.println "holdoutSamples: $holdoutIDs"
 		allIDs = []
@@ -169,9 +172,10 @@ def verifyClassRepresentationForFolds(instances,folds){
 	
 	bCountFail = false;
 	valSet.each{v->
-		vcount << values.count{it == v}		
+		vcount = values.count{it == v}	
+		err.println "\t$className value $v has $vcount instances."
 		if (vcount < folds){
-			err.println "ERROR: $v has $vcount instances < $folds folds."
+			err.println "ERROR: class value $v has fewer instances than number of folds requested: $folds."
 			bCountFail = true;
 		}
 	}
