@@ -99,6 +99,9 @@ experiments.eachWithIndex{exp,idx->
 			instancesMinusHouldout = instances
 		}
 		
+		// Determine if there are enough examples of each class left for the number of folds requested. 
+		if (!verifyClassRepresentationForFolds(instancesMinusHoldout,numFolds)) return;
+				
 		//err.println "holdoutSamples: $holdoutIDs"
 		allIDs = []
 		for(repetition in 0..<options.foldRepetitions){
@@ -145,6 +148,36 @@ if (holdoutMap.size() > 0){
 		print "$k\t"
 		println v.join("\t")
 	}
+}
+
+
+/****
+* Check that there are enough examples of each class that every fold has at least
+* one example of each class. 
+*/ 
+def verifyClassRepresentationForFolds(instances,folds){
+	classAttr = instances.classAttribute()
+	className = classAttr.name()
+
+	values = instances.attributeValues(className) 
+	valSet = values as Set
+	
+	if (valSet.size() < 2){
+		err.println "ERROR:  Less than 2 class values left, can't perform cross validation."
+		return(false)
+	}
+	
+	bCountFail = false;
+	valSet.each{v->
+		vcount << values.count{it == v}		
+		if (vcount < folds){
+			err.println "ERROR: $v has $vcount instances < $folds folds."
+			bCountFail = true;
+		}
+	}
+	
+	if (bCountFail == true) return(false)
+	else return(true)
 }
 
 
