@@ -29,6 +29,7 @@ if (options.config){
 	params = [:]
 }else if (options.experimentString){	
 	headingMap = WekaMineResult.defaultHeadingMap()
+	err.println headingMap
 	experiment = new ExperimentSpec(options.experimentString,headingMap)
 	experiments << experiment
 	params = [:]

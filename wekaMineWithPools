@@ -40,10 +40,12 @@ if (options.config){
 
 printHeapSpace(options.verbose)
 
-FoldSets foldsets;
-if (options.foldsetsFile){
+FoldSets testFoldsets;
+FoldSets trainFoldsets;
+if (options.testFoldsetsFile){
 	err.print "Reading foldset ${options.foldsetsFile}..."
-	foldsets = new FoldSets(options.foldsetsFile)	
+	testFoldsets = new FoldSets(options.testFoldsetsFile)	
+	trainFoldsets = new FoldSets(options.trainFoldsetsFile)	
 	err.println " ${foldsets.size()} foldsets read."
 }
 
@@ -113,11 +115,13 @@ if (!options.suppressHeading){
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
 if (options.dataMayContainNominalValues){
-	err.println "Reading data with nominal values."
-	data = WekaMine.readFromTable(options.data)
+	err.println "Reading training data with nominal values."
+	dataTrain = WekaMine.readFromTable(options.dataTrain)
+	dataTest = WekaMine.readFromTable(options.dataTest)
 }else{
 	err.println "Reading numeric data."
-	data = WekaMine.readNumericFromTable(options.data)
+	dataTrain = WekaMine.readNumericFromTable(options.dataTrain)
+	dataTest = WekaMine.readNumericFromTable(options.dataTest)
 }
 //data = TableFileLoader.readNumeric(options.data,options.data,"\t");
 clinical = WekaMine.readFromTable(options.clinical,instancesInRows = options.clinicalInstancesInRows)
@@ -130,18 +134,30 @@ clinical = WekaMine.readFromTable(options.clinical,instancesInRows = options.cli
 
 // Remove everything except a subset if a list of samples to use is given.
 if (options.sampleSubset){
-	data = WekaMine.subsetInstances(data,options.sampleSubset)
+	dataTrain = WekaMine.subsetInstances(dataTrain,options.sampleSubset)
+	dataTest = WekaMine.subsetInstances(dataTest,options.sampleSubset)
 	clinical = WekaMine.subsetInstances(clinical,options.sampleSubset)
 }
 
 printHeapSpace(options.verbose)		
 
-// Occasionally we're given a data file that is a huge superset of the clinical file
-// as a consession to RAM, remove all instances from data except those in the clinical file..
-err.print "Removing data instances not in clinical, before size = ${data.numInstances()}..."
+// Only want instances that are in clinical file...
+err.println "Reducing data to intersection of clin,train,test."
+err.println " Before clin.size=${clinical.numInstances()}, test size = ${dataTest.numInstances()} train size= ${dataTrain.numInstances()}..."
 clinicalNames = clinical.attributeValues("ID")
-data = WekaMine.subsetInstances(data,clinicalNames)
-err.println "done. After data.size=${data.numInstances()}"
+trainNames = dataTrain.attributeValues("ID")
+testNames = dataTest.attributeValues("ID")
+
+// Compute the intersection between the instance names..
+nameIntersection = clinicalNames
+nameIntersection.retainAll(trainNames)
+nameIntersection.retainAll(testNames)
+
+clinical = WekaMine.subsetInstances(clinical,nameIntersection)
+dataTrain = WekaMine.subsetInstances(dataTrain,nameIntersection)
+dataTest = WekaMine.subsetInstances(dataTest,nameIntersection)
+err.println "done."
+err.println " After clin.size=${clinical.numInstances()}, test size = ${dataTest.numInstances()} train size= ${dataTrain.numInstances()}"
 System.gc()
 printHeapSpace(options.verbose)		
 
@@ -167,8 +183,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	try{
 						
 		// Creates a wekaMine pipeline...
-		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
-		pipeline.dataName = options.data
+		pipeline = new WekaMine(trainData,clinical,exp,experiments.params)		
+		pipeline.dataName = options.trainData
 		
 		printHeapSpace(options.verbose)
 		
@@ -176,7 +192,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// several transforms combined. 		Note: As it is, the data is filtered before 
 		// the class attribute has even been added.  You can filter it after the class attribute
 		// has been added if the classAttribute is set and the filter option is set to ignore class.b	
-		instances = pipeline.applyUnsupervisedFilter(data)	
+		trainInstances = pipeline.applyUnsupervisedFilter(trainData)	
+		testInstances = pipeline.applyUnsupervisedFilter(testData)	
 		
 		//err.println "DEBUG ${instances.attributeValues('BRAF')}"
 						
@@ -184,8 +201,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 						
 		// Combines data and single class attribute from clinical into one set of instances...
 		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
-		instances = pipeline.createInstancesFromDataAndClinical(instances,clinical)	
-		err.println "Combined instances: "+instances.numInstances()
+		trainInstances = pipeline.createInstancesFromDataAndClinical(trainInstances,clinical)
+		err.println "Combined train instances: "+trainInstances.numInstances()	
+		testInstances = pipeline.createInstancesFromDataAndClinical(testInstances,clinical)	
+		err.println "Combined test instances: "+testInstances.numInstances()	
 		System.gc()
 		
 		//err.println "DEBUG ${data.attributeValues('BRAF')}"
@@ -199,8 +218,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// valid for a particular class attribute discretization, so mixing multiple discretizations
 		// in config will result in holdouts that are no longer stratified. 
 		if (options.holdoutSet){			
+			err.println "Functionality not implemented in this version."
+			System.exit(1)
 			err.print "Removing ${options.holdoutSet[exp.classAttribute].size()} holdout samples out of ${instances.numInstances()} for ${exp.classAttribute}..."
-			instances = WekaMine.removeInstances(instances,options.holdoutSet[exp.classAttribute])
+			//instances = WekaMine.removeInstances(instances,options.holdoutSet[exp.classAttribute])
 			err.println "done. ${instances.numInstances()} instances remaining."
 		}				
 		
@@ -212,10 +233,12 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// * remove useless attributes
 		// * if not allowed, remove instances with negative class values
 		// * remove instances with missing class values	
-		instances = pipeline.cleanUpInstances(instances)
+		trainInstances = pipeline.cleanUpInstances(trainInstances)
+		testInstances = pipeline.cleanUpInstances(testInstances)
 					
 		// Discretize the class attribute...
-		(instances,cutoffs) = pipeline.discretizeClassAttribute(instances)	
+		(trainInstances,cutoffs) = pipeline.discretizeClassAttribute(trainInstances)	
+		(testInstances,cutoffs) = pipeline.discretizeClassAttribute(testInstances)	
 		
 		// Remove censored samples that can't be put into a discretized class... 
 		// KJD Should these be removed?? Shouldn't their class just be set to unknown? 
@@ -237,19 +260,23 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		Evaluation2 eval 
 		if (options.foldsetsFile){		
 			eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets,options.evalTraining)
+			eval = pipeline.crossValidateModelWithPoolsAndFolds(asClassifier,trainInstances,testInstances,
+				trainFoldsets,testFoldsets,options.evalTraining)
 		}else{
-			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
+			System.err.println "ERROR: This version requires a foldset."
+			System.exit(1)
+			//eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
 		}
 	
 		err.print "Appending test results..."
-		pipeline.appendSummary(out,jobIdx,instances)
-		pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
-		pipeline.appendTestSamples(sout, jobIdx,instances)
+		pipeline.appendSummary(out,jobIdx,trainInstances)
+		pipeline.appendFeatures(fout,jobIdx,trainInstances,options.maxFeaturesOut as Integer)
+		pipeline.appendTestSamples(sout, jobIdx,testInstances)
 		err.println "done."
 				
 		if (options.evalTraining){			
 			err.print "Append training results..."
-			pipeline.appendTrainingSamples(tout,jobIdx,instances)
+			pipeline.appendTrainingSamples(tout,jobIdx,trainInstances)
 			err.println "done."
 		}		
 		
@@ -309,6 +336,13 @@ if (bExceptionOccurred) {
 */ 
 def ParseOptions(args){
 	parser = new Parser(description: '''
+	
+	wekaMineWithPools is a special version of wekaMine that allows you to provide one dataset to be
+	used for all the training folds and another dataset to be used for all the test folds.  Probably 
+	some more general version of this idea will be implemented in the future, but this is a temporary 
+	hack. 
+	
+	
 	 wekaMine takes a tab delimited data file in attributes (rows) x samples (cols) format, 
 	 and a clinical file, also in attributes (rows) x samples (cols) format, and evaluates 
 	 the set of experiments specified in an experimental configuration file.  Classification is 
@@ -357,17 +391,21 @@ def ParseOptions(args){
 	parser.with{
 
 	  required 'o','output',[description: 'File where output should go. Generates three files *.summary.tab, *.features.tab, and *.samples.tab']
-	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+	  required 'd','dataTrain', [description: 'Data file to draw training instances from in attribute (row) by samples (col) format.']
+		required 'D','dataTest', [description: 'Data file to draw test instances from in attribute (row) by samples (col) format.']
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
+		required 'f','trainFoldsetsFile',[description: "File specifying the cross validation foldsets to use for the training folds. "]
+		required 'F','testFoldsetsFile',[description: "File specifying the cross validation foldsets to use for the test folds."]
 	
 		optional 'k','experimentsPerJob',[description: 'When specified, wekaMine does not run but instead outputs a list of wekaMine commands, k experiments each, for the cluster.']
-		flag 'F','flatExperimentOut',[default:false,description: 'Does not perform experiments but merely writes their description to stdout.']
+		//flag 'F','flatExperimentOut',[default:false,description: 'Does not perform experiments but merely writes their description to stdout.']
 
 	  optional 'c','config',[description: 'Configuration file.  One of -c or -C required. ']  
 		optional 'C','flatConfig',[description: 'A flat configuration file, one experiment per line. One of -c or -C required.']  
 
 		optional 'V','verbose',[description: 'Output verbose info, like RAM usage, etc.']
-		optional 'f','foldsetsFile',[default:null,description: "File specifying the cross validation foldsets to use."]
+
+		
 	  optional 'm','maxFeaturesOut',[default: 100,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
 		optional 'S','holdoutSet',[default:null,description: "File listing samples not to use.  All other samples will be included from experiments",
 			validate:{

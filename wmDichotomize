@@ -242,6 +242,10 @@ def noFilter(output,inInst,attributeName){
 * 
 */
 def dichotomize(outTable,instIn,attributeName){
+	
+	err.println "DEBUG: "+attributeName
+	err.println instIn.attributeNames()
+	
 	attVals = instIn.attributeValues(attributeName) as ArrayList
 	attValSet = attVals as Set
 	
