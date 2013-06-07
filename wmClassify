@@ -29,11 +29,27 @@ if (model.filter == null){
 	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
 }
 
+def className
+if (options.className) className = options.className
+else className = model.className
+
+def holdoutClassName
+if (options.holdoutClassName) holdoutClassName = options.holdoutClassName
+else if (options.className) holdoutClassName = options.className
+else className = model.className
+
+err.println "className set: $className"
+err.println "model.className: ${model.className}"
+err.println "holdout className: ${holdoutClassName}"
 
 if (options.holdoutSet){
-	holdoutForClass = options.holdoutSet[model.className]
+	
+	err.println "Holdout keys: "+options.holdoutSet.keySet()
+	
+	
+	holdoutForClass = options.holdoutSet[holdoutClassName]
 	err.println holdoutForClass
-	err.print "Removing ALL except ${holdoutForClass.size()} holdout samples for ${model.className}..."
+	err.print "Removing ALL except ${holdoutForClass.size()} holdout samples for ${holdoutClassName}..."
 	err.print "before ${instances.numInstances()}..."
 	instances = WekaMine.subsetInstances(instances,holdoutForClass)
 	err.println "done. After: ${instances.numInstances()}"
@@ -69,24 +85,22 @@ err.println "Model Attribute Names:"
 err.println names
 
 // Add an empty class attribute so that classifiers don't choke ?
-instances = WekaMine.createEmptyClassAttribute(instances,model.className,model.classValues)
-instances.setClassName(model.className)
+instances = WekaMine.createEmptyClassAttribute(instances,className,model.classValues)
+instances.setClassName(className)
 
 // If a clinical file is given, also output whether or not the prediction matches
 // the clinical value...
 if (options.clinical){
 	clinical = WekaMine.readFromTable(options.clinical)
 
-	err.println "model.classAttribute: "+model.classAttribute()
-
-	// Remove instances with missing class value...
-	clinical.setClassName(model.classAttribute())
+		// Remove instances with missing class value...
+	clinical.setClassName(className)
 
 	// Remove instances with negative class value. 
 	//clinical = WekaMine.cleanUpInstances(clinical)
 
 	// Discretize the class attribute... (KJD... this should always be an explicit cutoff derived from experiment...)
-	(clinical,clinicalCutoffs) = WekaMine.discretizeClassAttribute(clinical,model.discretization,model.classAttribute())			
+	(clinical,clinicalCutoffs) = WekaMine.discretizeClassAttribute(clinical,model.discretization,className)			
 							
 	err.println "clinicalCutoffs: $clinicalCutoffs" 																												
 }
@@ -136,6 +150,8 @@ def ParseOptions(args){
 		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 				
+		optional 'c','className',[description: 'Specify name of class in clinical file (default takes class name from model).']		
+		optional 'C','holdoutClassName',[description: 'Holdout class name (if different from -c).']		
 		optional 'S','holdoutSet',[default:null,description: "Only classify samples in holdout file. Holdout samples indexed by className. All other samples will be excluded from analysis.",
 		validate:{
 			if (it != null){				
