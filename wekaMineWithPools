@@ -217,11 +217,15 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// different holdout for each class attribute. 		WARNING: Stratification is only 
 		// valid for a particular class attribute discretization, so mixing multiple discretizations
 		// in config will result in holdouts that are no longer stratified. 
-		if (options.holdoutSet){			
-			err.println "Functionality not implemented in this version."
-			System.exit(1)
-			err.print "Removing ${options.holdoutSet[exp.classAttribute].size()} holdout samples out of ${instances.numInstances()} for ${exp.classAttribute}..."
-			//instances = WekaMine.removeInstances(instances,options.holdoutSet[exp.classAttribute])
+		if (options.holdoutSetTrain){			
+			err.print "Removing ${options.holdoutSetTrain[exp.classAttribute].size()} holdout samples out of ${instances.numInstances()} for ${exp.classAttribute}..."
+			trainIinstances = WekaMine.removeInstances(trainInstances,options.holdoutSetTrain[exp.classAttribute])
+			err.println "done. ${instances.numInstances()} instances remaining."
+		}		
+				
+		if (options.holdoutSetTest){			
+			err.print "Removing ${options.holdoutSetTest[exp.classAttribute].size()} holdout samples out of ${instances.numInstances()} for ${exp.classAttribute}..."
+			testIinstances = WekaMine.removeInstances(testInstances,options.holdoutSetTest[exp.classAttribute])
 			err.println "done. ${instances.numInstances()} instances remaining."
 		}				
 		
@@ -340,7 +344,8 @@ def ParseOptions(args){
 	wekaMineWithPools is a special version of wekaMine that allows you to provide one dataset to be
 	used for all the training folds and another dataset to be used for all the test folds.  Probably 
 	some more general version of this idea will be implemented in the future, but this is a temporary 
-	hack. 
+	hack.  In this version, wmGenFolds will be run twice to produce two folds files and two holdout files, 
+	one each for the test pool and the training pool. 
 	
 	
 	 wekaMine takes a tab delimited data file in attributes (rows) x samples (cols) format, 
@@ -407,7 +412,7 @@ def ParseOptions(args){
 
 		
 	  optional 'm','maxFeaturesOut',[default: 100,description: "Maximum number of ranked features to output from cross-validation or full-set if classifier is 'None'"]
-		optional 'S','holdoutSet',[default:null,description: "File listing samples not to use.  All other samples will be included from experiments",
+		optional 'S','holdoutSetTrain',[default:null,description: "File listing training samples not to use.  All other samples will be included from experiments",
 			validate:{
 				if (it != null){				
 					// Read in the samplesToOmit... 
@@ -423,18 +428,24 @@ def ParseOptions(args){
 				}
 			}
 		]
-		optional 's','sampleSubset',[default:null,description: "File listing samples to use.  All other samples will be excluded from analysis.",
+		
+		optional 's','holdoutSetTest',[default:null,description: "File listing test samples not to use.  All other samples will be included from experiments",
 			validate:{
 				if (it != null){				
-					// Read in the samplesToUse... 
-					def samplesToUse = []
-					new File(it).eachLine{samplesToUse << it}
-					return(samplesToUse)
+					// Read in the samplesToOmit... 
+					samplesToOmitByClassAttribute = [:]
+					new File(it).splitEachLine("\t"){fields->
+						classAttr = fields[0]
+						samplesToOmit = fields[1..-1]
+						samplesToOmitByClassAttribute[classAttr] = samplesToOmit
+					}
+					return(samplesToOmitByClassAttribute)
 				}else {
-					return(it)							
+						return(it)							
 				}
 			}
 		]
+		
 
 	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
 			// Convert it to a proper range. Default is all inclusive range. 
