@@ -43,7 +43,15 @@ if (options.config){
 
 def clinical
 clinical = WekaMine.readFromTable(options.clinical)
-data = WekaMine.readNumericFromTable(options.data)
+
+// Read the data (expression, CNV, whatever) and the clinical from tab delimited files
+if (options.dataMayContainNominalValues){
+	err.println "Reading data with nominal values."
+	data = WekaMine.readFromTable(options.data)
+}else{
+	err.println "Reading numeric data."
+	data = WekaMine.readNumericFromTable(options.data)
+}
 
 // if holdout requested{
 int numFolds = options.numFolds 
@@ -235,6 +243,7 @@ def ParseOptions(args){
 		validate:{it as double}]
 
 	  flag 'h','help',[default:false,description: 'Print script help.']
+		flag 'N','dataMayContainNominalValues',[default:false,description: 'Option to read datafile in as mixed numeric/nominal.  Data reas is slower than default all numeric. ']		
 	}
 
 	def options
