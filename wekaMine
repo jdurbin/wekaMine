@@ -238,6 +238,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		if (options.foldsetsFile){		
 			eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets,options.evalTraining)
 		}else{
+			// Default folds if none specified in config...
+			if (experiments.params.cvFolds.class != java.lang.Integer){
+				experiments.params.cvFolds = 10
+			}			
 			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
 		}
 	
