@@ -104,7 +104,7 @@ experiments.eachWithIndex{exp,idx->
 			instancesMinusHoldout = WekaMine.removeInstances(instances,holdoutIDs)
 			err.println "\t${holdoutIDs.size()} holdout samples set aside. ${instancesMinusHoldout.numInstances()} instances remaining for cross-validaion."
 		}else{
-			instancesMinusHoldout = instances
+			instancesMinusHouldout = instances
 		}
 		
 		// Determine if there are enough examples of each class left for the number of folds requested. 
