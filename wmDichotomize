@@ -21,6 +21,8 @@ clinicalInstances = WM.readFromTable(options.clinFileName,true) // input instanc
 //clinicalInstances = WM.readNominalFromTable(clinFileName,true) // input instances...
 //attrPrefix = args[2]
 
+err.println clinicalInstances.attributeNames()
+
 output = new TwoDMap()
 
 new File(options.filterTemplate).splitEachLine(","){fields->

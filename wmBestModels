@@ -22,13 +22,13 @@ t.eachRow{row->
 	baseClassifier = WekaNames.getBaseClassifierType(row.classifier)
 	if (baseClassifier == null){
 		err.println "NULL classifier? "
-		err.println "classifierIdx: $classifierIdx"
-		err.println "$classifier"
+		//err.println "classifierIdx: $classifierIdx"
+		err.println "${row.classifier}"
 		err.println "${row.values()}"
 		System.exit(1)
 	}
 	
-	roc = row.roc as double
+	roc = row.roc as double		
 	if (roc > maxPerAttribute[row.classAttr]){
 		maxPerAttribute[row.classAttr] = roc
 		bestPerAttribute[row.classAttr] = row
@@ -45,6 +45,8 @@ t.eachRow{row->
 	sumPerAttribute[row.classAttr]+=roc;
 	numPerAttribute[row.classAttr]+= 1;  	
 }
+
+err.println maxPerAttribute
 
 if (!options.report){
 	// Save something we can build models from...	
@@ -65,6 +67,8 @@ if (!options.report){
 		majorityAcc = computeMajorityAcc(rowMap)					
 		roc = rowMap.roc	as double			
 		delta = roc-majorityAcc
+		
+		err.println "$attribute\t$majorityAcc\t$roc\t$delta"
 		
 		if (roc < options.minROC) return; // Don't output this one, below cutoff...
 		if (delta < options.minDeltaMajority) return; 

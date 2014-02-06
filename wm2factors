@@ -2,6 +2,8 @@
 
 import durbin.util.*
 
+err = System.err
+
 deltaMajorityCutoff = 0.0
 if (args.size() > 1){
 	deltaMajorityCutoff = args[1] as double
@@ -16,6 +18,7 @@ new OnlineTable(args[0]).eachRow{row->
 	maj = computeMajorityAcc(row)
 	roc = row.roc as double
 	delta = roc - maj
+        err.println "${row.classAttr}\troc: $roc\tMajority: $maj\tDelta: $delta"
 	if (delta < deltaMajorityCutoff) return;
 	
 	if (roc < 0.45) return;
@@ -23,7 +26,7 @@ new OnlineTable(args[0]).eachRow{row->
 	println "${row.classAttr}\t$filter\t$attrSel\t$classifier\t${row.numAttrs}\t${row.tp1}\t${row.fp1}\t${row.tn1}\t${row.fn1}\t${row.roc}"
 }
 
-def computeMajorityAcc(row){
+def computeMajorityAcc(row){        
 	tp = row.tp1 as double
 	fp = row.fp1 as double
 	tn = row.tn1 as double
@@ -85,7 +88,9 @@ def parseFilter(filter){
 		case ~/.*Normalize.*/: basefilter="Normalize";break;
 		case ~/.*Standardize.*/: basefilter="Standardize";break;	
 		default: basefilter=filter;break;
-	}		
+	}		       
+        //if(filter == null) return ("null");
+
 	if (filter.contains("log")) prefilter = "log+"	
 	return("$prefilter$basefilter")	
 }
