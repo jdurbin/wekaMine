@@ -124,8 +124,8 @@ clinical = WekaMine.readFromTable(options.clinical,instancesInRows = options.cli
 
 (0..< clinical.numAttributes()).each{i->
 	attr = clinical.attribute(i)
-	values = (0..1).collect{attr.value(it)}
-	err.println "attribute ${attr.name()} has values: ${values}"
+	values = (0..<attr.numValues()).collect{attr.value(it)}
+	err.println "attribute ${attr.name()} has values: ${values}"	
 }
 
 // Remove everything except a subset if a list of samples to use is given.
