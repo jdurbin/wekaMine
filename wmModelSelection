@@ -166,7 +166,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	err.println "Experiment: $jobIdx \t Class attribute: ${exp.classAttribute}"
 	try{
 						
-		// Creates a wekaMine pipeline...
+		// Creates a wmModelSelection pipeline...
 		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
 		pipeline.dataName = options.data
 		
@@ -313,46 +313,49 @@ if (bExceptionOccurred) {
 */ 
 def ParseOptions(args){
 	parser = new Parser(description: '''
-	 wekaMine takes a tab delimited data file in attributes (rows) x samples (cols) format, 
-	 and a clinical file, also in attributes (rows) x samples (cols) format, and evaluates 
-	 the set of experiments specified in an experimental configuration file.  Classification is 
-	 performed on the samples that occur in both the data and clinical file (intersection). 
-	 A list of summary lines in CSV format will be APPENDED to the end of the output file.  
-	 Since this will often be run in a cluster setting with many jobs appending to the same 
-	 file, the heading can optionally be omitted. 
+ wmModelSelection performs a model selection experiment to find the best set of algorithms
+ and parameters for a classification problem. 
 
-	 Instances with missing class values are removed.   Attributes that do not vary at all 
-	 are removed.  Instances with negative class values are optionally removed.  
+ wmModelSelection takes a tab delimited data file in attributes (rows) x samples (cols) format, 
+ and a clinical file, also in attributes (rows) x samples (cols) format, and evaluates 
+ the set of experiments specified in an experimental configuration file.  Classification is 
+ performed on the samples that occur in both the data and clinical file (intersection). 
+ A list of summary lines in CSV format will be APPENDED to the end of the output file.  
+ Since this will often be run in a cluster setting with many separate output files combined
+ into one file, the heading can optionally be omitted. 
 
-	 The actual experiments and experimental options are provided by the config file (-c). 
-	 Documentation for this config file can be found here:  
+ Instances with missing class values are removed.   Attributes that do not vary at all 
+ are removed.  Instances with negative class values are optionally removed.  
 
-	 https://github.com/jdurbin/wekaMine/wiki/Wekamine-config
+ The actual experiments and experimental options are provided by a domain specific language (DSL)
+ config file (-c). Documentation for this config file can be found here:  
 
-	 Note that the config file can specify a number of attributes to use in attribute 
-	 selection, or -1 to auto-select (the details of which varies from attribute selection 
-	 algorithm to attribute selection algorithm). The config file option actually determines 
-	 how many attributes the classifier sees.  The -m/maxFeaturesOut option merely determines 
-	 the maximum number of selected attributes (and their scores) to save in the output and 
-	 does not affect what attributes the classifier will see. 
-	
-	 An optional validation set can be held out from the cross-validation portion of the 
-	 experiment.  Each model will be trained on all data not in the evaluation set and 
-	 evaluated on the evaluation set.  The evaluation accuracy will be saved with roc and
-	 other parameters, as a convenience, but should not be used to pick the best model. The
-	 best model should be picked based on roc or other CV parameters, and the evaluation 
-	 accuracy used only after-the-fact to verify that the model does predict something on 
-	 an independent set.  That is, one should pretend that the evaluation set is only 
-	 applied to the one best model, after picking the best model.  It is applied to all models
-	 simply to avoid having to communicate the hold-out set between wekaMine and subsequent
-	 model selection/building/evaluation steps. 
+ https://github.com/jdurbin/wmModelSelection/wiki/Wekamine-config
+
+ Note that the config file can specify a number of attributes to use in attribute 
+ selection, or -1 to auto-select (the details of which varies from attribute selection 
+ algorithm to attribute selection algorithm). The config file option actually determines 
+ how many attributes the classifier sees.  The -m/maxFeaturesOut option merely determines 
+ the maximum number of selected attributes (and their scores) to save in the output and 
+ does not affect what attributes the classifier will see. 
+
+ An optional validation set can be held out from the cross-validation portion of the 
+ experiment.  Each model will be trained on all data not in the evaluation set and 
+ evaluated on the evaluation set.  The evaluation accuracy will be saved with roc and
+ other parameters, as a convenience, but should not be used to pick the best model. The
+ best model should be picked based on roc or other CV parameters, and the evaluation 
+ accuracy used only after-the-fact to verify that the model does predict something on 
+ an independent set.  That is, one should pretend that the evaluation set is only 
+ applied to the one best model, after picking the best model.  It is applied to all models
+ simply to avoid having to communicate the hold-out set between wmModelSelection and subsequent
+ model selection/building/evaluation steps. 
 	
 	 
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
 	 Example:
 
-	 wekaMine  \\
+	 wmModelSelection  \\
 	 -d data/paradigm_results.txt -i data/collisonclinical.small.tab \\
 	 -c exp/cfgExample2.txt -r 0,19 -s include.samples -o results/expout.tab
 
@@ -364,7 +367,7 @@ def ParseOptions(args){
 	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 	
-		optional 'k','experimentsPerJob',[description: 'When specified, wekaMine does not run but instead outputs a list of wekaMine commands, k experiments each, for the cluster.']
+		optional 'k','experimentsPerJob',[description: 'When specified, wmModelSelection does not run but instead outputs a list of wmModelSelection commands, k experiments each, for the cluster.']
 		flag 'F','flatExperimentOut',[default:false,description: 'Does not perform experiments but merely writes their description to stdout.']
 
 	  optional 'c','config',[description: 'Configuration file.  One of -c or -C required. ']  
