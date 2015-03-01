@@ -1,0 +1,109 @@
+#!/usr/bin/env groovy 
+
+import Tools.ExpectationMaximization1D;
+import Tools.KMeans;
+import jMEF.*;
+import jMEF.BregmanHierarchicalClustering.LINKAGE_CRITERION;
+import jMEF.BregmanHierarchicalClustering.LINKAGE_CRITERION;
+import jMEF.Clustering.CLUSTERING_TYPE;
+
+import durbin.util.*
+
+numGuess = args[1] as int
+//geneName = args[2]
+
+new File(args[0]).withReader{r->
+	heading = r.readLine()
+	r.splitEachLine("\t"){fields->
+		gene = fields[0]
+		data = fields[1..-1].findResults{
+		        if ((it != "?") && (it != "NA")) return(it as double)
+		}		
+		
+		datasize = data.size() as double
+		fieldsize = (fields.size() -1) as double
+		
+		// Skip genes where less than 10% of the samples have actual numbers for that gene.
+		// This filter reduced genes to 16,255 down from 18,398 
+		if ((datasize/fieldsize) < 0.1) return;
+		
+		
+		def mm = estimateMixtureParameters(data,numGuess)			
+		try{
+			HierarchicalMixtureModel hmm = BregmanHierarchicalClustering.build(mm,
+				CLUSTERING_TYPE.SYMMETRIC, LINKAGE_CRITERION.MAXIMUM_DISTANCE);
+			MixtureModel  mm2  = hmm.getOptimalMixtureModel(0.5);
+			printMixtures(gene,mm2)						
+		}catch(Exception e){
+			
+			// Example: AADACL3.  This is mostly NA values.  The few values that are 
+			// there are gappy and show no obvious modes.  The original model fails, 
+			// so all the parameters are NaN.   Maybe should investigate more, but for 
+			// now, just skip genes that fail for whatever reason.  
+			//println "ERROR on gene $gene\t $e"
+			//println data
+			//println mm
+		}
+	}
+}
+
+def printMixtures(gene,mm2){
+	def totalOutput = []
+	for(int i=0; i<mm2.size;i++){	
+		mean = mm2.param[i].array[0]
+		variance = mm2.param[i].array[1]
+		output = sprintf("%4.3f,%4.3f,%4.3f",[mm2.weight[i],mean,variance])
+		totalOutput << output
+	}
+	print "$gene\t"
+	println totalOutput.join("\t")
+}
+
+
+/***
+* Estimate 16667 mixtures over 5000 samples:
+* 	66m46.241s
+*/ 
+
+
+// KJD seems to return the right number of mixtures so long as numGuess >= actual number of
+// mixtures.  Probably it combines sub mixtures or something...
+// Works surprisingly well, however... Trying up ti 8 mixtures it deduces 3. 
+// 8 mixtures: 3.1 seconds. 
+// 10 mixtures: 3.4 seconds.
+// 20 mixtures: 5.7 seconds.    However, now it returns an optimum of 6 mixtures!
+// What if tighten parameter...
+// 0.8 -> Down to 4 from 20.  
+// 0.9 -> Still down to 4 from 20. 
+// But, for my purposes, perhaps it doesn't matter... I just want to convert a continuous 
+// variable into nominal one.  If two nominal variables are actually just one split, who cares?
+//
+// 
+// 
+// For each gene from sample-on-the-street{
+//	 compute mm for gene
+// }
+
+// Given new sample:
+// Figure most likely class from mm. 
+
+
+def estimateMixtureParameters(row,maxMixtures){	
+
+	def rowLength = row.size()
+	PVector[] points = new PVector[rowLength]		
+	row.eachWithIndex{val,i->
+		//println "val: $val i: $i"
+		PVector v = new PVector(1)
+		v.array[0] = val		
+		points[i]	= v	
+	}	
+	
+	def n = maxMixtures;
+	Vector<PVector>[] clusters = KMeans.run(points, n);		
+
+	// Bregman soft clustering
+	MixtureModel mm;
+	mm = BregmanSoftClustering.initialize(clusters, new UnivariateGaussian());
+	mm = BregmanSoftClustering.run(points, mm);
+}

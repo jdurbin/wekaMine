@@ -80,7 +80,7 @@ try{
 */ 
 def ParseOptions(args){
 	parser = new Parser(description: '''
-	wekaMineFilter takes a tab delimited data file in attributes (rows) x samples (cols) format and 
+	wmFilter takes a tab delimited data file in attributes (rows) x samples (cols) format and 
 	applies a filter to it, outputting the filtered data.  There are a wide range of filters, both 
 	supervised and unsupervised, from simple normalization to principal components analysis. Consult
 	weka documentation for full list. 
@@ -90,7 +90,8 @@ def ParseOptions(args){
 
 	Example:
 	
-	wekaMineFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'weka.filters.unsupervised.attribute.Normalize'	
+	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'weka.filters.unsupervised.attribute.Normalize'	
+	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'durbin.weka.ExponentialNormalizationFilter'	
 
 	''');
 

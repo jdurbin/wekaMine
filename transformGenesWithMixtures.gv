@@ -1,0 +1,59 @@
+#!/usr/bin/env groovy 
+
+import Tools.ExpectationMaximization1D;
+import Tools.KMeans;
+import jMEF.*;
+import jMEF.BregmanHierarchicalClustering.LINKAGE_CRITERION;
+import jMEF.BregmanHierarchicalClustering.LINKAGE_CRITERION;
+import jMEF.Clustering.CLUSTERING_TYPE;
+
+import durbin.util.*
+import durbin.stat.*
+
+err = System.err
+
+// Read the background mixture models for each gene...
+err.print "Reading models..."
+gene2Mixtures = getGene2MixtureMap(args[0])
+err.println "done."
+
+new File(args[1]).withReader{r->
+	heading = r.readLine()
+	println heading
+	r.splitEachLine("\t"){fields->
+		gene = fields[0]
+		data = fields[1..-1]
+		
+		// Get the background mixture model for this gene
+		mmString = gene2Mixtures[gene]
+		if (mmString == null){
+			err.println "No model for gene $gene"
+			//println "$gene\t"+data.join("\t")
+		}else{
+			mm = MMUtils.mixtureFromParamList(MMUtils.string2List(mmString))				
+		
+			// Convert each datapoint into a mixture number...
+			newData = []
+			data.each{x->
+				if ((x == 'NA') || (x == '?')) newData << x
+				else{
+					mixtureClass = MMUtils.getClass(mm,x as double)
+					newData << mixtureClass
+				}
+			}						
+			println "$gene\t"+newData.join("\t")		
+		}
+	}
+}
+
+def getGene2MixtureMap(fileName){
+	gene2Mixtures = [:]
+	new File(fileName).withReader{r->
+		heading = r.readLine()
+		r.splitEachLine("\t"){fields->
+			gene = fields[0]
+			gene2Mixtures[gene] = fields[1..-1].join("\t")
+		}			
+	}
+	return(gene2Mixtures)
+}
