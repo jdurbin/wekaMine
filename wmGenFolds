@@ -108,8 +108,8 @@ experiments.eachWithIndex{exp,idx->
 		}
 		
 		// Determine if there are enough examples of each class left for the number of folds requested. 
-		if (!verifyClassRepresentationForFolds(instancesMinusHoldout,numFolds)) {			
-			err.println "SKIPPING: ${exp.classAttribute} in folds file as some class values wouldn't be represented in each fold."
+		if (!verifyClassRepresentationForFolds(instancesMinusHoldout,numFolds,options.minExamples)) {			
+			err.println "SKIPPING: ${exp.classAttribute}"
 			return;
 		}
 				
@@ -166,7 +166,7 @@ if (holdoutMap.size() > 0){
 * Check that there are enough examples of each class that every fold has at least
 * one example of each class. 
 */ 
-def verifyClassRepresentationForFolds(instances,folds){
+def verifyClassRepresentationForFolds(instances,folds,minExamples){
 	classAttr = instances.classAttribute()
 	className = classAttr.name()
 
@@ -183,9 +183,14 @@ def verifyClassRepresentationForFolds(instances,folds){
 		vcount = values.count{it == v}	
 		err.println "\t$className value $v has $vcount instances."
 		if (vcount < folds){
-			err.println "ERROR: class value $v has fewer instances than number of folds requested: $folds."
+			err.println "WARNING: class value $v has fewer instances than number of folds requested: $folds."
 			bCountFail = true;
 		}
+		
+		if (vcount < minExamples){
+			err.println "WARNING: class value $v has fewer instances than minimum samples requested: $minExamples."
+			bCountFail = true;
+		}				
 	}
 	
 	if (bCountFail == true) return(false)
@@ -241,6 +246,8 @@ def ParseOptions(args){
 			
 		optional 'H','holdoutFraction',[default:0,description: 'Fraction of net samples (intersection of data+clinical) to set aside as holdout.',
 		validate:{it as double}]
+		optional 'm','minExamples',[default:20,description: 'Minimum number of examples of a class before it will have folds generated.',
+		validate:{it as int}]
 
 	  flag 'h','help',[default:false,description: 'Print script help.']
 		flag 'N','dataMayContainNominalValues',[default:false,description: 'Option to read datafile in as mixed numeric/nominal.  Data reas is slower than default all numeric. ']		
