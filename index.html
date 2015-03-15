@@ -38,6 +38,7 @@
 			
             <h1>See also</h1>
             <a href="https://github.com/jdurbin/durbinlib">- durbinlib</a>
+			<a href="http://groovy-lang.org">- Groovy</a>
         </div>
 
 
@@ -54,8 +55,11 @@
 
                 <h1>What is wekaMine?</h1>
 				
-				Weka is well known machine library due to it's long history, large collection of algorithms, and available GUI that makes it good for teaching.  Weka is not well loved, however, among people who try to use it for larger research projects or production.  There are many aspects of Weka that make it a bit clunky to use, from it's use of <a href="http://weka.wikispaces.com/ARFF">arff</a> files for data storage to it's treating sample IDs as merely another feature which can't be passed to most Weka algorithms.   While there are ways to deal with each of these issues in Weka, such as using a FilteredClassifier to remove the ID before the data is handed to a classifier, such clunky solutions become part of the pain of using Weka out-of-the-box.   wekaMine is a set of libraries and wrapper code to hide the rough edges of Weka from the user, providing a set of straight forward command line scripts to work with data in simple tab file formats, and a set of functions to make writing machine learning pipelines in Java or Groovy much easier. 
-				               
+				Weka is well known machine library due to it's long history, large collection of algorithms, and available GUI that makes it good for teaching.  Weka is not well loved, however, among people who try to use it for larger research projects or production.  There are many aspects of Weka that make it a bit clunky to use, from it's use of <a href="http://weka.wikispaces.com/ARFF">arff</a> files for data storage to it's treating sample IDs as merely another feature which can't be passed to most Weka algorithms.   While there are ways to deal with each of these issues in Weka, such as using a FilteredClassifier to remove the ID before the data is handed to a classifier, such clunky solutions become part of the pain of using Weka out-of-the-box.   <br><br>
+				
+				wekaMine is a set of libraries and wrapper code to hide the rough edges of Weka from the user, providing a set of straight forward command line scripts to work with data in simple tab file formats, and a set of functions to make writing machine learning pipelines in Java or Groovy much easier.  wekaMine provides automated model selection pipeline that makes searching a space of different filters, attribute selectors, classifier algorithms, and their parameters as easy as training with a single algorithm. wekaMine also adds a range of algorithms, from BalancedRandomForest to MixtureModel filtering.
+				          
+<!--NEED SOME QUICK AND DIRTY SIDE-BY-SIDE comparisons of weka out of the box and wekaMine -->						  
 
 
 <!-- ################################ End of content ################################ -->
