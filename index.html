@@ -1,591 +1,69 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset='utf-8'>
-
-	<title>jdurbin/wekaMine @ GitHub</title>
-
-<style type="text/css">
-	/*  
-	Theme Name:  Foliage
-	Theme URI:   http://www.bloggertemplates.org/review/foliage
-	Description: Foliage is a modification of a WordPress theme (Foliage v1.02) originally created by Derek Punsalan.
-	             WordPress version of this award winning theme (and psd graphics used) can be found at authors website;
-	             http://5thirtyone.com/eyecandy
-	Version:     0.1
-	Author:      Ali Kuru
-	Author URI:  http://www.acemiblogcu.com
-	Licence:     GPL
-	Licence URI: http://www.opensource.org/licenses/gpl-license.php
-	*/
-
-	* {
-		margin: 0;
-		padding: 0;
-		outline: none;
-		}
-
-	hr {
-	  border: 0;
-	  width: 80%;
-	 color: #d0dda3;
-	background-color: #d0dda3;
-	height: 1px;
-	}
-
-	div.code{
-	border-style:solid;
-	border-color:#efb;
-	border-width:1px;
-	}
-
-	div.scroll {
-	height: 20em;
-	width: 61em;
-	overflow: auto;
-	border: 1px solid #efb;
-	/*background-color: #ccc;*/
-	padding: 8px;
-	}	
-
-	textarea.ex{height:80px;width:95%;min-width:100px;max-width:500px;font-size:12px}
-
-	h1, h2, h3, p, pre, blockquote, form, fieldset, ul, ol {
-		margin: 0.5em 0; /* give me back my basic margins */
-		}
-
-	body {font: 62.5% 'Lucide Grande', Verdana, Arial, Sans-Serif; 
-		color: #ddd;
-		background: #333;
-		text-align: center;
-		}
-
-	/* links  and fonts */
-	a:link, a:active, a:visited {color: #efb;}
-	a:hover {color: #d0dda3;}
-	a {text-decoration: none;}
-
-	h1, h2, h3, h4 {
-		font-family: helvetica, arial, sans-serif;
-		letter-spacing: -0.5px;
-		color: #efb;
-		}
-
-	/* 2.3em, 2.0em, 1.8em,1.6em default */
-	h1 {font-size: 2.3em;}
-	h2 {font-size: 2.0em;}
-	h3 {font-size: 1.8em;}
-	h4 {font-size: 1.6em;}
-
-	code {
-		font: 2.0em 'Courier New', Courier, Fixed;
-		color: #ddd;
-		background-color: #3f3f3f;
-		display: block;
-		}
-
-	.chrondate {color: #d0dda3; padding-left: 0.5em;}
-	.chrondate a {color: #d0dda3;}
-	.chrondate a:hover {color: #336633;}
-
-	/* shelf & navigation */
-	#fix1{
-		width:100%;
-		background:#646B49;
-		text-align:center;
-		}
-
-	/* default 580px*/
-	#fix2{
-		margin:0 auto;
-		width:680px;
-		}
-
-	#shelfwrap {
-		margin: 0;
-		padding: 0;
-		background: #656C4A;
-		/*overflow: hidden;*/
-		display: none;
-		text-align: center;
-		}
-
-	/* default width: 58 em */
-	#shelf {
-		width: 65em;
-		min-height: 270px;
-		display: block;
-		color: #d6ddbc;
-		text-align: left;
-		line-height: 1.5em;
-		}
-
-	/* default width: 28em */
-		#shelf .left {
-			width: 60em; 
-			padding: 0 0.5em 0.5em;
-			}
-
-	/* padding default 1em */
-			ul#navigation {
-	                        width: 50em;  /* default doesn't have this */
-				margin: 0;
-				padding: 0 0 1em 0;
-				list-style: none;
-				}	
-
-			#navigation li {
-				}
-
-			#navigation li a {
-				float: left;
-				background: #646B4A;
-				padding: 0 0.2em 0 0;		
-				}
-
-	                /* default padding: 0 0.2em; */
-			ul#navigation li span {
-	                        width: 30em; 
-				float: right;
-				padding: 0 0.2em;
-				background: #646B4A;
-				}
-
-			ul#navigation li br {
-				clear: both;
-				}
-
-		#shelf .right {
-			width: 32em; 
-			padding: 0 0.5em 0.5em;
-			}
-
-			ul#recentposts {
-				margin: 0;	
-				padding: 0;	
-				list-style: none;	
-				}
-
-			#recentposts li {
-				padding-left: 15px;	
-				margin-left: 4px;		
-				}
-
-			ul#archivelist {
-				margin: 0;
-				padding: 0;
-				list-style: none;
-				display: inline;
-				}
-
-			#archivelist li {
-				padding-left: 15px;	
-				margin-left: 4px;		
-				display: inline;
-				}
-
-	#shelfbreak {
-		background: #656C4A;
-		height: 1em;
-		}
-
-	/* default 280px*/
-	#searchbar {
-	display: block; 
-	height: 41px;
-	width: 400px;
-	margin: 0 0 0 -0.2em;
-	padding: 0.2em 0 0 1em;
-	}
-
-	#articlediv{
-	 float: center;
-	 display: block;
-	 height: 41px;
-	}
-
-
-		#searchform div {
-		padding: 0.2em 0 0 0;
-		}
-
-			#searchform span {
-			margin-left: 3.6em;
-			}
-
-	         /* default 140px*/
-		#search {
-		width: 230px;
-		border: 1px solid #333;
-		background: #333;
-		font-size: 1em;
-		font-family: 'Lucide Grande', Verdana, Arial, Sans-Serif;
-		color: #eee;
-		}
-
-	/* top banner */
-	#banner {
-		height: 15em;
-		}
-
-		#foliage {
-			margin: 0 auto;
-			display: block;
-			width: 70em;
-			height: 16em;
-			}
-
-		#pull a {	
-			float: right;
-			display: block;
-			width: 105px;
-			height: 146px;
-			text-indent: -9999em;
-			}
-
-		#pull a:hover {
-			}
-
-	/* main content area home and index */
-	#top {background: #333;}
-
-	/* default padding: 0 0 6em 0; */
-	#content {
-		/*width: 51em;  KJD Expand the width of the blog.*/
-	        width: 61em;	
-		margin: 0 auto 0; /* default 0 auto 0 */
-		padding: 0 0 6em 0;
-		text-align: left;
-		line-height: 1.5em;
-		}
-
-		.post { 
-			padding: 0 0 5em 0; /* default 0 0 1.5 0 */
-			}
-
-		.entrymeta {
-			font-size: 1.0em;
-			text-transform: lowercase;
-			}
-
-	         /* default 1.2em */
-		.entry {
-			font-size: 1.1em;
-		} 
-
-		.entry ul li, .mulch ul li {
-			list-style: none;
-			padding-left: 1.5em;
-			margin-left: 2.2em;
-			}
-
-		.entry ol, .mulch ol {
-			margin-left: 3.5em;
-			}
-
-		.entry li, .mulch li {
-			padding-bottom: 0.3em;
-			width: 423px;
-			font-size: 1.2em;
-			}
-
-		.entry blockquote, .mulch blockquote {
-			margin-left: 3.9em;
-			color: #8f8f8f;
-			width: 423px;
-			}
-
-		.entry strong, .mulch strong {
-			color: #efb;
-			}
-
-	.returnhome {
-		float: right;
-		}
-
-	/* single post pages and comments */
-	.commentnote {
-		color: #B3BE82;
-		padding: 0.5em 0.3em 0 0.9em;
-		}
-
-	#singlecontent {
-	        /*width: 85em;*/
-		width: 65em;
-		margin: 0 auto;
-		padding-bottom: 3em;
-		text-align: left;
-		line-height: 1.5em;
-		}
-
-		#singlecontent .post {	
-			float: left;
-			width: 55em;
-			}
-
-	#relatedposts {margin: 0; padding: 0;}
-
-	#relatedposts h3 {margin: 0;}
-	#relatedposts ul {margin: 1em 0 0 0;}
-
-	/*default width: 28em*/	
-	#commentscolumn {
-		color: #d6ddbc;
-		margin: 2em 0 3em 0;
-		float: left;
-		width: 55em;
-		}
-
-		.comments {
-			color: #d6ddbc;
-			margin: 0;
-			padding: 9px 9px 0 9px;
-			}
-
-	#commentwrap {
-		float: left;
-		margin:0;
-		padding-bottom: 0;
-		}
-
-		#commentform small {color: #555;}
-
-	.commentlist {}
-
-		.commentlist li {
-			list-style: none;
-			border-top: 1px solid #717a50;
-			margin-top: 0;
-			padding-top: 0.3em;
-			_padding-bottom: 0.3em;
-			}
-
-		.commentlist .alt {}
-
-		.author .commententry {
-			}
-
-		.commententry {
-			padding: 0 0.8em 0 0.9em;
-			overflow: hidden;
-			}
-
-		.commententry blockquote {color: #B3BE82; margin-left: 1em;}
-
-	#author, #email, #url, #comment {font: 11px 'Lucida Grande', Verdana, Arial, Sans-Serif; 
-		background: #333;
-		border: 1px solid #555;
-		color: #ddd;
-
-
-		padding: 2px;
-		}
-
-	#author, #email, #url {width: 185px;}	
-	#comment {width: 436px; height: 125px; overflow: auto; font-size: 10px;}
-	#submit {background: #656C4A; border: 1px solid #d6ddbc; color: #d6ddbc; font-size: 11px; padding: 0 1em;}
-
-	/* bottom content area */
-	#footercontent {
-		margin: 0 0 -1em 0;
-		line-height: 1.5em;
-		}
-
-		#bottomwrap {
-			width: 70em;
-			margin: -1.4em auto 0;
-			text-align: left;
-			}	
-
-		#bottomcontent {
-			color: #d6ddbc;
-			width: 58em;
-			margin: 0 auto;
-			padding-top: 5em;
-			}
-
-	#footer {
-		color: #d6ddbc;
-		width: 58em;
-		margin: 2em auto 0;
-		text-transform: lowercase;
-		}
-
-	/* misc and images */
-	.left {float: left;}
-	.right {float: right;}
-	.clear {clear: both;}
-	.center {margin: auto;float: none;text-align: center;display: block;}
-
-	.entry img {
-		/*padding: 3px;*/
-		/*background: #444;*/
-		/*border: 1px solid #444;*/
-		}
-
-	.nextprevious {
-		margin-top: 7em;
-		margin-left: 0;
-		margin-right: 0;
-		}
-
-	/* Theme Images */
-
-	/* 
-		You have to find and upload template images to free host, then replace the image names
-		listed here with the given links from your free image hosts. For example;
-		Replace this;
-
-		#page {
-			background: url('middle.jpg') repeat-y top white;
-			}
-
-		with this;
-
-		#page {	
-			background: url('http://img54.imageshack.us/img54/3761/middle3js.jpg') repeat-y top white;
-			}
-	*/
-
-	#shelf {
-		background: #656C4A url('http://2.bp.blogspot.com/_29rYIvPsFHo/S7DQb7mkl3I/AAAAAAAAAUc/HRdsUygESCc/s1600/shelf_right.jpg') no-repeat top right;
-		}
-
-	#navigation li {
-		background: url('http://4.bp.blogspot.com/_29rYIvPsFHo/S7DQ4O79bGI/AAAAAAAAAUk/0PMmBjP2MoE/s1600/dot.gif') repeat-x 0.7em 0;
-		}
-
-	#recentposts li {
-		background: url('http://4.bp.blogspot.com/_29rYIvPsFHo/S7DRHeUcOkI/AAAAAAAAAUs/usoi9Q_JxCM/s1600/li.gif') no-repeat 0 0.3em;
-		}
-
-	#articlediv {
-	    background: url('http://2.bp.blogspot.com/_29rYIvPsFHo/S7BDUKxv6XI/AAAAAAAAAT8/TTfxLCzNQXk/s1600/searchbg2.jpg') no-repeat 0 0.3em;
-	}
-
-	#archivelist li {
-		background: url('http://4.bp.blogspot.com/_29rYIvPsFHo/S7DRHeUcOkI/AAAAAAAAAUs/usoi9Q_JxCM/s1600/li.gif') no-repeat 0 0.3em;
-		}
-
-	#searchbar {
-	background: url('http://2.bp.blogspot.com/_29rYIvPsFHo/S7BDUKxv6XI/AAAAAAAAAT8/TTfxLCzNQXk/s1600/searchbg2.jpg') no-repeat top left;
-		}
-
-	/* Original searchbar graphic */
-	/*background: url('http://lh3.ggpht.com/_29rYIvPsFHo/SbMhHrxlPsI/AAAAAAAAARs/f5d1XwrlH5c/searchbg.jpg') no-repeat top left;*/
-
-
-	#banner {
-		background: #333 url('http://2.bp.blogspot.com/_29rYIvPsFHo/S7DRrlzRloI/AAAAAAAAAU0/vOXHKQd1lYc/s1600/lawn.jpg') repeat-x top left;
-		}
-
-	#foliage {
-		background: url('http://3.bp.blogspot.com/_29rYIvPsFHo/S7DPsmyq19I/AAAAAAAAAUM/vKQXgW98R7w/s1600/foliage.gif') no-repeat top left;
-		}
-
-	#pull a:hover {
-		background: url('http://4.bp.blogspot.com/_29rYIvPsFHo/S7DWjpJrfJI/AAAAAAAAAWY/DDcolmzGRF0/s320/pulldown.jpg') no-repeat bottom right;
-		}
-
-	.entry ul li, .mulch ul li {
-		background: url('http://4.bp.blogspot.com/_29rYIvPsFHo/S7DRHeUcOkI/AAAAAAAAAUs/usoi9Q_JxCM/s1600/li.gif') no-repeat 0 0.3em;
-		}
-
-	#commentscolumn {
-		background: #656C4A url('http://4.bp.blogspot.com/_29rYIvPsFHo/S7DWkOM1vRI/AAAAAAAAAWo/FU_9Zp1B1jw/s320/snippet_right.gif') no-repeat bottom right;
-		}
-
-	.comments {
-		background: url('http://1.bp.blogspot.com/_29rYIvPsFHo/S7DX1BtmGlI/AAAAAAAAAXI/J3fycFAcv9o/s320/snippet_left.gif') no-repeat -1px -1px;
-		}
-
-	.author .commententry {
-		background: url('http://2.bp.blogspot.com/_29rYIvPsFHo/S7DP_E5TGLI/AAAAAAAAAUU/fXoSgWBUyCU/s320/author.gif') no-repeat top right;
-		}
-
-	#footercontent {
-		background: #656c4a url('http://2.bp.blogspot.com/_29rYIvPsFHo/S7DYk674v-I/AAAAAAAAAXQ/CPebDdhB-ew/s320/bottom_wrap.gif') repeat-x top left;
-		}
-
-	#bottomwrap {
-		background: url('http://1.bp.blogspot.com/_29rYIvPsFHo/S7DYzyFHG9I/AAAAAAAAAXY/BQMxdvsqxdk/s320/bottom_right.jpg') no-repeat top right;
-		}
-	/* End Theme Images */
-	
-	#container {
-		width: 600px;
-		margin: 0 auto;
-		background: #333;
-	}
-	
-	a { color: #999E70; }
-	.description { font-size: 1.2em; margin-bottom: 10px; margin-top: 0px; font-style: italic; }
-	.description2 { font-size: 1.0em; margin-bottom: 20px; margin-top: 20px; font-style: italic;text-align: left;}
-	
-	
-</style>
-
-	
-</head>
-
-<body>	
-	<div id="shelfbreak"></div>
-	<div id="banner">
-		<div id="foliage">
-			<div id="pull"><a href="#">Toggle Menu</a></div>
-		</div>
-	</div>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+    <!-- HEAD -->
+    <head>
+        <title>wekaMine</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <link rel="stylesheet" type="text/css" href="theme/theme.css" /> 
+        <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+
+
+    <!-- BODY -->
+    <body>
+
+
+        <!-- Titles -->
+        <div class="title">
+        <h1>wekaMine</h1>
+        <h2>Retooling the Weka machine learning library for research and production. </h2>
+        <a href="http://github.com/jdurbin/wekaMine">View on <img src="images/git.png" alt="Git"/> github</a>
+        </div>
+
+
+        <!-- Encompassing div -->
+        <div class="main">
+
+        <!-- Menu -->
+        <div class="menu">
+
+            <h1>Download</h1>
+            <a href="https://github.com/jdurbin/wekaMine/tarball/master" class="aDownload">Sources .tar</a>
+			<a href="https://github.com/jdurbin/durbinlib/tarball/master" class="aDownload">Required durbinlib library .tar.gz</a>          
+            <h1>Pages</h1>
+            <a href="index.html">- wekaMine</a>
+            <a href="https://github.com/jdurbin/wekaMine/wiki">- Wiki</a>
+			<a href="https://github.com/jdurbin/wekaMine/blob/master/LICENSE.txt">- License</a>
 			
-	<div id="container">
-
-				<h1><a href="http://github.com/jdurbin/wekaMine">wekaMine</a></h1>
-				<div class="description">
-					The missing piece for <a href="http://www.cs.waikato.ac.nz/ml/weka/">Weka.</a><br><br>
-				</div>
-
-				<div class="description2">
-				<h2>About</h2>
-				wekaMine fills many of the usability holes in the Weka machine learning library:  
-
-				<ul>
-					<li>Much easier to run large experiments with wekaMine.</li>
-					<li>Standardized basic pipeline.</li>
-					<li>Compact specification of search over algorithms and parameters.</li>
-					<li>Additional algorithms.</li>
-					<li>Feature score outputs from CV.</li>
-					<li>Lots of sugar for working with Weka from code (e.g. instance ID support)</li>
-					<li>Serialized models encapsulating whole pipeline.</li>
-				</ul>
-			</div>
-
-				<div class="description2">
-
-					<h2>Documentation</h2>
-					Documentation is provided on the <a href="https://github.com/jdurbin/wekaMine/wiki">wekaMine wiki</a>
-						<h2>Download</h2>
-						<p>
-							You can download this project in tgz format here:<br><br>
-							<a href="https://github.com/jdurbin/wekaMine/tarball/master">wekaMine Scripts</a><br><br>
-							<a href="https://github.com/jdurbin/durbinlib/tarball/master">Required durbinlib library</a>
-						</p><br>
-						<p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-							by running:
-							<pre>$ git clone git://github.com/jdurbin/wekaMine</pre><br>
-							<pre>$ git clone git://github.com/jdurbin/durbinlib</pre>
-						</p>
-						
-						<br><br>
-							<h4>Author/Contact</h4>
-							<p>James Durbin (james@soe.ucsc.edu)  Website: <a href="http://bayesianconspiracy.blogspot.com">The Bayesian Conspiracy</a>
-								<br/>
-								<br/>      </p>												
-					</div>
-					<div class="footer">
-						get the source code on GitHub : <a href="http://github.com/jdurbin/wekaMine">jdurbin/wekaMine</a>
-					</div>
-
-				</div>
+            <h1>See also</h1>
+            <a href="https://github.com/jdurbin/durbinlib">- durbinlib</a>
+        </div>
 
 
-			</body>
-			</html>
+        <!-- Content -->
+        <div class="content">
+
+
+<!-- ################################ Content ################################ -->
+
+
+                <h1>What is Weka?</h1>
+
+				<a href="http://www.cs.waikato.ac.nz/ml/weka/">Weka</a> is a collection of machine learning algorithms for data mining tasks that comes from The University of Waikato.  The algorithms can either be applied directly to a dataset or called from your own Java code. Weka contains tools for data pre-processing, classification, regression, clustering, association rules, and visualization and a GUI suitable for teaching.
+
+                <h1>What is wekaMine?</h1>
+				
+				Weka is well known machine library due to it's long history, large collection of algorithms, and available GUI that makes it good for teaching.  Weka is not well loved, however, among people who try to use it for larger research projects or production.  There are many aspects of Weka that make it a bit clunky to use, from it's use of <a href="http://weka.wikispaces.com/ARFF">arff</a> files for data storage to it's treating sample IDs as merely another feature which can't be passed to most Weka algorithms.   While there are ways to deal with each of these issues in Weka, such as using a FilteredClassifier to remove the ID before the data is handed to a classifier, such clunky solutions become part of the pain of using Weka out-of-the-box.   wekaMine is a set of libraries and wrapper code to hide the rough edges of Weka from the user, providing a set of straight forward command line scripts to work with data in simple tab file formats, and a set of functions to make writing machine learning pipelines in Java or Groovy much easier. 
+				               
+
+
+<!-- ################################ End of content ################################ -->
+
+        </div>
+
+        </div>	
+
+    </body>
+
+</html>
