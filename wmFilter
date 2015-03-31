@@ -9,6 +9,9 @@ import weka.core.SerializationHelper;
 import weka.filters.supervised.attribute.*
 import weka.filters.*
 import weka.attributeSelection.*
+import weka.core.*
+
+import org.apache.commons.io.*
 
 WekaAdditions.enable() // Enable meta-class additions to weka API
 
@@ -32,7 +35,7 @@ try{
 		
 	// Combines data and single class attribute from clinical into one set of instances...
 	// Unsupervised filters don't need clinical data. 
-	if (options.clinical){						
+	if (options.clinical){	
 		instances = WekaMine.createInstancesFromDataAndClinical(data,clinical,options.classAttribute)	
 		
 		// Clean up instances:
@@ -44,31 +47,74 @@ try{
 		// Discretize the class attribute...
 		if (options.discretization){
 			instances = WekaMine.discretizeClassAttribute(instances,options.discretization,options.classAttribute)				
-		}
-		
+		}																				
 	}else {
 		instances = data
 		data.setClassIndex(-1)
 	}
 
-	// Remove ID attribute, since attribute evaluators and classifiers choke on it...
-	def instNames = instances.attributeValues("ID")
-	noIDinstances = WekaMine.removeInstanceID(instances)
-		
-	// Apply the attribute selection algorithm to instances...			
-	noIDinstances = WekaMine.applyUnsupervisedFilterFromName(noIDinstances,options.filter)
-		
-	// Put the ID back into the attribute selected instances...
-	// KJD: Note that addID below assumes same number of instances in same order. 
-	// KJD: This assumption may not always hold for filters... need to think of how to handle this.
-	instances = WekaMine.addID(noIDinstances,instNames)			
-											
+	// Many filters will not handle string attributes, so by default we remove the string attribute and 
+	// perform the filtering without it, then add it back in.  Some filters scramble the order of instances
+	// so this doesn't work.  Fortunately, some of these can also handle string attributes.   Currently 
+	// just test for one, SpreadSubsample, but 
+	/* TODO: eventually we need  to make a comprehensive list.*/
+	if (options.filter.contains("SpreadSubsample")){ 			
+		instances = WekaMine.applyUnsupervisedFilterFromName(instances,options.filter)
+	}else{
+		def instNames = instances.attributeValues("ID")
+		noIDinstances = WekaMine.removeInstanceID(instances)
+							
+		// Apply the attribute selection algorithm to instances...			
+		noIDinstances = WekaMine.applyUnsupervisedFilterFromName(noIDinstances,options.filter)
+							
+		// Put the ID back into the attribute selected instances...
+		// KJD: Note that addID below assumes same number of instances in same order. 
+		// KJD: This assumption may not always hold for filters... need to think of how to handle this.
+		instances = WekaMine.addID(noIDinstances,instNames)			
+	}
+	
 	// Write out the attribute selected tab file...
 	WekaMine.saveDataFromInstances(options.outputFile,instances)
+
+	// If the filter was supervised, will need also to write out a new meta-data file
+	if (options.clinical){
+		baseOutput = FilenameUtils.getBaseName(options.outputFile)
+		clinOutput = "${baseOutput}_class.tab"
+		err.print "Saving $clinOutput..."
+		SaveTab.saveClinFromInstances(clinOutput,instances)
+		err.println "done."
+	}		
 			
 }catch (Exception e){
-	err.println e
+	e.printStackTrace()
 }
+
+
+/*
+def testAddID(instances,instanceNames){
+	instances.insertAttributeAt(new Attribute("ID",(FastVector)null),0)
+	int attrIdx = instances.attribute("ID").index(); // Paranoid... should be 0
+	
+	instanceNames.eachWithIndex{name,i->
+		if (i < instances.numInstances())
+		instances.instance(i).setValue(attrIdx,name)			
+	}
+	
+	// Some filters (e.g. SMOTE and other processes add instances.  In these cases need tosimply
+	// add some placeholder ID for those instances.  Instances are added at the end, so 
+	// the other names should still map appropriately. 							
+	if (instances.numInstances() > instanceNames.size()){
+		def numNames = instanceNames.size()
+		def syntheticCount = instances.numInstances() - numNames
+		for(int i = 0;i < syntheticCount;i++){
+			def synName = "synthetic_$i"
+			// 25 names, 30 instances, first new name is idx=25+0=25
+			instances.instance(i+numNames).setValue(attrIdx,synName) 
+		}
+	}		
+	return(instances);
+}
+*/
 
 
 
