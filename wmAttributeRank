@@ -27,15 +27,28 @@ if (options.config){
 	wmr = new WekaMineResults(options.resultsFile)
 	experiments = wmr.toExperiments()
 	params = [:]
-}else if (options.experimentString){	
+}else if (options.experimentString){
+	// It's easier to express these with commas, so replace commas with tabs
+	// I doubt there will be commas in the headings anyway, but print out a 
+	// message to alert user
+	options.experimentString = options.experimentString.replaceAll(",","\t");
+	err.println "options.experimentString commas converted to tabs: ${options.experimentString}"			
+			
 	headingMap = WekaMineResult.defaultHeadingMap()
-	err.println headingMap
 	experiment = new ExperimentSpec(options.experimentString,headingMap)
 	experiments << experiment
 	params = [:]
 }else{
-	System.err.println "How did we get here?  Must specify one of -c, -R, or -E to define the model. Run with -h for options. "
-	System.exit(1)
+	// Use default experiment spec and an attribute name
+	err.println "Using default attribute evaluation: "
+	defaultExperimentString = "none\tweka.attributeSelection.InfoGainAttributeEval\tweka.attributeSelection.Ranker\tnumAttributes\tnone\tclassAttr\tnone"
+	defaultExperimentString = defaultExperimentString.replaceAll("classAttr",options.classAttribute);
+	defaultExperimentString = defaultExperimentString.replaceAll("numAttributes","${options.numAttributes}");
+	err.println "\t"+defaultExperimentString
+	headingMap = WekaMineResult.defaultHeadingMap()
+	experiment = new ExperimentSpec(defaultExperimentString,headingMap)
+	experiments << experiment
+	params = [:]
 }
 
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
@@ -82,12 +95,21 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		attrEval = exp.attributeEval
 		attrEval.buildEvaluator(noIDinstances)
 		numAttributes = noIDinstances.numAttributes()
+		
+		valuemap = [:]
 		(0..<numAttributes).each{attrIdx->
 			
 			attribute = noIDinstances.attribute(attrIdx)
 			attributeName = attribute.name()
 			double attributeScore = attrEval.evaluateAttribute(attrIdx as int)
-			if (attributeScore > 0) println "$attributeName \t $attributeScore"
+			//if (attributeScore > 0) println "$attributeName \t $attributeScore"
+			if (attributeScore > 0) valuemap[attributeName] = attributeScore			
+		}
+		
+		// Sort by most informative...
+		valuemap = valuemap.sort{-it.value}
+		valuemap.each{k,v->
+			println "$k\t$v"
 		}
 		
 		// Put the ID back into the attribute selected instances...
@@ -143,11 +165,11 @@ def ParseOptions(args){
 
 
 	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format. Required for supervised filters, optional for unsupervised.']
-
 	  optional 'c','config',[description: 'Configuration file']  
 		optional 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier(s). Will save one model per result in file.']		
 		optional 'E','experimentString',[description: 'A single experiment string. In single quotes, comma separated: attrEval,attrSearch,numAttributes,none,classAttr,discretization.  Use keyword "none" to omit a field.']
-
+		optional 'n','numAttributes',[default:100,description: 'Number of attributes',validate:{it as int}]
+		optional 'a','classAttribute',[description: 'Class attribute when using default ranker based on Information Gain.']
 	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
 			// Convert it to a proper range. Default is all inclusive range. 
 			validate:{								
@@ -164,7 +186,7 @@ def ParseOptions(args){
 	try{
 	  options = parser.parse(args)
 	
-		if ((!options.config && !options.resultsFile && !options.experimentString) || (options.help)){
+		if ((!options.config && !options.resultsFile && !options.experimentString && !options.classAttribute) || (options.help)){
 			System.err.println "Must specify one of -c, -R, or -E to define the model. Run with -h for options. "
 			System.err<<parser.usage
 			System.exit(1)
