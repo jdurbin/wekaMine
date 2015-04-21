@@ -79,7 +79,8 @@ try{
 	// If the filter was supervised, will need also to write out a new meta-data file
 	if (options.clinical){
 		baseOutput = FilenameUtils.getBaseName(options.outputFile)
-		clinOutput = "${baseOutput}_class.tab"
+		path = FilenameUtils.getPath(options.outputFile)
+		clinOutput = "${path}${baseOutput}_class.tab"
 		err.print "Saving $clinOutput..."
 		SaveTab.saveClinFromInstances(clinOutput,instances)
 		err.println "done."
@@ -159,6 +160,11 @@ def ParseOptions(args){
 	try{
 	  options = parser.parse(args)
 	
+	  if (options.clinical && !options.classAttribute){		  		  
+	  		System.err.println "A supervised filter must specify both a annotation file (-i) and a class attribute (-C)"
+	  		System.err<<parser.usage
+	  		System.exit(1)
+	  }		
 	}catch(Exception e){
 	  System.err << parser.usage
 	  System.exit(1)

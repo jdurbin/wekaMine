@@ -101,9 +101,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			
 			attribute = noIDinstances.attribute(attrIdx)
 			attributeName = attribute.name()
-			double attributeScore = attrEval.evaluateAttribute(attrIdx as int)
-			//if (attributeScore > 0) println "$attributeName \t $attributeScore"
-			if (attributeScore > 0) valuemap[attributeName] = attributeScore			
+			double attributeScore = attrEval.evaluateAttribute(attrIdx as int)				
+			valuemap[attributeName] = attributeScore			
 		}
 		
 		// Sort by most informative...

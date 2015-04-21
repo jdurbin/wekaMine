@@ -250,9 +250,7 @@ def dichotomize(outTable,instIn,attributeName){
 	
 	attVals = instIn.attributeValues(attributeName) as ArrayList
 	attValSet = attVals as Set
-	
-	//err.println "attValSet: "+attValSet
-	
+		
 	// For each value, create a dichotomized variable, put it directly in the table...
 	attValSet.each{currentAttVal->		
 		
