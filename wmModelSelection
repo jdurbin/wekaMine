@@ -170,23 +170,35 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		pipeline = new WekaMine(data,clinical,exp,experiments.params)		
 		pipeline.dataName = options.data
 		
-		printHeapSpace(options.verbose)
+		printHeapSpace(options.verbose)		
 		
-		// Apply unsupervised filter if any...  Filter could be MultiFilter implementing
-		// several transforms combined. 		Note: As it is, the data is filtered before 
-		// the class attribute has even been added.  You can filter it after the class attribute
-		// has been added if the classAttribute is set and the filter option is set to ignore class.b	
-		instances = pipeline.applyUnsupervisedFilter(data)	
+		// if the filter is supervised, need to combine data first then filter...
+		if (exp.filter instanceof SupervisedFilter){
+			// Combines data and single class attribute from clinical into one set of instances...
+			//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
+			instances = pipeline.createInstancesFromDataAndClinical(data,clinical)	
+			err.println "Combined instances: "+instances.numInstances()			
+			instances = pipeline.applyUnsupervisedFilter(instances)	
+			printHeapSpace(options.verbose)										
+			System.gc()
+		}else{		
+			// Apply unsupervised filter if any...  Filter could be MultiFilter implementing
+			// several transforms combined. 		Note: As it is, the data is filtered before 
+			// the class attribute has even been added.  You can filter it after the class attribute
+			// has been added if the classAttribute is set and the filter option is set to ignore class.b	
+			instances = pipeline.applyUnsupervisedFilter(data)	
 		
-		//err.println "DEBUG ${instances.attributeValues('BRAF')}"
+			//err.println "DEBUG ${instances.attributeValues('BRAF')}"
 						
-		printHeapSpace(options.verbose)	
+			printHeapSpace(options.verbose)	
 						
-		// Combines data and single class attribute from clinical into one set of instances...
-		//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
-		instances = pipeline.createInstancesFromDataAndClinical(instances,clinical)	
-		err.println "Combined instances: "+instances.numInstances()
-		System.gc()
+			// Combines data and single class attribute from clinical into one set of instances...
+			//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
+			instances = pipeline.createInstancesFromDataAndClinical(instances,clinical)	
+			err.println "Combined instances: "+instances.numInstances()
+			System.gc()
+		}
+		
 		
 		//err.println "DEBUG ${data.attributeValues('BRAF')}"
 		//err.print "DEBUG CLASS ATTRX: "
