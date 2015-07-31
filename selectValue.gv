@@ -1,0 +1,44 @@
+#!/usr/bin/env groovy 
+
+//outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
+
+
+// class0	class1		class0Score	class1Score	null0Pr	null1Pr
+// 0             1           2          3        4        5
+//epidermis,not_epidermis,0.1201353,0.8798647,0.4176078,0.5833843
+file = args[0]
+selection = args[1] as int
+
+new File(file).withReader{r->
+	heading = r.readLine()
+	println heading
+	r.splitEachLine("\t"){fields->
+		newffields = []
+		fields[1..-1].each{f->
+			ffields = f.split(",")
+			if (ffields.size() <= selection){
+				System.err.println "ffields.size="+ffields.size()
+				System.err.println "ffields:"+ffields				
+				System.err.println "fields[0]:"+fields[0]
+			}
+			
+			sel = ffields[selection]
+			newffields << sel
+		}
+		//sample_tissue_umbilical_cord_blood_vs_notumbilical_cord_blood
+		namefields = fields[0].split("_")
+		newnamefields = []
+		// start with 3rd field... go to vs
+		bDone = false
+		namefields[2..-1].each{
+			if (it == "vs") {
+				bDone = true;
+			}
+			if (bDone == true) return
+			newnamefields << it
+		}
+		name = newnamefields.join("_")
+		name = "${name}_like"
+		println "$name\t"+newffields.join("\t")	
+	}
+}

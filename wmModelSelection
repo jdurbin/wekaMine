@@ -153,7 +153,7 @@ if (experiments.params.cvSeed == -1){
 	rng = new Random(experiments.params.cvSeed)
 }
 
-//err.println "DEBUG: "+options.experimentRange
+err.println "DEBUG: "+options.experimentRange
 //experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 //	err.println "DEBUG experiment $idx"
 //}
@@ -173,7 +173,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		printHeapSpace(options.verbose)		
 		
 		// if the filter is supervised, need to combine data first then filter...
-		if (exp.filter instanceof SupervisedFilter){
+		if (exp.filter instanceof weka.filters.SupervisedFilter){
 			// Combines data and single class attribute from clinical into one set of instances...
 			//instances = pipeline.createInstancesFromDataAndClinical(data,clinical,exp.classAttribute)	
 			instances = pipeline.createInstancesFromDataAndClinical(data,clinical)	

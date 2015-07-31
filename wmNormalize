@@ -130,16 +130,20 @@ def testAddID(instances,instanceNames){
 def ParseOptions(args){
 	parser = new Parser(description: '''
 	wmFilter takes a tab delimited data file in attributes (rows) x samples (cols) format and 
-	applies a filter to it, outputting the filtered data.  There are a wide range of filters, both 
-	supervised and unsupervised, from simple normalization to principal components analysis. Consult
-	weka documentation for full list. 
+	applies a normalization method to the file.  Filters include:
 	
+	exp		Exponential normalization
+	norm	Weka Normalize
 	
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
 	Example:
 	
-	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'weka.filters.unsupervised.attribute.Normalize'	
+	wmNormalize -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -f exp
+
+
+	Note that this script is just shorthand for wmFilter.  So, for example, the above command is just shorthand for:
+	
 	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'durbin.weka.ExponentialNormalizationFilter'	
 
 	''');
