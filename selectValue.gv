@@ -26,19 +26,20 @@ new File(file).withReader{r->
 			newffields << sel
 		}
 		//sample_tissue_umbilical_cord_blood_vs_notumbilical_cord_blood
-		namefields = fields[0].split("_")
-		newnamefields = []
+		//namefields = fields[0].split("_")
+		//newnamefields = []
 		// start with 3rd field... go to vs
-		bDone = false
-		namefields[2..-1].each{
-			if (it == "vs") {
-				bDone = true;
-			}
-			if (bDone == true) return
-			newnamefields << it
-		}
-		name = newnamefields.join("_")
-		name = "${name}_like"
+		//bDone = false
+		//namefields[2..-1].each{
+		//	if (it == "vs") {
+		//		bDone = true;
+		//	}
+		//	if (bDone == true) return
+		//	newnamefields << it
+		//}
+		//name = newnamefields.join("_")		
+		//name = "${name}_like"
+		name = fields[0]
 		println "$name\t"+newffields.join("\t")	
 	}
 }
