@@ -1,5 +1,7 @@
 #!/usr/bin/env groovy 
 
+#!/usr/bin/env groovy
+
 import durbin.util.*
 import durbin.weka.*
 
@@ -7,9 +9,85 @@ err = System.err
 allsummaryFile = args[0]
 
 t = new OnlineTable(allsummaryFile)
+println "model\ttp1\tfp1\ttn1\tfn1\tmajority\troc"
+t.eachRow{row->
+	classifier = parseClassifier(row.classifier)
+	attrSel = parseAttrSel(row.attrEval)
+	filter = parseFilter(row.filter)
+	
+	
+    modelName = "$classifier_$filter_$attrSel_${row.numAttrs}"
+    majority = computeMajorityAcc(row)
+    if (majority != null) majority = majority.round(4)	
+	
 
-t.eachRow{row->	
-	modelName = "${row.filter}_${row.attrEval}_${row.attrSearch}_${row.numAttrs}_${row.classifier}_${row.classAttr}_${row.discretization}"
-	println "$modelName\t${row.roc}"
+    println "$modelName\t${row.tp1}\t${row.fp1}\t${row.tn1}\t${row.fn1}\t$majority\t${row.roc}"
 }
 
+
+
+def computeMajorityAcc(row){
+    tp = row.tp1 as double
+    fp = row.fp1 as double
+    tn = row.tn1 as double
+    fn = row.fn1 as double
+
+    samples = tp+fp+tn+fn
+
+    pos = tp+fn
+    neg = tn+fp
+
+    if (pos > neg) fracCorrect = pos/(pos+neg)
+}
+
+
+
+def parseClassifier(filter){
+	modifier =""
+	basefilter = ""
+	switch(filter){
+		case ~/.*Balanced.*/: basefilter="BalancedRandomForest";break;
+		case ~/.*trees\.Random.*/: basefilter="RandomForest";break;
+		case ~/.*SimpleLogistic.*/: basefilter="Logistic";break;
+		case ~/.*SMO.*/: basefilter="SVM";break;		
+		default: basefilter=filter;break;
+	}		
+	
+	switch(filter){
+		case ~/.*RBF.*/: modifier="RBF Kernel";break;
+		case ~/.*PolyKernel.*/: 
+		if (filter.contains("E 2.0")) modifier = "Quadratic Kernel"
+		if (filter.contains("E 1.0")) modifier = "Linear Kernel"
+		break;	
+	}
+	return("$basefilter $modifier")	
+}
+
+
+def parseAttrSel(filter){
+	basefilter = ""
+	switch(filter){
+		case ~/.*ReliefF.*/: basefilter="ReliefF";break;
+		case ~/.*InfoGain.*/: basefilter="InfoGain";break;
+		default: basefilter=filter;break;
+	}		
+	return("$basefilter")	
+}
+
+
+
+def parseFilter(filter){
+	prefilter =""
+	basefilter = ""
+	switch(filter){
+		case ~/.*Exponential.*/: basefilter="ExpNorm";break;
+		case ~/.*None.*/: basefilter="None";break;
+		case ~/.*Normalize.*/: basefilter="Normalize";break;
+		case ~/.*Standardize.*/: basefilter="Standardize";break;	
+		default: basefilter=filter;break;
+	}		       
+        //if(filter == null) return ("null");
+
+	if (filter.contains("log")) prefilter = "log+"	
+	return("$prefilter$basefilter")	
+}
