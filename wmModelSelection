@@ -146,7 +146,7 @@ System.gc()
 printHeapSpace(options.verbose)		
 
 // Use seed or randomize with clock...
-def rng;
+def rng = new Random();
 if (experiments.params.cvSeed == -1){
 	rng = new Random();
 }else{
@@ -240,37 +240,36 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			exp.numAttributes = -1;
 		}				
 		asClassifier = pipeline.createAttributeSelectedClassifier()
-						
-		// Perform the cross validation
-		err.println "ATTRIBUTE SELECTION: AttSel:  ${exp.attrEvalStr}; ${exp.attrSearchStr} numAttrs: ${exp.numAttributes}"
-		err.println "CLASSIFIER: ${exp.classifierStr}"
-		err.println "Crossvalidating model on ${instances.numInstances()} instances ${exp.classAttribute} ..."			
-				
-		Evaluation2 eval 
-		if (options.foldsetsFile){		
-			eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets,options.evalTraining)
-		}else{
-			// Default folds if none specified in config...
-			if (experiments.params.cvFolds.class != java.lang.Integer){
-				experiments.params.cvFolds = 10
-			}			
-			eval = pipeline.crossValidateModel(asClassifier,instances,experiments.params.cvFolds,rng,options.evalTraining)
-		}
 	
-		err.print "Appending test results..."
-		pipeline.appendSummary(out,jobIdx,instances)
-		pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
-		pipeline.appendTestSamples(sout, jobIdx,instances)
-		err.println "done."
+		for(repetition = 0;repetition < options.repetitions;repetition++){
+			err.println "Experiment repetition: $repetition"			
+			// Perform the cross validation
+			err.println "ATTRIBUTE SELECTION: AttSel:  ${exp.attrEvalStr}; ${exp.attrSearchStr} numAttrs: ${exp.numAttributes}"
+			err.println "CLASSIFIER: ${exp.classifierStr}"
+			err.println "Crossvalidating model on ${instances.numInstances()} instances ${exp.classAttribute} ..."			
 				
-		if (options.evalTraining){			
-			err.print "Append training results..."
-			pipeline.appendTrainingSamples(tout,jobIdx,instances)
+			Evaluation2 eval 
+			if (options.foldsetsFile){		
+				eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets,options.evalTraining)
+			}else{
+				eval = pipeline.crossValidateModel(asClassifier,instances,options.cvFolds,rng,options.evalTraining)
+			}
+	
+			err.print "Appending test results..."
+			pipeline.appendSummary(out,jobIdx,instances)
+			pipeline.appendFeatures(fout,jobIdx,instances,options.maxFeaturesOut as Integer)
+			pipeline.appendTestSamples(sout, jobIdx,instances)
 			err.println "done."
-		}		
+				
+			if (options.evalTraining){			
+				err.print "Append training results..."
+				pipeline.appendTrainingSamples(tout,jobIdx,instances)
+				err.println "done."
+			}		
 		
-		err.println pipeline.eval.toMatrixString("\nCV TEST SAMPLE CONFUSION MATRIX:")		
-		err.println "AUC: ${eval.weightedAreaUnderROC()} for ${exp.classAttribute}"
+			err.println pipeline.eval.toMatrixString("\nCV TEST SAMPLE CONFUSION MATRIX:")		
+			err.println "AUC: ${eval.weightedAreaUnderROC()} for ${exp.classAttribute}"
+		} // ============ END REPETITIONS
 		
 		// Report memory usage and encourage garbage collection...
 		err.println "\n"
@@ -287,7 +286,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		err.println "done."
 		//err.println getHeapSpace()
 			
-	  err.println "==========================================\n"										
+	  err.println "==========================================\n"	  
 	}catch (Exception e){
 		err.println "\n\n"
 		err.println "Exception occurred on experiment $jobIdx"
@@ -384,6 +383,9 @@ def ParseOptions(args){
 
 	  optional 'c','config',[description: 'Configuration file.  One of -c or -C required. ']  
 		optional 'C','flatConfig',[description: 'A flat configuration file, one experiment per line. One of -c or -C required.']  
+
+		optional 'v','cvFolds',[default:10,description: 'Cross-validation folds.',validate:{it as int}]
+		optional 'x','repetitions',[default:1,description: 'Repetitions of each k-fold experiment',validate:{it as int}]
 
 		optional 'V','verbose',[description: 'Output verbose info, like RAM usage, etc.']
 		optional 'f','foldsetsFile',[default:null,description: "File specifying the cross validation foldsets to use."]

@@ -1,0 +1,15 @@
+#!/usr/bin/env groovy 
+
+import durbin.util.*
+import durbin.weka.*
+
+err = System.err
+allsummaryFile = args[0]
+
+t = new OnlineTable(allsummaryFile)
+
+t.eachRow{row->	
+	modelName = "${row.filter}_${row.attrEval}_${row.attrSearch}_${row.numAttrs}_${row.classifier}_${row.classAttr}_${row.discretization}"
+	println "$modelName\troc"
+}
+

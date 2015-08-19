@@ -16,9 +16,14 @@ maxPerAttribute = [:] // maximum roc for given attribute
 sumPerAttribute = [:] // sum of roc values for given attribute. 
 numPerAttribute = [:]
 
+maxPerModel = [:]
+minPerModel = [:]
+sumPerModel = [:] // Sum up repetitions of a given model. 
+
+
 t = new OnlineTable(options.resultsFile)
 
-t.eachRow{row->
+t.eachRow{row->		
 	baseClassifier = WekaNames.getBaseClassifierType(row.classifier)
 	if (baseClassifier == null){
 		err.println "NULL classifier? "
@@ -27,8 +32,8 @@ t.eachRow{row->
 		err.println "${row.values()}"
 		System.exit(1)
 	}
-	
 	roc = row.roc as double		
+	
 	if (roc > maxPerAttribute[row.classAttr]){
 		maxPerAttribute[row.classAttr] = roc
 		bestPerAttribute[row.classAttr] = row
