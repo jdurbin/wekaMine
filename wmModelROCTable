@@ -10,6 +10,6 @@ t = new OnlineTable(allsummaryFile)
 
 t.eachRow{row->	
 	modelName = "${row.filter}_${row.attrEval}_${row.attrSearch}_${row.numAttrs}_${row.classifier}_${row.classAttr}_${row.discretization}"
-	println "$modelName\t$roc"
+	println "$modelName\t${row.roc}"
 }
 
