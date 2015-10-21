@@ -7,8 +7,6 @@ err = System.err
 
 // Get the command line options, print help if needed. 
 options = ParseOptions(args)
-err.println ""
-
 
 bestPerAttribute = [:]   // bestPerAttribute['survival'] = fields from row. 
 minPerAttribute = [:] // minimum roc for given attribute
@@ -22,7 +20,7 @@ sumPerModel = [:] // Sum up repetitions of a given model.
 
 def heading
 options.resultFileNames.each{resultsFile->
-	err.print "Reading $resultsFile..."
+	//err.print "Reading $resultsFile..."
 	t = new OnlineTable(resultsFile)
 	
 	heading = t.headings().join("\t")
@@ -54,16 +52,15 @@ options.resultFileNames.each{resultsFile->
 		sumPerAttribute[row.classAttr]+=roc;
 		numPerAttribute[row.classAttr]+= 1;  	
 	}
-	err.println "done."
+	//err.println "done."
 }
 
-err.println maxPerAttribute
+//err.println maxPerAttribute
 
 if (!options.report){
 	// Save something we can build models from...	
 	//println t.headings().join("\t")
 	println heading 
-
 	bestPerAttribute.each{attribute,rowMap->		
 		majorityAcc = computeMajorityAcc(rowMap)					
 		roc = rowMap.roc	as double			
@@ -74,6 +71,7 @@ if (!options.report){
 	}
 }else{		
 	println "attribute\troc\tmajority acc\tdeltaroc\tminroc\tmaxroc\tmeanroc\t${t.headings().join('\t')}"
+	err.println "attribute\tmajorityAcc\troc\tdelta"
 	// Print a report for inspection...
 	bestPerAttribute.each{attribute,rowMap->	
 		majorityAcc = computeMajorityAcc(rowMap)					
