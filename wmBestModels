@@ -20,8 +20,12 @@ maxPerModel = [:]
 minPerModel = [:]
 sumPerModel = [:] // Sum up repetitions of a given model. 
 
+def heading
 options.resultFileNames.each{resultsFile->
-	t = new OnlineTable(options.resultsFile)
+	err.print "Reading $resultsFile..."
+	t = new OnlineTable(resultsFile)
+	
+	heading = t.headings().join("\t")
 
 	t.eachRow{row->		
 		baseClassifier = WekaNames.getBaseClassifierType(row.classifier)
@@ -50,13 +54,15 @@ options.resultFileNames.each{resultsFile->
 		sumPerAttribute[row.classAttr]+=roc;
 		numPerAttribute[row.classAttr]+= 1;  	
 	}
+	err.println "done."
 }
 
 err.println maxPerAttribute
 
 if (!options.report){
 	// Save something we can build models from...	
-	println t.headings().join("\t")
+	//println t.headings().join("\t")
+	println heading 
 
 	bestPerAttribute.each{attribute,rowMap->		
 		majorityAcc = computeMajorityAcc(rowMap)					
@@ -134,13 +140,19 @@ def ParseOptions(args){
 
 		
 		flag 'r','report',[default:false,description: 'Output a report to stdout instead of another results file. ']		
-	  flag 'h','help',[default:false,description: 'Print script help.']
+	    flag 'h','help',[default:false,description: 'Print script help.']
 	}
 
 	def options
 	try{
 	  options = parser.parse(args)
 	  options.resultFileNames = parser.remainder
+	  
+	  if (options.help){
+		  System.err << parser.usage
+		  System.exit(1)
+	  }
+	  
 	}catch(Exception e){
 	  System.err << parser.usage
 	  System.exit(1)
