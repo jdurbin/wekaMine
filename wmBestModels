@@ -20,35 +20,36 @@ maxPerModel = [:]
 minPerModel = [:]
 sumPerModel = [:] // Sum up repetitions of a given model. 
 
+options.resultFileNames.each{resultsFile->
+	t = new OnlineTable(options.resultsFile)
 
-t = new OnlineTable(options.resultsFile)
-
-t.eachRow{row->		
-	baseClassifier = WekaNames.getBaseClassifierType(row.classifier)
-	if (baseClassifier == null){
-		err.println "NULL classifier? "
-		//err.println "classifierIdx: $classifierIdx"
-		err.println "${row.classifier}"
-		err.println "${row.values()}"
-		System.exit(1)
+	t.eachRow{row->		
+		baseClassifier = WekaNames.getBaseClassifierType(row.classifier)
+		if (baseClassifier == null){
+			err.println "NULL classifier? "
+			//err.println "classifierIdx: $classifierIdx"
+			err.println "${row.classifier}"
+			err.println "${row.values()}"
+			System.exit(1)
+		}
+		roc = row.roc as double		
+	
+		if (roc > maxPerAttribute[row.classAttr]){
+			maxPerAttribute[row.classAttr] = roc
+			bestPerAttribute[row.classAttr] = row
+		}
+	
+		if (minPerAttribute[row.classAttr] == null) minPerAttribute[row.classAttr] = 200;
+		if (minPerAttribute[row.classAttr] > roc){
+			minPerAttribute[row.classAttr] = roc
+		}			
+	
+		// Sum, for calculating average roc. 	
+		if (sumPerAttribute[row.classAttr] == null) sumPerAttribute[row.classAttr] = 0.0
+		if (numPerAttribute[row.classAttr] == null) numPerAttribute[row.classAttr] = 0.0
+		sumPerAttribute[row.classAttr]+=roc;
+		numPerAttribute[row.classAttr]+= 1;  	
 	}
-	roc = row.roc as double		
-	
-	if (roc > maxPerAttribute[row.classAttr]){
-		maxPerAttribute[row.classAttr] = roc
-		bestPerAttribute[row.classAttr] = row
-	}
-	
-	if (minPerAttribute[row.classAttr] == null) minPerAttribute[row.classAttr] = 200;
-	if (minPerAttribute[row.classAttr] > roc){
-		minPerAttribute[row.classAttr] = roc
-	}			
-	
-	// Sum, for calculating average roc. 	
-	if (sumPerAttribute[row.classAttr] == null) sumPerAttribute[row.classAttr] = 0.0
-	if (numPerAttribute[row.classAttr] == null) numPerAttribute[row.classAttr] = 0.0
-	sumPerAttribute[row.classAttr]+=roc;
-	numPerAttribute[row.classAttr]+= 1;  	
 }
 
 err.println maxPerAttribute
@@ -120,13 +121,12 @@ def ParseOptions(args){
 
 	Example:
 	
-	wmBestModels -R vijver2002.summary.tab -m 0.60 > vijver2002.bestPerAttribute.tab
+	wmBestModels -m 0.60 vijver2002.summary.tab > vijver2002.bestPerAttribute.tab
 
 	''');
 
 	parser.with{
 		
-	 	required 'R','resultsFile',[description: 'wekaMine summary results.']
 		optional 'm','minROC',[default:0,description: 'ROC cutoff for output.  Only results with roc >= minROC will be included.',
 		validate:{return it as double}]
 		optional 'D','minDeltaMajority',[default:0,description: 'Minimum roc delta from the majority classifier.',
@@ -140,6 +140,7 @@ def ParseOptions(args){
 	def options
 	try{
 	  options = parser.parse(args)
+	  options.resultFileNames = parser.remainder
 	}catch(Exception e){
 	  System.err << parser.usage
 	  System.exit(1)
