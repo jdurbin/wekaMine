@@ -8,6 +8,7 @@ import durbin.util.*
 import durbin.weka.*
 import jsc.datastructures.PairedData
 import jsc.correlation.KendallCorrelation
+import jsc.correlation.LinearCorrelation
 
 err = System.err
 
