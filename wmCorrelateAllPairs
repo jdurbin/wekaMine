@@ -65,8 +65,8 @@ for(row1Idx in rowRange){
 			corr = alg.correlationCoeff(pd) 
 		}else{		
 			alg = new KendallCorrelation(pd)
-			corr = kc.getR()
-			sig = kc.getSP()
+			corr = alg.getR()
+			sig = alg.getSP()
 		}
 		if (corr == Double.NaN) tau = 0.0 
 		
