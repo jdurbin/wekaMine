@@ -45,6 +45,7 @@ println "Fixed rowRange: "+rowRange
 // Go through the rows computing kendall's tau for each pair of classifications...
 //outputTable = new DoubleTable(rowNames as ArrayList,rowNames as ArrayList)
 outputTable = new TwoDMap()
+def corr
 for(row1Idx in rowRange){
 //rowNames.each{rowName->
 	rowName = rowNames[row1Idx]
@@ -61,14 +62,18 @@ for(row1Idx in rowRange){
 		
 		pd = new PairedData(row1.asArray(),row2.asArray())					
 		if (options.pearsons){
-			alg = new LinearCorrelation(pd)
-			corr = alg.correlationCoeff(pd) 
+			try{
+				alg = new LinearCorrelation(pd)
+				corr = alg.correlationCoeff(pd) 
+			}catch(IllegalArgumentException e){
+				corr = 0.0 // call it uncorrelated if one of the columns is invariant. 
+			}
 		}else{		
 			alg = new KendallCorrelation(pd)
 			corr = alg.getR()
 			sig = alg.getSP()
 		}
-		if (corr == Double.NaN) tau = 0.0 
+		if (corr == Double.NaN) corr = 0.0 
 		
 		if (options.zeroSignificance){
 			//err.println "$sig  ${options.zeroSignificance}  sig>=zs: ${sig >= options.zeroSignificance}"
