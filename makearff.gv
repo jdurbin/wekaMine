@@ -1,0 +1,20 @@
+#!/usr/bin/env groovy 
+
+import durbin.util.*
+import durbin.weka.WM
+import durbin.weka.WekaMine
+import weka.attributeSelection.PrincipalComponents
+
+
+dataFile = args[0]
+metadataFile = args[1]
+
+// Read data and meta-data
+data = WM.readNumericTab(dataFile)
+metadata = WM.readTab(metadataFile)
+instances = WM.makeInstances(data,metadata,className="EVENTdeath")
+// Remove ID (lots of weka functions don't like string attributes..)
+// There is a function to add them back to transformed data if needed.
+noIDinstances = WekaMine.removeInstanceID(instances)
+
+println noIDinstances

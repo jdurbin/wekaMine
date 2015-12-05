@@ -59,20 +59,25 @@ for(row1Idx in rowRange){
 		}
 		
 		pd = new PairedData(row1.asArray(),row2.asArray())					
-		kc = new KendallCorrelation(pd)
-		tau = kc.getR()
-		sig = kc.getSP()
-		if (tau == Double.NaN) tau = 0.0 
+		if (options.pearsons){
+			alg = new LinearCorrelation(pd)
+			corr = alg.correlationCoeff(pd) 
+		}else{		
+			alg = new KendallCorrelation(pd)
+			corr = kc.getR()
+			sig = kc.getSP()
+		}
+		if (corr == Double.NaN) tau = 0.0 
 		
 		if (options.zeroSignificance){
 			//err.println "$sig  ${options.zeroSignificance}  sig>=zs: ${sig >= options.zeroSignificance}"
 			if (sig >= options.zeroSignificance){
-				outputTable[rowName][colName] = tau
+				outputTable[rowName][colName] = corr
 			}else{
 				outputTable[rowName][colName] = 0
 			}
 		}else{				
-			outputTable[rowName][colName] = tau
+			outputTable[rowName][colName] = corr
 		}
 		//err.print "."
 	}
@@ -153,6 +158,7 @@ converted to a simple file of confidences with wmSelectAttributeValence
 		}
 		]		
 		optional 'k','experimentsPerJob',[description: 'When specified as last option, wmSaveModel does not run but instead outputs a list of wmSaveModel commands, k experiments each, for the cluster.']
+		flag 'P','pearsons',[default:false,description: "Compute Pearsons correlation between all pairs (vs Kendall's tau the default)"]
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
 
