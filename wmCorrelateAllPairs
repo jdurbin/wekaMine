@@ -11,6 +11,7 @@ import jsc.correlation.KendallCorrelation
 import jsc.correlation.LinearCorrelation
 
 err = System.err
+rng = new Random()
 
 // Get the command line options, print help if needed. 
 options = ParseOptions(args)
@@ -60,15 +61,20 @@ for(row1Idx in rowRange){
 			(row1,row2) = omitMissingValues(options.omitMissingValues,row1,row2)
 		}
 		
-		pd = new PairedData(row1.asArray(),row2.asArray())					
 		if (options.pearsons){
+			// The noise is added because LinearCorrelation chokes if the two datasets are
+			// identical or invariante or something.... adding very tiny noise addresses this. 
+			pd = new PairedData(addNoise(row1.asArray()),row2.asArray())					
 			try{
 				alg = new LinearCorrelation(pd)
 				corr = alg.correlationCoeff(pd) 
-			}catch(IllegalArgumentException e){
+			}catch(IllegalArgumentException e){				
 				corr = 0.0 // call it uncorrelated if one of the columns is invariant. 
+			}catch(Exception e){
+				println "Exception: "+e
 			}
-		}else{		
+		}else{
+			pd = new PairedData(row1.asArray(),row2.asArray())							
 			alg = new KendallCorrelation(pd)
 			corr = alg.getR()
 			sig = alg.getSP()
@@ -106,6 +112,13 @@ outputTable.writeTable(outFile,"\t","null"){
 	it
 }
 
+
+def addNoise(vals){
+	def newvals = vals.collect{
+		it + (rng.nextInt(4)*0.0001)
+	}
+	return(newvals as double[])
+}
 
 /***
 * if either row1 or row2 contain missing values at a position, don't include that 
