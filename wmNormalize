@@ -129,11 +129,11 @@ def testAddID(instances,instanceNames){
 */ 
 def ParseOptions(args){
 	parser = new Parser(description: '''
-	wmFilter takes a tab delimited data file in attributes (rows) x samples (cols) format and 
+	wmNormalize takes a tab delimited data file in attributes (rows) x samples (cols) format and 
 	applies a normalization method to the file.  Filters include:
 	
-	exp		Exponential normalization
-	norm	Weka Normalize
+	exp		Exponential normalization.  An online method suitable for normalizing one sample at a time. 
+	norm	Weka Normalize	A batch method that needs all samples at once. 
 	
 	Written by: James Durbin (kdurbin@ucsc.edu)
 

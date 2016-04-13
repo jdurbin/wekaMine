@@ -249,7 +249,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			err.println "Crossvalidating model on ${instances.numInstances()} instances ${exp.classAttribute} ..."			
 				
 			Evaluation2 eval 
-			if (options.foldsetsFile){		
+			if (options.foldsetsFile){	
 				eval = pipeline.crossValidateModelWithGivenFolds(asClassifier,instances,foldsets,options.evalTraining)
 			}else{
 				eval = pipeline.crossValidateModel(asClassifier,instances,options.cvFolds,rng,options.evalTraining)

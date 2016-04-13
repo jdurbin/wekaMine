@@ -148,6 +148,9 @@ def lowerQuartileFilter(output,inInstances,attributeName,censoredStatus){
 */ 
 def medianFilter(output,inInstances,attributeName,censoredStatus){
 	
+	
+	println "DEBUG: attributeName="+attributeName
+	
 	// compute the median...
 	values = inInstances.attributeValues(attributeName)
 			
