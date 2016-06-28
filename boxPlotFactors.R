@@ -31,7 +31,7 @@ q = qplot(bymedianFilter,roc,data=classifiers,geom="boxplot")
 q+theme(axis.text.x = element_text(angle=45,hjust=1))+labs(title=paste(titleRoot,"Performance by Filter"))
 
 q = qplot(bymedianclassAttr,roc,data=classifiers,geom="boxplot")
-q+theme(axis.text.x = element_text(angle=45,hjust=1))+labs(title=paste(titleRoot,"Performance of different target classes"))
+q+theme(axis.text.x = element_text(angle=45,hjust=1))+labs(title=paste(titleRoot,""))
 
 q = qplot(bymedianAttrSel,roc,data=classifiers,geom="boxplot")
 q+theme(axis.text.x = element_text(angle=45,hjust=1))+labs(title=paste(titleRoot,"Performance by Attribute Selection"))

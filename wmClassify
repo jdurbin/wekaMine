@@ -7,6 +7,7 @@ import weka.core.*
 
 err = System.err // sugar
 
+
 WekaAdditions.enable()
 
 // Get the command line options, print help if needed. 
@@ -106,6 +107,7 @@ if (options.clinical){
 }
 
 // Model knows everything else needed to process the data... so have at it...
+
 ArrayList<Classification> results = model.classify(instances)
 
 
