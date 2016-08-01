@@ -38,7 +38,7 @@ options.modelFiles.each{modelFile->
 	if (options.nullModel){
 		bnm = model.bnm
 		dynamicbin = bnm.nullDistribution[0]
-		values = dynamicbin.elements()
+		values = dynamicbin.elements()			// Not available in quantile bin... 
 		elements = values.elements()
 		println "Classifier distribution"
 		elements.each{

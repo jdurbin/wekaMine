@@ -1,0 +1,189 @@
+#!/usr/bin/env groovy
+
+import durbin.weka.* 
+import durbin.util.*
+
+import weka.classifiers.meta.FilteredClassifier;
+import weka.filters.unsupervised.attribute.RemoveType;
+import weka.core.SerializationHelper;
+import weka.filters.supervised.attribute.*
+import weka.filters.*
+import weka.attributeSelection.*
+import weka.core.*
+
+import org.apache.commons.io.*
+
+WekaAdditions.enable() // Enable meta-class additions to weka API
+
+err = System.err // sugar
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+err.println ""
+
+// Read the data (expression, CNV, whatever) and the clinical from tab delimited files
+data = WekaMine.readNumericFromTable(options.data)
+
+err.println "DEBUG: data.numInstances() = "+data.numInstances()
+err.println data['ID']
+
+def clinical
+if (options.clinical){
+	clinical = WekaMine.readFromTable(options.clinical)
+}
+
+err.println "DEBUG: clinical.numInstances() = "+clinical.numInstances()
+//err.println clinical
+err.println clinical['ID']
+
+
+err.println "=================================="
+
+try{
+		
+	// Combines data and single class attribute from clinical into one set of instances...
+	// Unsupervised filters don't need clinical data. 
+	if (options.clinical){	
+		instances = WekaMine.createInstancesFromDataAndClinical(data,clinical,options.classAttribute)	
+
+                System.err.println "DEBUG: instances after createInstances from Data and Clinical for ${options.classAttribute}= "+instances.numInstances()
+
+		// Clean up instances:
+		// * remove useless attributes
+		// * if not allowed, remove instances with negative class values
+		// * remove instances with missing class values	
+		instances = WekaMine.cleanUpInstances(instances)
+		
+		// Discretize the class attribute...
+		if (options.discretization){
+			instances = WekaMine.discretizeClassAttribute(instances,options.discretization,options.classAttribute)				
+		}																				
+	}else {
+		instances = data
+		data.setClassIndex(-1)
+	}
+
+	// Many filters will not handle string attributes, so by default we remove the string attribute and 
+	// perform the filtering without it, then add it back in.  Some filters scramble the order of instances
+	// so this doesn't work.  Fortunately, some of these can also handle string attributes.   Currently 
+	// just test for one, SpreadSubsample, but 
+	/* TODO: eventually we need  to make a comprehensive list.*/
+	if (options.filter.contains("SpreadSubsample")){ 			
+                 
+		instances = WekaMine.applyUnsupervisedFilterFromName(instances,options.filter)
+	}else{
+		def instNames = instances.attributeValues("ID")
+		noIDinstances = WekaMine.removeInstanceID(instances)
+							
+		// Apply the attribute selection algorithm to instances...			
+		noIDinstances = WekaMine.applyUnsupervisedFilterFromName(noIDinstances,options.filter)
+							
+		// Put the ID back into the attribute selected instances...
+		// KJD: Note that addID below assumes same number of instances in same order. 
+		// KJD: This assumption may not always hold for filters... need to think of how to handle this.
+		instances = WekaMine.addID(noIDinstances,instNames)			
+	}
+	
+	// Write out the attribute selected tab file...
+	WekaMine.saveDataFromInstances(options.outputFile,instances)
+
+	// If the filter was supervised, will need also to write out a new meta-data file
+	if (options.clinical){
+		baseOutput = FilenameUtils.getBaseName(options.outputFile)
+		path = FilenameUtils.getPath(options.outputFile)
+		clinOutput = "/${path}${baseOutput}_class.tab"
+		err.print "Saving $clinOutput..."
+		SaveTab.saveClinFromInstances(clinOutput,instances)
+		err.println "done."
+	}		
+			
+}catch (Exception e){
+	e.printStackTrace()
+}
+
+
+/*
+def testAddID(instances,instanceNames){
+	instances.insertAttributeAt(new Attribute("ID",(FastVector)null),0)
+	int attrIdx = instances.attribute("ID").index(); // Paranoid... should be 0
+	
+	instanceNames.eachWithIndex{name,i->
+		if (i < instances.numInstances())
+		instances.instance(i).setValue(attrIdx,name)			
+	}
+	
+	// Some filters (e.g. SMOTE and other processes add instances.  In these cases need tosimply
+	// add some placeholder ID for those instances.  Instances are added at the end, so 
+	// the other names should still map appropriately. 							
+	if (instances.numInstances() > instanceNames.size()){
+		def numNames = instanceNames.size()
+		def syntheticCount = instances.numInstances() - numNames
+		for(int i = 0;i < syntheticCount;i++){
+			def synName = "synthetic_$i"
+			// 25 names, 30 instances, first new name is idx=25+0=25
+			instances.instance(i+numNames).setValue(attrIdx,synName) 
+		}
+	}		
+	return(instances);
+}
+*/
+
+
+
+//============================================================================
+// 
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	wmFilter takes a tab delimited data file in attributes (rows) x samples (cols) format and 
+	applies a filter to it, outputting the filtered data.  There are a wide range of filters, both 
+	supervised and unsupervised, from simple normalization to principal components analysis. Consult
+	weka documentation for full list. 
+	
+	
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+	
+	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'weka.filters.unsupervised.attribute.Normalize'	
+	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'durbin.weka.ExponentialNormalizationFilter'	
+
+	''');
+
+	parser.with{
+
+	  required 'o','outputFile',[description: 'File name for where output.']
+	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+
+	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format. Required for supervised filters, optional for unsupervised.']
+
+		optional 'E','filter',[default: 'weka.filters.supervised.instance.SpreadSubsample -M 2 -X 600',description: 'Specification of a single filter.']
+		optional 'D','discretization',[description: 'Discretization to use for supervised filters.']
+		optional 'C','classAttribute',[description: 'Name of class attribute.  Required for supervised filters.']
+		
+	  flag 'h','help',[default:false,description: 'Print script help.']
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	
+	  if (options.clinical && !options.classAttribute){		  		  
+	  		System.err.println "A supervised filter must specify both a annotation file (-i) and a class attribute (-C)"
+	  		System.err<<parser.usage
+	  		System.exit(1)
+	  }		
+	}catch(Exception e){
+	  System.err << parser.usage
+
+          args.each{arg->
+             System.err.println "ARG: $arg"
+          }
+	  System.exit(1)
+	}	
+	
+	return(options)
+}

@@ -9,6 +9,11 @@ err = System.err
 options = ParseOptions(args)
 
 bestPerAttribute = [:]   // bestPerAttribute['survival'] = fields from row. 
+
+
+bestSpaceEfficient = [:] //  The best "space efficient" classifier.  e.g. not nonlinear SMO. 
+maxSpaceEfficient = [:]
+
 minPerAttribute = [:] // minimum roc for given attribute
 maxPerAttribute = [:] // maximum roc for given attribute
 sumPerAttribute = [:] // sum of roc values for given attribute. 
@@ -36,9 +41,17 @@ options.resultFileNames.each{resultsFile->
 		}
 		roc = row.roc as double		
 	
+	
 		if (roc > maxPerAttribute[row.classAttr]){
-			maxPerAttribute[row.classAttr] = roc
-			bestPerAttribute[row.classAttr] = row
+			maxPerAttribute[row.classAttr] = roc									
+			bestPerAttribute[row.classAttr] = row									
+		}
+	
+		if (roc > maxPerAttribute[row.classAttr]){
+			if (!WekaNames.isNonLinearSMO(classifier)){
+				maxSpaceEfficient[row.classAttr] = roc									
+				bestSpaceEfficient[row.classAttr] = row									
+			}
 		}
 	
 		if (minPerAttribute[row.classAttr] == null) minPerAttribute[row.classAttr] = 200;
@@ -55,6 +68,7 @@ options.resultFileNames.each{resultsFile->
 	//err.println "done."
 }
 
+
 //err.println maxPerAttribute
 
 if (!options.report){
@@ -67,7 +81,22 @@ if (!options.report){
 		delta = roc-majorityAcc
 		if (roc < options.minROC) return; // Don't output this one, below cutoff...
 		if (delta < options.minDeltaMajority) return; 
-		println rowMap.values().join("\t")
+		
+		// If we have a space inefficient classifier, check and see 
+		// if the best space efficient is good enough...
+		if (WekaNames.isNonLinearSMO(rowMap.classifier)){
+			spaceEfficient = bestSpaceEfficient[attribute]
+			spaceEfficientROC = maxSpaceEfficient[attribute] as double
+			delta = roc - spaceEfficientROC;
+			if (delta >= options.spacePremium){
+				println rowMap.values().join("\t")
+			}else{
+				println spaceEfficient.values().join("\t")
+			}
+		}else{
+			// If it's not a space inefficient classifier accept it unconditionally...
+			println rowMap.values().join("\t")
+		}
 	}
 }else{		
 	println "attribute\troc\tmajority acc\tdeltaroc\tminroc\tmaxroc\tmeanroc\t${t.headings().join('\t')}"
@@ -135,7 +164,8 @@ def ParseOptions(args){
 		validate:{return it as double}]
 		optional 'D','minDeltaMajority',[default:0,description: 'Minimum roc delta from the majority classifier.',
 		validate:{return it as double}]
-
+		optional 'S','spacePremium',[default:0,description: "Fraction by which space inefficient classifier's roc must beat best efficient classifier to be accepted. ",
+		validate:{return it as double} ]
 		
 		flag 'r','report',[default:false,description: 'Output a report to stdout instead of another results file. ']		
 	    flag 'h','help',[default:false,description: 'Print script help.']

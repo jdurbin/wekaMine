@@ -161,6 +161,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 				model.computeBootstrapNullModel(nullData)
 			}			
 		}else{
+			err.println "Null permutation size: "+instances.numInstances()+" instances x "+instances.numAttributes()+" attributes."
 			nullData = instances
 		}
 
@@ -185,6 +186,12 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}else{
 			outFile = "${rootName}_${jobIdx}.wmm"
 		}
+		
+		
+		// Before we save the model, see what we can do to save space
+		cleanupModel()
+				
+		
 		err.print "Save model to $outFile ..."
 		SerializationHelper.write(outFile,model)
 		err.println "done."
@@ -197,6 +204,46 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	}catch (Exception e){
 		err.println e
 	}
+}
+
+/***
+*	Weka Logistic regression (class LogisticBase) saves a copy of the training data
+*   This isn't needed for classification so we can safely remove it. 
+*   Similarly, the Kernel, (class CachedKernel) saves a copy of the training data. 
+*   Nonlinear kernels need this to build the kernel matrix, but linear kernels do not. 
+*   So we remove it from linear kernels.   
+*  
+*   Given the space cost of nonlinear SMO kernels, I should require a minimum 
+*   performance gain in order to use it over a more space efficient model. 
+* 
+*/ 
+def cleanupModel(model){
+	def classifier = model.classifier
+	def baseClassifier
+	if (classifier instanceof weka.classifiers.meta.FilteredClassifier){
+		baseClassifier = classifier.getClassifier()
+		if (baseClassifier instanceof durbin.weka.AttributeSelectedClassifier2){
+			baseClassifier = baseClassifier.getClassifier()
+		}						
+	}else if (classifier instanceof durbin.weka.AttributeSelectedClassifier2){
+		baseClassifier = classifier.getClassifier()
+	}else{	
+		baseClassifier = classifier
+	}
+	
+	switch(baseClassifier){
+		case {it instanceof weka.classifiers.functions.SimpleLogistic}:
+			baseClassifier.m_boostedModel.cleanup()
+		break;
+		
+		case {it instanceof weka.classifiers.functions.SMO}:
+		if (baseClassifier.m_KernelIsLinear){
+			// KJD Breaks if nonbinary				
+			def c = baseClassifier.m_classifiers[0][1]
+			c.m_kernel.m_data=null
+		}
+		break;
+	}	
 }
 
 
