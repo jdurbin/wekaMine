@@ -21,6 +21,9 @@ err = System.err // sugar
 options = ParseOptions(args)
 err.println ""
 
+filter = "weka.filters.supervised.instance.SpreadSubsample -M ${options.ratio} -X ${options.max}"
+println "Filter: "+filter
+
 // Read the data (expression, CNV, whatever) and the clinical from tab delimited files
 data = WekaMine.readNumericFromTable(options.data)
 
@@ -63,7 +66,7 @@ try{
 		data.setClassIndex(-1)
 	}
 	
-	filter = 'weka.filters.supervised.instance.SpreadSubsample -M ${options.ratio} -X ${options.max}'
+	filter = "weka.filters.supervised.instance.SpreadSubsample -M ${options.ratio} -X ${options.max}"
 	instances = WekaMine.applyUnsupervisedFilterFromName(instances,filter)	
 	
 	// Write out the attribute selected tab file...
@@ -73,7 +76,7 @@ try{
 	if (options.clinical){
 		baseOutput = FilenameUtils.getBaseName(options.outputFile)
 		path = FilenameUtils.getPath(options.outputFile)
-		clinOutput = "/${path}${baseOutput}_class.tab"
+		clinOutput = "${path}${baseOutput}_class.tab"
 		err.print "Saving $clinOutput..."
 		SaveTab.saveClinFromInstances(clinOutput,instances)
 		err.println "done."
@@ -112,8 +115,8 @@ def ParseOptions(args){
 	  required 'i','clinical', [description: 'Metadata file in attribute (row) by samples (col) format.']
 	  required 'C','classAttribute',[description: 'Name of class attribute.']
 	  
-	  optional 'r','ratio',[default: '2',description: 'The maximum class distribution spread (e.g. 2:1 ratio major/minor class)']
-	  optional 'M','max',[default:'0',description: 'The maximum count for any class value (default 0 = unlimited)']
+	  optional 'r','ratio',[default: 2,description: 'The maximum class distribution spread (e.g. 2:1 ratio major/minor class)']
+	  optional 'M','max',[default:0,description: 'The maximum count for any class value (default 0 = unlimited)']
 		
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}
