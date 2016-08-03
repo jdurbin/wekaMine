@@ -30,7 +30,7 @@ options.resultFileNames.each{resultsFile->
 	
 	heading = t.headings().join("\t")
 
-	t.eachRow{row->		
+	t.eachRow{row->	
 		baseClassifier = WekaNames.getBaseClassifierType(row.classifier)
 		if (baseClassifier == null){
 			err.println "NULL classifier? "
@@ -84,7 +84,7 @@ if (!options.report){
 		
 		// If we have a space inefficient classifier, check and see 
 		// if the best space efficient is good enough...
-		if (WekaNames.isNonLinearSMO(rowMap.classifier)){
+		if (WekaNames.isNonlinearSMO(rowMap.classifier)){
 			spaceEfficient = bestSpaceEfficient[attribute]
 			spaceEfficientROC = maxSpaceEfficient[attribute] as double
 			delta = roc - spaceEfficientROC;
