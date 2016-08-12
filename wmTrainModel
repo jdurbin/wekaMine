@@ -20,7 +20,13 @@ options = ParseOptions(args)
 // Expand the configuration file or wekaMine results into a list of experiments.
 def experiments = [] 
 if (options.config){
-	experiments = new WekaMineConfig(options.config)
+	err.print "\nReading experiments from config..."
+	allExperiments = new WekaMineConfig(options.config,options.clinical)
+	err.println "${allExperiments.size()} experiments read from config. "
+	totalExperiments = allExperiments.size()
+	experiments = allExperiments
+		
+	//experiments = new WekaMineConfig(options.config)
 	params = experiments.params
 }else if (options.resultsFile){
 	wmr = new WekaMineResults(options.resultsFile)
@@ -113,7 +119,13 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		
 		err.println "CHECK2"
 		
-		// Apply unsupervised filter
+		// Apply unsupervised filter.  In the case of QuantileNormalizationFilter
+		// need to initialize it with training data...
+		if (exp.filter instanceof durbin.weka.QuantileNormalizationFilter){
+			exp.setNumQuantiles(20000);
+			exp.setTrainingDistribution(rawdata);
+		}
+		
 		instances = pipeline.applyUnsupervisedFilter(data)	
 								
 		// Combines data and single class attribute from clinical into one set of instances...
@@ -187,9 +199,11 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			outFile = "${rootName}_${jobIdx}.wmm"
 		}
 		
+		println "outFile: "+outFile
+		
 		
 		// Before we save the model, see what we can do to save space
-		cleanupModel()
+		cleanupModel(model)
 				
 		
 		err.print "Save model to $outFile ..."
@@ -255,8 +269,8 @@ def cleanupModel(model){
 */ 
 def ParseOptions(args){
 	parser = new Parser(description: '''
-	wekaMineSaveModel takes a tab delimited data file in attributes (rows) x samples (cols) format, 
-	and a clinical file, also in attributes (rows) x samples (cols) format, and trains 
+	wmTrainModel takes a tab delimited data file in attributes (rows) x samples (cols) format, 
+	and a metadata file, also in attributes (rows) x samples (cols) format, and trains 
 	a classifier either on the classifier(s) specified in the config file or the classifiers 
 	specified in a wekaMine results summary .tab file.  The resulting model(s) are written to 
 	a binary output file for later use. Note: attributes reported after filtering include 
@@ -271,7 +285,7 @@ def ParseOptions(args){
 
 	Example:
 
-	wmSaveModel  -d lin2008.tab -i lin2008.clinical.tab -c cfg.txt -o lin2008.wekaMine.wmm
+	wmTrainModel  -d lin2008.tab -i lin2008.clinical.tab -c cfg.txt -o lin2008.wekaMine.wmm
 
 	''');
 
