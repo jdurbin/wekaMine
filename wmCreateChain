@@ -116,15 +116,18 @@ modelList.each{modelName->
 		att0 = results[instanceIdx].classValues[0] 
 		att1 = results[instanceIdx].classValues[1]
 		
-		// Get the null model significance for the two probabilities...		
-		null0Pr = model.bnm.getSignificance(class0Pr,0)
-		null1Pr = model.bnm.getSignificance(class1Pr,1)
-		
-		outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"
+		// Get the null model significance for the two probabilities...
+		def outStr
+		if (options.ignoreNullModel){		
+			outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)}"	
+		}else{
+			null0Pr = model.bnm.getSignificance(class0Pr,0)
+			null1Pr = model.bnm.getSignificance(class1Pr,1)		
+			outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"		
+		}
 		modelsBySamples[baseModelName][instanceName] = outStr
 		
-		err.println "modelName: $baseModelName  instanceName: $instanceName \t outStr:$outStr"
-		
+		err.println "modelName: $baseModelName  instanceName: $instanceName \t outStr:$outStr"		
 	}
 }
 
@@ -164,7 +167,7 @@ def ParseOptions(args){
 		optional 'p','rootPath',[description: 'Root path appended to beginning of each model name.']
 
 		//flag 'W','writeAll',[description: 'Write both probabilities and bootstrap null probabilities for each value like: pr1,pr2,null1,null2']
-		//flag 'N','useNullModel',[description: 'Use bootstrap null model instead of classifier confidence to compute LLR.']
+	  flag 'N','ignoreNullModel',[default:false,description: "Don't use' bootstrap null model"]
 	  flag 'h','help',[default:false,description: 'Print script help.']	
 	}
 	
