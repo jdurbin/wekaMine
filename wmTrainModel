@@ -119,14 +119,11 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		
 		err.println "CHECK2"
 		
-		// Apply unsupervised filter.  In the case of QuantileNormalizationFilter
-		// need to initialize it with training data...
-		if (exp.filter instanceof durbin.weka.QuantileNormalizationFilter){
-			exp.setNumQuantiles(20000);
-			exp.setTrainingDistribution(rawdata);
+		// QN Filter has to be applied after attribute selection for performance
+		// and compatibility with wmClassify
+		if (!(model.filter instanceof durbin.weka.QuantileNormalizationFilter)){		
+			instances = pipeline.applyUnsupervisedFilter(data)	
 		}
-		
-		instances = pipeline.applyUnsupervisedFilter(data)	
 								
 		// Combines data and single class attribute from clinical into one set of instances...
 		// KJD: apparently, the order is not guaranteed to match between instances and data...
@@ -149,9 +146,13 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		
 		// Apply the attribute selection algorithm to instances...			
 		instances = pipeline.selectAttributes(instances)	
-											
+		
+		if (model.filter instanceof durbin.weka.QuantileNormalizationFilter){		
+			instances = pipeline.applyUnsupervisedFilter(data)	
+		}
+													
 		err.print("Build classifier ${exp.classifierStr}...")
-			model = new WekaMineModel(instances,exp.classifier,cutoffs,exp.filter)
+		model = new WekaMineModel(instances,exp.classifier,cutoffs,exp.filter)
 		//exp.classifier.buildClassifier(instances);		
 		err.println("done.")				
 
@@ -167,10 +168,15 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			nullData = pipeline.readNumericFromTable(options.nullModelFile)
 			nullData = pipeline.cleanUpInstances(nullData)
 			nullData = pipeline.removeInstanceID(nullData)
-			nullData = pipeline.selectAttributes(nullData)
+			// Make it match attribute selected instances.  Note that instances does not contain ID at this point. 
+			nullData = InstanceUtils.createInstancesToMatchAttributeList(nullData,instances.attributeNames)
+			
+			
 			// Generate null model without permuting anything...
 			if (!options.nullModelSamples){
 				model.computeBootstrapNullModel(nullData)
+			}else{				
+				//TODO... looks like nothing is done if not permuting...
 			}			
 		}else{
 			err.println "Null permutation size: "+instances.numInstances()+" instances x "+instances.numAttributes()+" attributes."
@@ -288,14 +294,13 @@ def ParseOptions(args){
 	wmTrainModel  -d lin2008.tab -i lin2008.clinical.tab -c cfg.txt -o lin2008.wekaMine.wmm
 
 	''');
-
+	
 	parser.with{
+		required 'o','modelFileName',[description: 'Root file name where output should go.']
+		required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+		required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
 
-	  required 'o','modelFileName',[description: 'Root file name where output should go.']
-	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
-	  required 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
-
-	  optional 'c','config',[description: 'Configuration file']  
+		optional 'c','config',[description: 'Configuration file']  
 		optional 'R','resultsFile',[description: 'Use given wekaMine summary results to build classifier(s). Will save one model per result in file.']
 
 		optional 'B','nullModelSamples',[description: 'Compute bootstrap null model (label permutations) and save that in model file. Option specifies how many points to compute.']		
@@ -321,7 +326,7 @@ def ParseOptions(args){
 		flag 'T','topModel',[default: false,description: 'With -R option, will output a model corresponding to the best result in the results file.']
 		
 		optional 'E','experimentString',[description: 'A single experiment string. In single quotes, comma separated: attrEval,attrSearch,numAttributes,classifier.  Use keyword "none" to omit a field.']
-	  optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
+	  	optional 'r','experimentRange',[default: "0,-1", description: 'Range of experiments to run (e.g. -r 54,67, mainly for cluster splits)',
 			// Convert it to a proper range. Default is all inclusive range. 
 			validate:{								
 		 		experimentStart = (it.split(","))[0] as int
@@ -329,12 +334,9 @@ def ParseOptions(args){
 			  range = (experimentStart..experimentEnd)
 				return(range)
 			}]			
-
 		optional 'k','experimentsPerJob',[description: 'When specified as last option, wmSaveModel does not run but instead outputs a list of wmSaveModel commands, k experiments each, for the cluster.']
-
-		
-	  flag 'N','useClassName',[default:false,description: 'Tack on class name as part of modelFileName.']
-	  flag 'h','help',[default:false,description: 'Print script help.']
+		flag 'N','useClassName',[default:false,description: 'Tack on class name as part of modelFileName.']
+		flag 'h','help',[default:false,description: 'Print script help.']
 	}
 
 	def options

@@ -183,9 +183,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			System.gc()
 		}else{		
 			// Apply unsupervised filter if any...  Filter could be MultiFilter implementing
-			// several transforms combined. 		Note: As it is, the data is filtered before 
-			// the class attribute has even been added.  You can filter it after the class attribute
-			// has been added if the classAttribute is set and the filter option is set to ignore class.b	
+			// several transforms combined. Note: As it is, the data is filtered before 
+			// the class attribute has even been added.  You can filter it after the 
+			// class attribute has been added if the classAttribute is set and the 
+			// filter option is set to ignore class.b	
 			instances = pipeline.applyUnsupervisedFilter(data)	
 		
 			//err.println "DEBUG ${instances.attributeValues('BRAF')}"

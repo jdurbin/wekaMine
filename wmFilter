@@ -76,7 +76,7 @@ try{
 	}
 	
 	// Write out the attribute selected tab file...
-	WekaMine.saveDataFromInstances(options.outputFile,instances)
+	WekaMine.saveTableFromInstances(options.outputFile,instances)
 
 	// If the filter was supervised, will need also to write out a new meta-data file
 	if (options.clinical){
@@ -151,7 +151,7 @@ def ParseOptions(args){
 
 	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format. Required for supervised filters, optional for unsupervised.']
 
-		optional 'E','filter',[description: 'Specification of a single filter.']
+		optional 'E','filter',[default:'durbin.weka.ExponentialNormalizationFilter',description: 'Specification of a single filter.']
 		optional 'D','discretization',[description: 'Discretization to use for supervised filters.']
 		optional 'C','classAttribute',[description: 'Name of class attribute.  Required for supervised filters.']
 		

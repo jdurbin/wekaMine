@@ -23,12 +23,14 @@ instances = WekaMine.readNumericFromTable(options.data)
 
 // Apply unsupervised filter
 // KJD This function expects there to be an ID 
+
+// QN Filter will occur after attribute reduction, for performance...
 if (model.filter == null){
 	err.println "No pre-processing filter specified in model."
-}else{
+}else if (!(model.filter instanceof durbin.weka.QuantileNormalizationFilter)){
 	err.println "Applying filter: "+model.filter.class
 	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
-}
+}	
 
 def className
 if (options.className) className = options.className
@@ -78,6 +80,14 @@ instanceIDs = instances.attributeValues("ID") as ArrayList
 //err.println "model.attributes:"+model.attributes
 instances = InstanceUtils.createInstancesToMatchAttributeList(instances,model.attributes) // 3-5 seconds. 
 
+if (model.filter instanceof durbin.weka.QuantileNormalizationFilter){
+	err.println "Applying filter on reduced attributes: "+model.filter.class
+	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
+}
+
+
+//err.println "matched instances IDs:"+instances.attributeValues("ID")
+
 // Since the model doesn't have an ID attribute, instances will not have an ID attribute after
 // this matching exercise...
 names = instances.attributeNames()
@@ -107,7 +117,6 @@ if (options.clinical){
 }
 
 // Model knows everything else needed to process the data... so have at it...
-
 ArrayList<Classification> results = model.classify(instances)
 
 
