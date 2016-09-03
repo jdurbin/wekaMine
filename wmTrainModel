@@ -98,9 +98,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 	try{
 		
 		// Creates a wekaMine pipeline...
-		pipeline = new WekaMine(rawdata,clinical,exp,params)			
-		
-		err.println "CHECK1"
+		pipeline = new WekaMine(rawdata,clinical,exp,params)					
 		
 		if (options.holdoutSet){			
 			err.print "Removing ${options.holdoutSet[exp.classAttribute]?.size()} holdout samples for ${exp.classAttribute}..."
@@ -115,14 +113,15 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			err.println "done."
 		}else{
 			data = rawdata  
-		}		
-		
-		err.println "CHECK2"
+		}				
 		
 		// QN Filter has to be applied after attribute selection for performance
 		// and compatibility with wmClassify
-		if (!(model.filter instanceof durbin.weka.QuantileNormalizationFilter)){		
-			instances = pipeline.applyUnsupervisedFilter(data)	
+		def instances = data
+		if (exp.filter != null){
+			if (!(exp.filter instanceof durbin.weka.QuantileNormalizationFilter)){		
+				instances = pipeline.applyUnsupervisedFilter(instances)	
+			}
 		}
 								
 		// Combines data and single class attribute from clinical into one set of instances...
@@ -147,8 +146,10 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Apply the attribute selection algorithm to instances...			
 		instances = pipeline.selectAttributes(instances)	
 		
-		if (model.filter instanceof durbin.weka.QuantileNormalizationFilter){		
-			instances = pipeline.applyUnsupervisedFilter(data)	
+		if (exp.filter != null){
+			if (exp.filter instanceof durbin.weka.QuantileNormalizationFilter){		
+				instances = pipeline.applyUnsupervisedFilter(instances)	
+			}
 		}
 													
 		err.print("Build classifier ${exp.classifierStr}...")
