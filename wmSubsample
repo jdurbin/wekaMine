@@ -69,8 +69,9 @@ try{
 	filter = "weka.filters.supervised.instance.SpreadSubsample -M ${options.ratio} -X ${options.max}"
 	instances = WekaMine.applyUnsupervisedFilterFromName(instances,filter)	
 	
-	// Write out the attribute selected tab file...
-	WekaMine.saveDataFromInstances(options.outputFile,instances)
+	// Write out the attribute selected tab file...	
+	def st = new SaveTab();
+	st.saveDataFromInstances(options.outputFile,instances)
 
 	// If the filter was supervised, will need also to write out a new meta-data file
 	if (options.clinical){

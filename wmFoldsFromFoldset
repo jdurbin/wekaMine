@@ -36,9 +36,9 @@ for(int fs = 0;fs < foldSets.size();fs++){
 		testName = "${options.outRoot}_${fs+1}_${i+1}_test.tab"
 		
 		print "\t\t\t"			
-	  WekaMine.saveDataFromInstances(trainName,train)
+	  WekaMine.saveTableFromInstances(trainName,train)
 		print "\t\t\t"
-		WekaMine.saveDataFromInstances(testName,test)
+		WekaMine.saveTableFromInstances(testName,test)
 	}
 	
 	// Save holdout if one is defined...

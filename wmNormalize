@@ -76,7 +76,7 @@ try{
 	}
 	
 	// Write out the attribute selected tab file...
-	WekaMine.saveDataFromInstances(options.outputFile,instances)
+	WekaMine.saveTableFromInstances(options.outputFile,instances)
 
 	// If the filter was supervised, will need also to write out a new meta-data file
 	if (options.clinical){

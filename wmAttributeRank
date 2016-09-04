@@ -115,7 +115,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		//instances = pipeline.addID(noIDinstances,instNames)			
 											
 		// Write out the attribute selected tab file...
-		//pipeline.saveDataFromInstances2(options.outputFile,instances)
+		//pipeline.saveTableFromInstances2(options.outputFile,instances)
 			
 	}catch (Exception e){
 		err.println e
