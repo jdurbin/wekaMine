@@ -57,8 +57,9 @@ try{
 	// perform the filtering without it, then add it back in.  Some filters scramble the order of instances
 	// so this doesn't work.  Fortunately, some of these can also handle string attributes.   Currently 
 	// just test for one, SpreadSubsample, but 
-	/* TODO: eventually we need  to make a comprehensive list.*/
-	if (options.filter.contains("SpreadSubsample")){ 
+	
+	// TODO: Instantiate the filter and explicitly test if it handles String attributes...	
+	if (options.filter.contains("SpreadSubsample") || options.filter.contains("Resample")){ 
 		// SpreadSubsample doesn't look at attributes at all, so it doesn't care about string attributes
 		// like ID.  			
 		instances = WekaMine.applyUnsupervisedFilterFromName(instances,options.filter)
