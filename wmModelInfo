@@ -80,8 +80,10 @@ def ParseOptions(args){
 
 	Example:
 
-	wmModelInfo -m bestmodel.wmm > model.info
-
+	wmModelInfo bestmodel.wmm > model.info
+	wmModelInfo -s *.wmm > models.info
+	wmModelInfo -a bestmodel.wmm > attributeList.txt
+	wmModelInfo -n bestmodel.wmm > nullvalues.txt
 
 	''');
 

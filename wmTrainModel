@@ -168,20 +168,17 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// If we have a nullModelFile, read it in and process the instances, otherwise use 
 		// instances. 
 		def nullData
-		if (options.nullModelFile){
-			nullData = pipeline.readNumericFromTable(options.nullModelFile)
+		if (options.nullBackgroundFile){
+			nullData = pipeline.readNumericFromTable(options.nullBackgroundFile)
 			nullData = pipeline.cleanUpInstances(nullData)
 			nullData = pipeline.removeInstanceID(nullData)
 			// Make it match attribute selected instances.  Note that instances does not contain ID at this point. 
 			nullData = InstanceUtils.createInstancesToMatchAttributeList(nullData,instances.attributeNames)
 			
-			
-			// Generate null model without permuting anything...
-			if (!options.nullModelSamples){
-				model.computeBootstrapNullModel(nullData)
-			}else{				
-				//TODO... looks like nothing is done if not permuting...
-			}			
+			err.print "Adding ${instances.numInstances()} background samples..."			
+			model.addNullSamples(nullData)
+			err.println "done."
+
 		}else{
 			err.println "Null permutation size: "+instances.numInstances()+" instances x "+instances.numAttributes()+" attributes."
 			nullData = instances
