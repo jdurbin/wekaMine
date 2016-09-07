@@ -146,8 +146,11 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Apply the attribute selection algorithm to instances...			
 		instances = pipeline.selectAttributes(instances)	
 		
+		// Doing this after attribute selection lets us assume that the 
+		// training set and the test set have the same attributes which 
+		// allows the algorithm to be faster.  
 		if (exp.filter != null){
-			if (exp.filter instanceof durbin.weka.QuantileNormalizationFilter){		
+			if (exp.filter instanceof durbin.weka.QuantileNormalizationFilter){	
 				instances = pipeline.applyUnsupervisedFilter(instances)	
 			}
 		}

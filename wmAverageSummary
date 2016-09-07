@@ -1,0 +1,120 @@
+#!/usr/bin/env groovy
+
+import durbin.util.*
+import durbin.weka.*
+
+err = System.err
+
+// Get the command line options, print help if needed. 
+options = ParseOptions(args)
+
+def heading
+def headings
+def id2scoreSum = [:]
+def id2scoreCount = [:]
+def id2line = [:]
+def id2tp1 = [:]
+def id2fp1 = [:]
+def id2tn1 = [:]
+def id2fn1 = [:]
+
+options.resultFileNames.each{resultsFile->
+	//err.print "Reading $resultsFile..."
+	t = new OnlineTable(resultsFile)
+	
+	headings = t.headings()
+	heading = t.headings().join("\t")
+
+	t.eachRow{row->
+		// When repetitions of a CV experiment are made with -X option in wmModelSelection, 
+		// each repetition gets reported as a separate experiment.  Want to collect all of these 
+		// into an average for each unique spec.  
+		uniqueID = "${row.filter}_${row.attrEval}_${row.attrSearch}_${row.numAttrs}_${row.classifier}_${row.classAttr}_${row.discretization}" as String		
+		if (!(id2scoreSum.keySet().contains(uniqueID))){					
+			id2scoreSum[uniqueID] = row.roc as double
+			id2scoreCount[uniqueID] = 1
+			id2tp1[uniqueID] = row.tp1 as int
+			id2fp1[uniqueID] = row.fp1 as int
+			id2tn1[uniqueID] = row.tn1 as int
+			id2fn1[uniqueID] = row.fn1 as int
+			id2line[uniqueID] = row
+		}else{
+		//	err.println "MATCH FOUND"
+			def oldrocsum = id2scoreSum[uniqueID]			
+			roc = row.roc as double
+			def newroc = (oldrocsum+roc)
+			id2scoreSum[uniqueID] = newroc
+			def oldcount = id2scoreCount[uniqueID] 
+			def newcount = oldcount+1
+			id2scoreCount[uniqueID] = newcount
+			id2tp1[uniqueID] = id2tp1[uniqueID] + (row.tp1  as int)
+			id2fp1[uniqueID] = id2fp1[uniqueID] + (row.fp1 as int)
+			id2tn1[uniqueID] = id2tn1[uniqueID] + (row.tn1 as int)
+			id2fn1[uniqueID] = id2fn1[uniqueID] + (row.fn1 as int)						
+			id2line[uniqueID] = row
+		}
+	}
+}
+
+// Write out the unique lines with the averaged ROC
+println headings
+id2scoreSum.each{key,sum->
+	count = id2scoreCount[key]
+	avgroc = (double)sum/(double)count
+	line = id2line[key]
+	line.roc = "${avgroc.round(4)}"
+	line.tp1 = id2tp1[key]
+	line.fp1 = id2fp1[key]
+	line.tn1 = id2tn1[key]
+	line.fn1 = id2fn1[key] 
+	
+	// should calculate these, but for now just zero out to alert that
+	// they haven't been computed. 
+	line.rms = "0"
+	line.precision0 = "0"
+	line.recall0 = "0"
+	line.precision1 = "0"
+	line.recall1 = "0"	
+	line.pctCorrect = "0"	
+	println line.values().join("\t")
+}
+
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	
+	wmAverageSummary
+	
+    Averages the roc values across experimental repetitions. 
+	
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+	
+	wmAverageSummary  ./raw/*summary* > results/all_summary_repavg.tab 
+	''');
+
+	parser.with{
+
+	}
+
+	def options
+	try{
+	  options = parser.parse(args)
+	  options.resultFileNames = parser.remainder
+	  
+	  if (options.help){
+		  System.err << parser.usage
+		  System.exit(1)
+	  }
+	  
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}
