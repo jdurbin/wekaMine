@@ -57,7 +57,7 @@ options.resultFileNames.each{resultsFile->
 }
 
 // Write out the unique lines with the averaged ROC
-println headings
+println heading
 id2scoreSum.each{key,sum->
 	count = id2scoreCount[key]
 	avgroc = (double)sum/(double)count
