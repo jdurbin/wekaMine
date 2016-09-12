@@ -97,8 +97,8 @@ if (model.filter instanceof durbin.weka.QuantileNormalizationFilter){
 // this matching exercise...
 names = instances.attributeNames()
 
-err.println "Model Attribute Names:"
-err.println names
+//err.println "Model Attribute Names:"
+//err.println names
 
 // Add an empty class attribute so that classifiers don't choke ?
 instances = WekaMine.createEmptyClassAttribute(instances,className,model.classValues)

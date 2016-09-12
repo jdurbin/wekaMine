@@ -51,6 +51,8 @@ options.modelFiles.each{modelFile->
 		fileName = fields[0]
 		chartTitle = fields[1]
 		
+		System.err.print "Saving null model histogram to $fileName ..."
+		
 		bnm = model.bnm
 		dynamicbin = bnm.nullDistribution[0]
 		values = dynamicbin.elements()
@@ -58,8 +60,9 @@ options.modelFiles.each{modelFile->
 		
 		chartTitle = chartTitle.replaceAll(/\\n/,"\n")
 			
-		histchart = hist(elements,chartTitle)
+		histchart = hist(chartTitle,elements)
 		saveChart(histchart,fileName)
+		System.err.println "done."
 	}
 }
 
@@ -84,6 +87,7 @@ def ParseOptions(args){
 	wmModelInfo -s *.wmm > models.info
 	wmModelInfo -a bestmodel.wmm > attributeList.txt
 	wmModelInfo -n bestmodel.wmm > nullvalues.txt
+	wmModelInfo -c "entinostat.png;Entinostat Null Background" bestmodel.wmm
 
 	''');
 
