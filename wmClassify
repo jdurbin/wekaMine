@@ -48,8 +48,7 @@ err.println "holdout className: ${holdoutClassName}"
 if (options.holdoutSet){
 	
 	err.println "Holdout keys: "+options.holdoutSet.keySet()
-	
-	
+		
 	holdoutForClass = options.holdoutSet[holdoutClassName]
 	err.println holdoutForClass
 	err.print "Removing ALL except ${holdoutForClass.size()} holdout samples for ${holdoutClassName}..."
@@ -89,7 +88,6 @@ if (model.filter instanceof durbin.weka.QuantileNormalizationFilter){
 	err.println "Applying filter on reduced attributes: "+model.filter.class
 	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
 }
-
 
 //err.println "matched instances IDs:"+instances.attributeValues("ID")
 

@@ -58,6 +58,44 @@ new File(options.filterTemplate).splitEachLine(","){fields->
 output.printTable("\t","?")
 
 
+def upperAndLowerQuartileFilter(output,inInstances,attributeName,censoredStatus){
+	
+	// compute the median...
+	values = inInstances.attributeValues(attributeName)
+	bin = new DynamicBin1D()
+	values.each{
+		if (it != Double.NaN) bin.add(it)
+	}
+	upperquantile = bin.quantile(0.75)
+	lowerquantile = bin.quantile(0.25)
+	err.println "$attributeName upperQuartile: $upperquantile\tlowerQuartile:$lowerquantile"
+	
+	// go through instances, recording if value is above or below upper quantile.....	
+	inInstances.each{inst->
+		instName = inst["ID"]
+		outAttributeName = "${options.attrPrefix}${attributeName}_upperlowerquartile"
+		
+		def atval
+		val = inst[attributeName]
+		
+		//err.println "val: $val"
+		if (val != Double.NaN){
+			val = val as double					
+			if (val >= upperquantile){
+				atval = "geqUpper" 
+			}else if (val <= lowerquantile){
+				atval = "leqLower"
+			}else{
+			    atval = "null"
+			}
+		}else{
+			atval = "null"
+		}				
+		atval = handleCensoring(inst,censoredStatus,atval)	
+		if (options.zeroOne) atval = atval=="leqLower" ? 0 : 1		
+		output[instName][outAttributeName] = atval
+	}	
+}
 
 /***
 * 
