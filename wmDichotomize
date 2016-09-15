@@ -47,6 +47,10 @@ new File(options.filterTemplate).splitEachLine(","){fields->
 				
 		case 'lowerQuartile':
 				lowerQuartileFilter(output,clinicalInstances,attributeName,censoredStatus)
+				break;	
+				
+		case 'upperAndLowerQuartile':
+				upperAndLowerQuartileFilter(output,clinicalInstances,attributeName,censoredStatus)
 				break;				
 				
 		case 'none':
