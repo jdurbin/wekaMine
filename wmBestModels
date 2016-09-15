@@ -10,7 +10,6 @@ options = ParseOptions(args)
 
 bestPerAttribute = [:]   // bestPerAttribute['survival'] = fields from row. 
 
-
 bestSpaceEfficient = [:] //  The best "space efficient" classifier.  e.g. not nonlinear SMO. 
 maxSpaceEfficient = [:]
 
@@ -106,12 +105,11 @@ if (!options.report){
 		majorityAcc = computeMajorityAcc(rowMap)					
 		roc = rowMap.roc	as double			
 		delta = roc-majorityAcc
-		
-		err.println "$attribute\t$majorityAcc\t$roc\t$delta"
-		
+				
 		if (roc < options.minROC) return; // Don't output this one, below cutoff...
 		if (delta < options.minDeltaMajority) return; 
-			
+		
+		err.println "$attribute\t$majorityAcc\t$roc\t$delta"	
 		print "$attribute\t$roc\t"
 		minroc = minPerAttribute[attribute]
 		maxroc = maxPerAttribute[attribute]

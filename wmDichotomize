@@ -72,7 +72,7 @@ def upperAndLowerQuartileFilter(output,inInstances,attributeName,censoredStatus)
 	}
 	upperquantile = bin.quantile(0.75)
 	lowerquantile = bin.quantile(0.25)
-	err.println "$attributeName upperQuartile: $upperquantile\tlowerQuartile:$lowerquantile"
+	err.println "$attributeName lowerQuartile:$lowerquantile\tupperQuartile: $upperquantile"
 	
 	// go through instances, recording if value is above or below upper quantile.....	
 	inInstances.each{inst->
