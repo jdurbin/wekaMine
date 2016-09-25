@@ -19,6 +19,7 @@ options = ParseOptions(args)
 
 // Expand the configuration file or wekaMine results into a list of experiments.
 def experiments = [] 
+def wmr
 if (options.config){
 	err.print "\nReading experiments from config..."
 	allExperiments = new WekaMineConfig(options.config,options.clinical)
@@ -157,6 +158,17 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 													
 		err.print("Build classifier ${exp.classifierStr}...")
 		model = new WekaMineModel(instances,exp.classifier,cutoffs,exp.filter)
+		
+		// If we have the results of experiments, add performance info to the model
+		if (options.resultsFile){
+			result = wmr[jobIdx]
+			model.roc = result.roc
+			model.tp1 = result.tp1
+			model.fp1 = result.fp1
+			model.tn1 = result.tn1
+			model.fn1 = result.fn1
+		}
+		
 		//exp.classifier.buildClassifier(instances);		
 		err.println("done.")				
 

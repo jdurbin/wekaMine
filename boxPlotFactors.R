@@ -5,6 +5,10 @@ library(ggplot2)
 
 args = commandArgs(TRUE)
 
+if (length(args)==0){
+	stop("\n\nboxPlotFactors title factors.tab outfile.pdf\n\n")
+}
+
 titleRoot = args[1]
 fileName = args[2]
 plotOutFile = args[3]

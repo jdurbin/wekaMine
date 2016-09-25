@@ -4,6 +4,17 @@ import durbin.util.*
 
 err = System.err
 
+if (args[0] == "-h"){
+	println """
+	Splits a results file into various factors.  Optional second parameter specifies the 
+	minimum delta majority to accept.  Summary stats to stderr. 
+	
+	wm2factors all.tab > factors.tab
+	wm2factors all.tab 0.1 > factors_0.1.tab
+	"""
+	System.exit(1)
+}
+
 deltaMajorityCutoff = 0.0
 if (args.size() > 1){
 	deltaMajorityCutoff = args[1] as double
