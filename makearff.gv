@@ -15,6 +15,6 @@ metadata = WM.readTab(metadataFile)
 instances = WM.makeInstances(data,metadata,className="EVENTdeath")
 // Remove ID (lots of weka functions don't like string attributes..)
 // There is a function to add them back to transformed data if needed.
-noIDinstances = WekaMine.removeInstanceID(instances)
+noIDinstances = AttributeUtils.removeInstanceID(instances)
 
 println noIDinstances

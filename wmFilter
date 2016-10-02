@@ -65,7 +65,7 @@ try{
 		instances = WekaMine.applyUnsupervisedFilterFromName(instances,options.filter)
 	}else{
 		def instNames = instances.attributeValues("ID")
-		noIDinstances = WekaMine.removeInstanceID(instances)
+		noIDinstances = AttributeUtils.removeInstanceID(instances)
 							
 		// Apply the attribute selection algorithm to instances...			
 		noIDinstances = WekaMine.applyUnsupervisedFilterFromName(noIDinstances,options.filter)

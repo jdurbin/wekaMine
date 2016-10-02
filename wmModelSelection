@@ -122,10 +122,15 @@ if (options.dataMayContainNominalValues){
 //data = TableFileLoader.readNumeric(options.data,options.data,"\t");
 clinical = WekaMine.readFromTable(options.clinical,instancesInRows = options.clinicalInstancesInRows)
 
+// Visual verification for user...
 (0..< clinical.numAttributes()).each{i->
 	attr = clinical.attribute(i)
-	values = (0..<attr.numValues()).collect{attr.value(it)}
-	err.println "attribute ${attr.name()} has values: ${values}"	
+	if (attr.isNumeric()){
+		err.println attr.name()+" is numeric."	
+	}else{
+		values = (0..<attr.numValues()).collect{attr.value(it)}
+		err.println "attribute ${attr.name()} has ${attr.numValues()} values: ${values}"			
+	}
 }
 
 // Remove everything except a subset if a list of samples to use is given.

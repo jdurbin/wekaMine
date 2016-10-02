@@ -46,8 +46,10 @@ options.resultFileNames.each{resultsFile->
 			bestPerAttribute[row.classAttr] = row									
 		}
 	
-		if (roc > maxPerAttribute[row.classAttr]){
-			if (!WekaNames.isNonLinearSMO(classifier)){
+		// If it's better than the best space efficient classifier and 
+		// it's a space efficient classifer, save it...
+		if (roc > maxSpaceEfficient[row.classAttr]){
+			if (!WekaNames.isNonlinearSMO(row.classifier)){
 				maxSpaceEfficient[row.classAttr] = roc									
 				bestSpaceEfficient[row.classAttr] = row									
 			}
@@ -88,6 +90,7 @@ if (!options.report){
 			spaceEfficientROC = maxSpaceEfficient[attribute] as double
 			delta = roc - spaceEfficientROC;
 			if (delta >= options.spacePremium){
+				err.println "Space efficient delta: ${delta.round(4)} >= ${options.spacePremium} Using space inefficient classifier."
 				println rowMap.values().join("\t")
 			}else{
 				println spaceEfficient.values().join("\t")

@@ -86,7 +86,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 
 		// Remove ID attribute, since attribute evaluators and classifiers choke on it...
 		def instNames = instances.attributeValues("ID")
-		noIDinstances = pipeline.removeInstanceID(instances)
+		noIDinstances = AttributeUtils.removeInstanceID(instances)
 		
 		// Apply the attribute selection algorithm to instances...			
 		//noIDinstances = pipeline.selectAttributes(noIDinstances)
