@@ -7,8 +7,8 @@ import jMEF.BregmanHierarchicalClustering.LINKAGE_CRITERION;
 import jMEF.BregmanHierarchicalClustering.LINKAGE_CRITERION;
 import jMEF.Clustering.CLUSTERING_TYPE;
 
-import durbin.util.*
-import durbin.stat.*
+import grapnel.util.*
+import grapnel.stat.*
 
 err = System.err
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
-import durbin.weka.* 
-import durbin.util.*
+import grapnel.weka.* 
+import grapnel.util.*
 
 import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.unsupervised.attribute.RemoveType;
@@ -141,7 +141,7 @@ def ParseOptions(args){
 	Example:
 	
 	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'weka.filters.unsupervised.attribute.Normalize'	
-	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'durbin.weka.ExponentialNormalizationFilter'	
+	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'grapnel.weka.ExponentialNormalizationFilter'	
 
 	''');
 
@@ -152,7 +152,7 @@ def ParseOptions(args){
 
 	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format. Required for supervised filters, optional for unsupervised.']
 
-		optional 'E','filter',[default:'durbin.weka.ExponentialNormalizationFilter',description: 'Specification of a single filter.']
+		optional 'E','filter',[default:'grapnel.weka.ExponentialNormalizationFilter',description: 'Specification of a single filter.']
 		optional 'D','discretization',[description: 'Discretization to use for supervised filters.']
 		optional 'C','classAttribute',[description: 'Name of class attribute.  Required for supervised filters.']
 		

@@ -4,8 +4,8 @@
 This version is for "single" models.  That is, models that are made on the full set of samples, and not
 specially created for each pair. 
 */
-import durbin.util.*
-import durbin.weka.*
+import grapnel.util.*
+import grapnel.weka.*
 import jsc.datastructures.PairedData
 import jsc.correlation.KendallCorrelation
 import jsc.correlation.LinearCorrelation

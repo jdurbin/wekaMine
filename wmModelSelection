@@ -1,8 +1,8 @@
 #!/usr/bin/env groovy
 
-import durbin.weka.* 
-import durbin.weka.FoldSets
-import durbin.util.*
+import grapnel.weka.* 
+import grapnel.weka.FoldSets
+import grapnel.util.*
 import java.lang.management.*
 
 err = System.err // sugar

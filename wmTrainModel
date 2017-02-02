@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
-import durbin.weka.* 
-import durbin.util.*
+import grapnel.weka.* 
+import grapnel.util.*
 
 import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.unsupervised.attribute.RemoveType;
@@ -120,7 +120,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// and compatibility with wmClassify
 		def instances = data
 		if (exp.filter != null){
-			if (!(exp.filter instanceof durbin.weka.QuantileNormalizationFilter)){		
+			if (!(exp.filter instanceof grapnel.weka.QuantileNormalizationFilter)){		
 				instances = pipeline.applyUnsupervisedFilter(instances)	
 			}
 		}
@@ -151,7 +151,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// training set and the test set have the same attributes which 
 		// allows the algorithm to be faster.  
 		if (exp.filter != null){
-			if (exp.filter instanceof durbin.weka.QuantileNormalizationFilter){	
+			if (exp.filter instanceof grapnel.weka.QuantileNormalizationFilter){	
 				instances = pipeline.applyUnsupervisedFilter(instances)	
 			}
 		}
@@ -184,7 +184,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			nullData = pipeline.readNumericFromTable(options.nullBackgroundFile)
 			
 			if (exp.filter != null){
-				if (!(exp.filter instanceof durbin.weka.QuantileNormalizationFilter)){		
+				if (!(exp.filter instanceof grapnel.weka.QuantileNormalizationFilter)){		
 					nullData = pipeline.applyUnsupervisedFilter(nullData)	
 				}
 			}
@@ -197,7 +197,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			
 			// Apply filter
 			if (exp.filter != null){
-				if (exp.filter instanceof durbin.weka.QuantileNormalizationFilter){	
+				if (exp.filter instanceof grapnel.weka.QuantileNormalizationFilter){	
 					instances = pipeline.applyUnsupervisedFilter(instances)	
 				}
 			}
@@ -274,10 +274,10 @@ def cleanupModel(model){
 	def baseClassifier
 	if (classifier instanceof weka.classifiers.meta.FilteredClassifier){
 		baseClassifier = classifier.getClassifier()
-		if (baseClassifier instanceof durbin.weka.AttributeSelectedClassifier2){
+		if (baseClassifier instanceof grapnel.weka.AttributeSelectedClassifier2){
 			baseClassifier = baseClassifier.getClassifier()
 		}						
-	}else if (classifier instanceof durbin.weka.AttributeSelectedClassifier2){
+	}else if (classifier instanceof grapnel.weka.AttributeSelectedClassifier2){
 		baseClassifier = classifier.getClassifier()
 	}else{	
 		baseClassifier = classifier

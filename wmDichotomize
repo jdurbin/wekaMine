@@ -8,8 +8,8 @@ days_to_tumor_recurrence,quartile,censored=vital_status:LIVING
 additional_radiation_therapy,binary
 */
 
-import durbin.util.*
-import durbin.weka.WekaMine as WM
+import grapnel.util.*
+import grapnel.weka.WekaMine as WM
 import weka.core.*
 import hep.aida.bin.DynamicBin1D;
 

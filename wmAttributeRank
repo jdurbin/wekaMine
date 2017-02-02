@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
-import durbin.weka.* 
-import durbin.util.*
+import grapnel.weka.* 
+import grapnel.util.*
 
 import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.unsupervised.attribute.RemoveType;
@@ -137,7 +137,7 @@ def ParseOptions(args){
 	config file, from a wekaMine results summary file line, or on the command line.  All weka attribute 
 	selection methods are allowed.  In addition, the following attribute selection methods are implemented:
 	
-	durbin.weka.FisherLDEval
+	grapnel.weka.FisherLDEval
 	
 	In addition to weka discretizers, the following discretizers are implemented:
 	

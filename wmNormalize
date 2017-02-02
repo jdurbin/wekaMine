@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
-import durbin.weka.* 
-import durbin.util.*
+import grapnel.weka.* 
+import grapnel.util.*
 
 import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.unsupervised.attribute.RemoveType;
@@ -144,7 +144,7 @@ def ParseOptions(args){
 
 	Note that this script is just shorthand for wmFilter.  So, for example, the above command is just shorthand for:
 	
-	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'durbin.weka.ExponentialNormalizationFilter'	
+	wmFilter -d data/vijver2002.tab -o data/vijver2002.normalizedunsup.tab -E 'grapnel.weka.ExponentialNormalizationFilter'	
 
 	''');
 

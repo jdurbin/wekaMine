@@ -7,7 +7,7 @@ import jMEF.BregmanHierarchicalClustering.LINKAGE_CRITERION;
 import jMEF.BregmanHierarchicalClustering.LINKAGE_CRITERION;
 import jMEF.Clustering.CLUSTERING_TYPE;
 
-import durbin.util.*
+import grapnel.util.*
 
 numGuess = args[1] as int
 //geneName = args[2]

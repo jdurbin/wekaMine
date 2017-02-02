@@ -1,12 +1,11 @@
-#!/usr/bin/env groovy 
-
 #!/usr/bin/env groovy
 
-import durbin.util.*
-import durbin.weka.*
+import grapnel.util.*
+import grapnel.weka.*
 
 err = System.err
-allsummaryFile = args[0]
+allsummaryFile = args[1]
+prefix = args[0]
 
 t = new OnlineTable(allsummaryFile)
 println "model\ttp1\tfp1\ttn1\tfn1\tmajority\troc"
@@ -14,9 +13,8 @@ t.eachRow{row->
 	classifier = parseClassifier(row.classifier)
 	attrSel = parseAttrSel(row.attrEval)
 	filter = parseFilter(row.filter)
-	
-	
-    modelName = "$classifier_$filter_$attrSel_${row.numAttrs}"
+		
+    modelName = "${prefix} ${classifier} ${filter} ${attrSel} ${row.numAttrs}"
     majority = computeMajorityAcc(row)
     if (majority != null) majority = majority.round(4)	
 	

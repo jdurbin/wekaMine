@@ -1,8 +1,8 @@
 #!/usr/bin/env groovy 
 
-import durbin.util.*
-import durbin.weka.WM
-import durbin.weka.WekaMine
+import grapnel.util.*
+import grapnel.weka.WM
+import grapnel.weka.WekaMine
 import weka.attributeSelection.PrincipalComponents
 
 

@@ -17,7 +17,6 @@ plotOutFile = args[3]
 #fileName = "factors.tab"
 #plotOutFile = "output.pdf"
 
-
 classifiers = read.table(fileName,sep="\t",header=TRUE)
 
 #classifiers

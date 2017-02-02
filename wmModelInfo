@@ -1,8 +1,8 @@
 #!/usr/bin/env groovy
 
-import static durbin.charts.Charts.*;
-import durbin.weka.* 
-import durbin.util.*
+import static grapnel.charts.Charts.*;
+import grapnel.weka.* 
+import grapnel.util.*
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.core.*
 

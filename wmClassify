@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
-import durbin.weka.* 
-import durbin.util.*
+import grapnel.weka.* 
+import grapnel.util.*
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.core.*
 
@@ -27,7 +27,7 @@ instances = WekaMine.readNumericFromTable(options.data)
 // QN Filter will occur after attribute reduction, for performance...
 if (model.filter == null){
 	err.println "No pre-processing filter specified in model."
-}else if (!(model.filter instanceof durbin.weka.QuantileNormalizationFilter)){
+}else if (!(model.filter instanceof grapnel.weka.QuantileNormalizationFilter)){
 	err.println "Applying filter: "+model.filter.class
 	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
 }	
@@ -84,7 +84,7 @@ instances = InstanceUtils.createInstancesToMatchAttributeList(instances,model.at
 // is the same between training and test set.  The easiest way to ensure this
 // is just to use the attribute-matched dataset for both the training QN 
 // and the test QN. 
-if (model.filter instanceof durbin.weka.QuantileNormalizationFilter){
+if (model.filter instanceof grapnel.weka.QuantileNormalizationFilter){
 	err.println "Applying filter on reduced attributes: "+model.filter.class
 	instances = WekaMine.applyUnsupervisedFilter(instances,model.filter)	
 }
