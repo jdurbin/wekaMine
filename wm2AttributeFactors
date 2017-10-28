@@ -1,0 +1,189 @@
+#!/usr/bin/env groovy 
+
+import grapnel.util.*
+import org.h2.Driver
+import groovy.sql.Sql
+err = System.err
+
+if (args[0] == "-h"){
+	println """
+	Splits a results file into various factors.  Optional second parameter specifies the 
+	minimum delta majority to accept.  Summary stats to stderr. 
+	
+	wm2factors all.tab rootDir
+	wm2factors all.tab rootDir 0.1 
+	"""
+	System.exit(1)
+}
+
+rootName = args[1] // root part of path for output file, usually a directory name
+
+deltaMajorityCutoff = 0.0
+if (args.size() > 2){
+	deltaMajorityCutoff = args[2] as double
+}
+fileName = args[0]
+
+err.print "Creating DB..."
+csvsql = new CSVSQL(fileName)
+err.println "done."
+
+tableName = csvsql.tableNameMap.keySet()[0]  // only one table
+attributeNames = csvsql.collect("select distinct(classAttr) from $tableName")
+
+err.println "${attributeNames.size()} attributes found."
+
+attributeNames.each{targetClass->
+	err.print "Processing $targetClass..."
+	new File("$rootName/${targetClass}.tab").withWriter{w->
+	
+		w.writeLine "classAttribute\tfilter\tattributeSelection\tclassifier\tnumAttributes\ttp1\tfp1\ttn1\tfn1\troc"
+		
+		csvsql.eachRow("select * from $tableName where classAttr='$targetClass'"){row->
+		
+			filter = parseFilter(row.filter)
+			attrSel = parseAttrSel(row.attrEval)
+			classifier = parseClassifier(row.classifier)
+	
+			maj = computeMajorityAcc(row)
+			roc = row.roc as double
+			delta = roc - maj
+			err.println "${row.classAttr}\troc: $roc\tMajority: $maj\tDelta: $delta"
+			if (delta < deltaMajorityCutoff) return;
+	
+			if (roc < 0.45) return;	
+			w.writeLine "${row.classAttr}\t$filter\t$attrSel\t$classifier\t${row.numAttrs}\t${row.tp1}\t${row.fp1}\t${row.tn1}\t${row.fn1}\t${row.roc}"
+		}
+	}
+	err.println "done."
+}
+
+def computeMajorityAcc(row){        
+	tp = row.tp1 as double
+	fp = row.fp1 as double
+	tn = row.tn1 as double
+	fn = row.fn1 as double
+		
+	samples = tp+fp+tn+fn
+	
+	pos = tp+fn
+	neg = tn+fp
+	
+	if (pos > neg) fracCorrect = pos/(pos+neg)
+	else fracCorrect = neg/(pos+neg)
+		
+	return(fracCorrect)
+}
+
+
+
+def parseClassifier(filter){
+	modifier =""
+	basefilter = ""
+	switch(filter){
+		case ~/.*Balanced.*/: basefilter="BalancedRandomForest";break;
+		case ~/.*trees\.Random.*/: basefilter="RandomForest";break;
+		case ~/.*SimpleLogistic.*/: basefilter="Logistic";break;
+		case ~/.*SMO.*/: basefilter="SVM";break;		
+		default: basefilter=filter;break;
+	}		
+	
+	switch(filter){
+		case ~/.*RBF.*/: modifier="RBF Kernel";break;
+		case ~/.*PolyKernel.*/: 
+		if (filter.contains("E 2")) modifier = "Quadratic Kernel"
+		if (filter.contains("E 1")) modifier = "Linear Kernel"
+		
+		break;	
+	}
+	return("$basefilter $modifier")	
+}
+
+
+def parseAttrSel(filter){
+	basefilter = ""
+	switch(filter){
+		case ~/.*ReliefF.*/: basefilter="ReliefF";break;
+		case ~/.*InfoGain.*/: basefilter="InfoGain";break;
+		default: basefilter=filter;break;
+	}		
+	return("$basefilter")	
+}
+
+
+
+def parseFilter(filter){
+	prefilter =""
+	basefilter = ""
+	switch(filter){
+		case ~/.*Exponential.*/: basefilter="ExpNorm";break;
+		case ~/.*None.*/: basefilter="None";break;
+		case ~/.*Normalize.*/: basefilter="Normalize";break;
+		case ~/.*Standardize.*/: basefilter="Standardize";break;	
+		default: basefilter=filter;break;
+	}		       
+        //if(filter == null) return ("null");
+
+	if (filter.contains("log")) prefilter = "log+"	
+	return("$prefilter$basefilter")	
+}
+
+
+/**
+* Infer the type of each column in the file by sampling the first sampleRows
+* rows of data.  The three types supported are:  INT, DOUBLE, VARCHAR. 
+* It tries to assign types in order INT, DOUBLE, VARCHAR, assigning each 
+* column the strictest type that has uninamous vote in the sample. 
+* 
+* A negative sampleRows indicates to use whole file as sample.  This is 
+* the default, but may want to sample smaller for performance, especially 
+* if you know that first few lines are representative.  
+* 
+* Handling empty fields is a problem that needs to be thought through. 
+* 
+* Ironic that this is the largest part of the code. 
+*/ 
+def inferColumnTypes(fileName,sampleRows = -1,separator){
+  
+  columnType = [:]
+  
+  numLines = countLines(fileName)
+  if (sampleRows < 0) sampleRows = numLines // Use whole file. 
+  if (sampleRows > numLines) sampleRows = numLines
+  
+  new File(fileName).withReader{r->
+    headings = r.readLine().split(separator)
+    intcounts = new int[headings.size()]
+    doublecounts = new int[headings.size()]
+        
+    (0..<sampleRows-1).each{
+      line = r.readLine()
+      fields = line.split(separator,-1) // -1 to handle empty fields. 
+      
+      //Sanity test..
+      if (fields.size() != headings.size()){
+        println "headings: $headings"
+        println "fields: $fields"
+        throw new Exception("ERROR:  headings size ${headings.size()} != fields.size ${fields.size()}." as String)
+        
+      }
+      
+      fields.eachWithIndex{f,i->
+        if (f.isDouble()) doublecounts[i]++
+        if (f.isInteger()) intcounts[i]++
+      }
+    }
+    
+    headings.eachWithIndex{h,i->      
+      if (intcounts[i] == (sampleRows-1)) columnType[h]='INT'
+      else if (doublecounts[i] == (sampleRows -1)) columnType[h] = 'DOUBLE'
+      else columnType[h] = 'VARCHAR'
+    }  
+  }
+  
+  // Convert into a string...
+  pairs = []
+  columnType.each{key,value-> pairs<<"$key $value"}
+  str = pairs.join(",")
+  return(str)
+}  
