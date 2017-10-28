@@ -1,12 +1,12 @@
 #!/usr/bin/env groovy
 
+import static grapnel.charts.Charts.*;
 import grapnel.weka.* 
 import grapnel.util.*
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.core.*
 
 err = System.err // sugar
-
 
 WekaAdditions.enable()
 
@@ -132,7 +132,44 @@ if (options.clinical){
 	model.printResultsAndCompare(out,results,instanceIDs,clinical)				
 }else{
 	model.printResults(out,results,instanceIDs)
+	
+	if (options.plotRoot){
+		plotVsBackground(model,results,instanceIDs,options.plotRoot)
+	}	
 }
+
+def plotVsBackground(model,results,instanceIDs,plotRoot){
+	// Get the background distribution...
+	def bnm = model.bnm
+	def dynamicbin = bnm.nullDistribution[0]
+	def values = dynamicbin.elements()
+	def elements = values.elements() as ArrayList
+	
+	results.eachWithIndex{r,i->
+		def outName = "$plotRoot/${instanceIDs[i]}.png"		
+		err.print "Creating chart $outName\t"
+		def (call,idx) = r.callAndIdx() // Figure out the call based on the classifier value. 
+		err.print "$call\t$idx\t"
+		def pr = r.prForValues[idx] // probability.
+		pr = pr.round(4)
+		err.print "pr: $pr\t" 
+		def nullConf = model.bnm.getSignificance(pr,idx) 				
+		nullConf = nullConf.round(4)
+		err.print "nullConf: $nullConf .."
+		//def title = "${model.className} Background Distribution \nClassifier probability estimate: $pr\nConfidence vs background samples: ${nullConf}\n${instanceIDs[i]} Call: $call"
+		def title=" "
+		def hist1 = hist(title:title,
+						xlabel:"Score",
+						ylabel:"Background Sample Score Counts",
+						dataset:elements
+						)	
+		def pr0 = (float) r.prForValues[0] 
+		addMarker(hist1,pr0,instanceIDs[i])
+		saveChart(hist1,outName)
+		err.println "done."
+	}	
+}
+
 
 
 
@@ -159,7 +196,7 @@ def ParseOptions(args){
 	parser.with{
 		
 		required 'm','modelFile',[description: 'wekaMine model file.']
-	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+	  required 'd','data', [description: 'Data file in attribute (rowd) by samples (col) format.']
 
 		optional 'o','outputFile',[description: 'Output file.  If none given, output goes to stdout.']
 	  optional 'i','clinical', [description: 'Clinical file in attribute (row) by samples (col) format.']
@@ -182,6 +219,8 @@ def ParseOptions(args){
 			}
 		}
 	]
+	
+	optional 'p','plotRoot',[description:'Root name for plots showing where each sample fits compared to background']
 		
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}

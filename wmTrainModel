@@ -85,6 +85,11 @@ rawdata = WekaMine.readNumericFromTable(options.data)
 clinical = WekaMine.readFromTable(options.clinical)
 def data
 
+def rawNullData
+if (options.nullBackgroundFile){
+	rawNullData = WekaMine.readNumericFromTable(options.nullBackgroundFile)
+}
+
 experiments.each{e->
 	err.println "Experiment class: ${e.classAttribute}"		
 }
@@ -177,15 +182,13 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		//model = new WekaMineModel(instances,exp.classifier,cutoffs)
 		//model = new WekaMineModel(instances,exp.classifier,cutoffs,exp.filter)
 
-		// If we have a nullModelFile, read it in and process the instances, otherwise use 
-		// instances. 
-		def nullData
+		// If we have a nullModelFile, process the instances, otherwise use instances. 		
 		if (options.nullBackgroundFile){
-			nullData = pipeline.readNumericFromTable(options.nullBackgroundFile)
-			
+			//nullData = pipeline.readNumericFromTable(options.nullBackgroundFile)	
+			def nullData = rawNullData
 			if (exp.filter != null){
 				if (!(exp.filter instanceof grapnel.weka.QuantileNormalizationFilter)){		
-					nullData = pipeline.applyUnsupervisedFilter(nullData)	
+					nullData = pipeline.applyUnsupervisedFilter(rawNullData)	
 				}
 			}
 			
@@ -198,7 +201,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			// Apply filter
 			if (exp.filter != null){
 				if (exp.filter instanceof grapnel.weka.QuantileNormalizationFilter){	
-					instances = pipeline.applyUnsupervisedFilter(instances)	
+					nullData = pipeline.applyUnsupervisedFilter(nullData)	
 				}
 			}
 			
@@ -206,10 +209,9 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			//instances = WekaMine.createEmptyClassAttribute(instances,className,classValues)
 			nullData.setClassName(instances.className())
 			
-			err.print "Adding ${instances.numInstances()} background samples..."			
+			err.print "Adding ${nullData.numInstances()} background samples..."			
 			model.addNullSamples(nullData)
 			err.println "done."
-
 		}else{
 			err.println "Null permutation size: "+instances.numInstances()+" instances x "+instances.numAttributes()+" attributes."
 			nullData = instances
@@ -289,11 +291,16 @@ def cleanupModel(model){
 		break;
 		
 		case {it instanceof weka.classifiers.functions.SMO}:
-		if (baseClassifier.m_KernelIsLinear){
-			// KJD Breaks if nonbinary				
-			def c = baseClassifier.m_classifiers[0][1]
-			c.m_kernel.m_data=null
-		}
+			if (baseClassifier.m_KernelIsLinear){
+				// KJD Breaks if nonbinary				
+				// KJD I'm really quite confused why these kernels are showing up as null. 
+				def c = baseClassifier.m_classifiers[0][1]
+				if (c == null) err.println "ERROR: Null base classifier. "
+				if (c.m_kernel == null) {
+					err.println "Null kernel? [0][1]"
+					err.println "kernel [0][0]: "+baseClassifier.m_classifiers[0][0]
+				}else c.m_kernel.m_data=null
+			}
 		break;
 	}	
 }

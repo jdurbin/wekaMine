@@ -44,7 +44,12 @@ if (options.modelDir){
 
 printHeapSpace(true)
 
-modelsBySamples = new DynamicTable()
+modelsBySamplesPr0 = new DynamicTable()
+modelsBySamplesPr1 = new DynamicTable()
+modelsBySamplesN0 = new DynamicTable()
+modelsBySamplesN1 = new DynamicTable()
+modelsBySamplesAtt = new DynamicTable()
+
 modelList.each{modelName->
 	
 	
@@ -125,7 +130,11 @@ modelList.each{modelName->
 			null1Pr = model.bnm.getSignificance(class1Pr,1)		
 			outStr = "$att0,$att1,${class0Pr.round(7)},${class1Pr.round(7)},${null0Pr.round(7)},${null1Pr.round(7)}"		
 		}
-		modelsBySamples[baseModelName][instanceName] = outStr
+		modelsBySamplesPr0[baseModelName][instanceName] = class0Pr.round(4)
+		modelsBySamplesPr1[baseModelName][instanceName] = class1Pr.round(4)
+		modelsBySamplesN0[baseModelName][instanceName] = null0Pr.round(4)
+		modelsBySamplesN1[baseModelName][instanceName] = null1Pr.round(4)
+		modelsBySamplesAtt[baseModelName][instanceName] = "$att0,$att1"
 		
 		err.println "modelName: $baseModelName  instanceName: $instanceName \t outStr:$outStr"		
 	}
@@ -135,7 +144,11 @@ def prForValues = []
 def classNames = []
 
 err.print "Writing ${options.outputFile}.."
-modelsBySamples.write(options.outputFile,"\t")
+modelsBySamplesPr0.write(options.outputFile+"_PR0.tab","\t")
+modelsBySamplesPr1.write(options.outputFile+"_PR1.tab","\t")
+modelsBySamplesN0.write(options.outputFile+"_N0.tab","\t")
+modelsBySamplesN1.write(options.outputFile+"_N1.tab","\t")
+modelsBySamplesAtt.write(options.outputFile+"_att.tab","\t")
 err.println "done."
 
 /****************************************************
@@ -155,19 +168,18 @@ def ParseOptions(args){
 	''');
 
 	parser.with{
-				
-	  required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+		required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
 		required 'o','outputFile',[description: 'Output file.']
 
 		optional 'm','modelList',[description: 'A list of model file paths. One of -m or -M required. ']
-    optional 'M','modelDir',[description: 'A directory of model files. Only files with .wmm extension will be considered. One of -m or -M required. ']
+    	optional 'M','modelDir',[description: 'A directory of model files. Only files with .wmm extension will be considered. One of -m or -M required. ']
 
 		optional 's','selfMap',[description: 'A file contaiing a list of the samples use to train each model to omit samples use to train that model.']
 
 		optional 'p','rootPath',[description: 'Root path appended to beginning of each model name.']
 
-		//flag 'W','writeAll',[description: 'Write both probabilities and bootstrap null probabilities for each value like: pr1,pr2,null1,null2']
-	  flag 'N','ignoreNullModel',[default:false,description: "Don't use' bootstrap null model"]
+			//flag 'W','writeAll',[description: 'Write both probabilities and bootstrap null probabilities for each value like: pr1,pr2,null1,null2']
+	  	  flag 'N','ignoreNullModel',[default:false,description: "Don't use' bootstrap null model"]
 	  flag 'h','help',[default:false,description: 'Print script help.']	
 	}
 	

@@ -42,14 +42,13 @@ err.println clinical['ID']
 
 err.println "=================================="
 
-try{
-		
+try{		
 	// Combines data and single class attribute from clinical into one set of instances...
 	// Unsupervised filters don't need clinical data. 
 	if (options.clinical){	
 		instances = WekaMine.createInstancesFromDataAndClinical(data,clinical,options.classAttribute)	
 
-                System.err.println "DEBUG: instances after createInstances from Data and Clinical for ${options.classAttribute}= "+instances.numInstances()
+        System.err.println "DEBUG: instances after createInstances from Data and Clinical for ${options.classAttribute}= "+instances.numInstances()
 
 		// Clean up instances:
 		// * remove useless attributes
@@ -77,7 +76,7 @@ try{
 	if (options.clinical){
 		baseOutput = FilenameUtils.getBaseName(options.outputFile)
 		path = FilenameUtils.getPath(options.outputFile)
-		clinOutput = "${path}${baseOutput}_class.tab"
+		clinOutput = "/${path}${baseOutput}_class.tab"
 		err.print "Saving $clinOutput..."
 		SaveTab.saveClinFromInstances(clinOutput,instances)
 		err.println "done."

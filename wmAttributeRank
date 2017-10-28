@@ -108,7 +108,8 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		// Sort by most informative...
 		valuemap = valuemap.sort{-it.value}
 		valuemap.each{k,v->
-			println "$k\t$v"
+			def rval = v.round(3)
+			println "$k\t$rval"
 		}
 		
 		// Put the ID back into the attribute selected instances...
@@ -131,7 +132,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 */ 
 def ParseOptions(args){
 	parser = new Parser(description: '''
-	wekaMineAttributeSelection takes a tab delimited data file in attributes (rows) x samples (cols) format, 
+	wekaMineAttributeRank takes a tab delimited data file in attributes (rows) x samples (cols) format, 
 	and a clinical file, also in attributes (rows) x samples (cols) format, and performs attribute selection
 	on the specified class attribute.  Attribute selection and discretization can be specified either in a 
 	config file, from a wekaMine results summary file line, or on the command line.  All weka attribute 
@@ -153,7 +154,7 @@ def ParseOptions(args){
 
 	Example:
 
-	wekaMineAttributeSelection -d lin2008.tab -i lin2008.clinical.tab -o lin2008.atsel.tab -E 'weka.attributeSelection.GainRatioAttributeEval,weka.attributeSelection.Ranker,100,none,TIMEsurvival,2;2.1'
+	wekaMineAttributeRank -d lin2008.tab -i lin2008.clinical.tab -o lin2008.atsel.tab -E 'weka.attributeSelection.GainRatioAttributeEval,weka.attributeSelection.Ranker,100,none,TIMEsurvival,2;2.1'
 
 	''');
 
