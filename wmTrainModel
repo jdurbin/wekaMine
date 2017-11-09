@@ -55,7 +55,8 @@ if (options.config){
 	params = [:]	
 }else if (options.experimentString){
 	headingMap = WekaMineResult.defaultHeadingMap()
-	experiment = new ExperimentSpec(options.experimentString,headingMap)
+	specdelimiter = ","
+	experiment = new ExperimentSpec(options.experimentString,headingMap,specdelimiter)
 	experiments << experiment
 	params = [:]
 }else{
