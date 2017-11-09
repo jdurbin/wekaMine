@@ -61,9 +61,8 @@ if (options.config){
 	params = [:]
 }else if (options.experimentStringFile){
 	headingMap = WekaMineResult.defaultHeadingMap()
-	expString = new File(options.experimentStringFile).text
-	
-	specdelimiter = ","
+	expString = new File(options.experimentStringFile).text	
+	specdelimiter = "\t"
 	experiment = new ExperimentSpec(expString,headingMap,specdelimiter)
 	experiments << experiment 
 	params=[:]
