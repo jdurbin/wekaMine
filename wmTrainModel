@@ -203,20 +203,27 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			// Remove ID attribute, since attribute evaluators and classifiers choke on it...
 			nullData = AttributeUtils.removeInstanceID(nullData)			
 			
-			// Make it match attribute selected instances.  Note that instances does not contain ID at this point. 
-			nullData = InstanceUtils.createInstancesToMatchAttributeList(nullData,instances.attributeNames())
 			
+			
+			// Make it match attribute selected instances.  
+			// Note that instances does not contain ID at this point. 			
+			// Also note that this function is ignorant about class attributes, so we handle that separately. 
+			attributesMinusClass = instances.attributeNames() - instances.className()
+			nullData = InstanceUtils.createInstancesToMatchAttributeList(nullData,attributesMinusClass)
+						
 			// Apply filter
 			if (exp.filter != null){
 				if (exp.filter instanceof grapnel.weka.QuantileNormalizationFilter){	
 					nullData = pipeline.applyUnsupervisedFilter(nullData)	
 				}
 			}
+						
+			//err.println "DEBUG before: instances.attributes: "+nullData.numAttributes()
 			
-			// classifiers choke if there isn't an empty class attribute... weird. 
-			//instances = WekaMine.createEmptyClassAttribute(instances,className,classValues)
+			// classifiers choke if there isn't an empty class attribute...
+			nullData = WekaMine.createEmptyClassAttribute(nullData,model.className,model.classValues)
 			nullData.setClassName(instances.className())
-			
+						
 			err.print "Adding ${nullData.numInstances()} background samples..."			
 			model.addNullSamples(nullData)
 			err.println "done."
@@ -225,7 +232,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 			nullData = instances
 		}
 
-		// Create and save a bootstrap null model if requested...
+		// Create and save a bootstrap null model by permuting attributes, if requested...
 		if (options.nullModelSamples){					
 			err.println "Computing null model with ${options.nullModelSamples} bootstrap samples."
 			err.println "Note: This can take awhile. Also note that the null model will expand the size of the saved model."

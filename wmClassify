@@ -119,6 +119,9 @@ if (options.clinical){
 	err.println "clinicalCutoffs: $clinicalCutoffs" 																												
 }
 
+err.println "DEBUG: instances.attributes: "+instances.numAttributes()
+err.println "DEBUG: instances.className: "+instances.className()
+
 // Model knows everything else needed to process the data... so have at it...
 ArrayList<Classification> results = model.classify(instances)
 
