@@ -290,24 +290,28 @@ def noFilter(output,inInst,attributeName){
 */
 def dichotomize(outTable,instIn,attributeName){
 	
-	err.println "DEBUG: "+attributeName
-	err.println instIn.attributeNames()
+	err.println "\n\nORIGINAL ATTRIBUTE NAME: "+attributeName
 	
 	attVals = instIn.attributeValues(attributeName) as ArrayList
 	attValSet = attVals as Set
+	err.println attValSet
 		
 	// For each value, create a dichotomized variable, put it directly in the table...
 	attValSet.each{currentAttVal->		
+		err.println "\nCURRENT ATTRIBUTE VALUE: $currentAttVal"
 		
-		if (currentAttVal == Double.NaN) return;
-		if (currentAttVal == "null") return;
-		if (currentAttVal == "?") return;
+		// 1. Don't want to count missing values as one of the attribute options...
+		if ((currentAttVal == Utils.missingValue())	||
+			(currentAttVal == Double.NaN) ||
+			(currentAttVal == "null") ||
+			(currentAttVal == "?")) return;
+		
 		
 		if (currentAttVal.class == Double){
 			currentAttVal = "Val=$currentAttVal" as String
 		}						
-		currentAttVal = currentAttVal.replaceAll("'","") // weka or wekaMine is adding ' sometimes. 
 		
+		currentAttVal = currentAttVal.replaceAll("'","") // weka or wekaMine is adding ' sometimes. 
 		newAttName = "${options.attrPrefix}${attributeName}_${currentAttVal}_vs_not${currentAttVal}" as String				
 		
 		// Go through the instances, create a variable that is either value or not_value
@@ -317,15 +321,23 @@ def dichotomize(outTable,instIn,attributeName){
 		
 			if (instVal.class == Double) instVal = "Val=$instVal" as String
 			
-			//err.println "instVal = **$instVal**"
-			//err.println "currentAttVal = **$currentAttVal**"
-			//err.println "MATCH: "+(instVal == currentAttVal)
-						
-			if (instVal == currentAttVal){
+			err.println "$instName\t$instVal\t${instVal.class}\t$currentAttVal"
+
+			
+			// 2. If the instance is a missing value for this attribute, though, 
+			// do want to save it as a missing value (irrespective of zeroOne option)
+			if ((instVal == Utils.missingValue())	||
+				(instVal == Double.NaN) ||
+				(instVal == "null") ||
+				(instVal == "?")){
+					err.println ">>>>>>>>>>>>> Missing value match. "
+				val = "?"
+			}else if (instVal == currentAttVal){
 				val = options.zeroOne ?  1 : "$currentAttVal"
 			}else{
 				val = options.zeroOne ?  0 : "not_$currentAttVal"
 			}			
+			err.println "\t$instName x $newAttName = $val"
 			outTable[instName][newAttName] = val									
 		}	
 	}			
