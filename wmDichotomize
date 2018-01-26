@@ -290,15 +290,15 @@ def noFilter(output,inInst,attributeName){
 */
 def dichotomize(outTable,instIn,attributeName){
 	
-	err.println "\n\nORIGINAL ATTRIBUTE NAME: "+attributeName
+	//err.println "\n\nORIGINAL ATTRIBUTE NAME: "+attributeName
 	
 	attVals = instIn.attributeValues(attributeName) as ArrayList
 	attValSet = attVals as Set
-	err.println attValSet
+	//err.println attValSet
 		
 	// For each value, create a dichotomized variable, put it directly in the table...
 	attValSet.each{currentAttVal->		
-		err.println "\nCURRENT ATTRIBUTE VALUE: $currentAttVal"
+		//err.println "\nCURRENT ATTRIBUTE VALUE: $currentAttVal"
 		
 		// 1. Don't want to count missing values as one of the attribute options...
 		if ((currentAttVal == Utils.missingValue())	||
@@ -321,7 +321,7 @@ def dichotomize(outTable,instIn,attributeName){
 		
 			if (instVal.class == Double) instVal = "Val=$instVal" as String
 			
-			err.println "$instName\t$instVal\t${instVal.class}\t$currentAttVal"
+			//err.println "$instName\t$instVal\t${instVal.class}\t$currentAttVal"
 
 			
 			// 2. If the instance is a missing value for this attribute, though, 
@@ -330,14 +330,14 @@ def dichotomize(outTable,instIn,attributeName){
 				(instVal == Double.NaN) ||
 				(instVal == "null") ||
 				(instVal == "?")){
-					err.println ">>>>>>>>>>>>> Missing value match. "
+					//err.println ">>>>>>>>>>>>> Missing value match. "
 				val = "?"
 			}else if (instVal == currentAttVal){
 				val = options.zeroOne ?  1 : "$currentAttVal"
 			}else{
 				val = options.zeroOne ?  0 : "not_$currentAttVal"
 			}			
-			err.println "\t$instName x $newAttName = $val"
+			//err.println "\t$instName x $newAttName = $val"
 			outTable[instName][newAttName] = val									
 		}	
 	}			
