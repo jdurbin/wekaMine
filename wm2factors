@@ -29,7 +29,7 @@ new OnlineTable(args[0]).eachRow{row->
 	maj = computeMajorityAcc(row)
 	roc = row.roc as double
 	delta = roc - maj
-        err.println "${row.classAttr}\troc: $roc\tMajority: $maj\tDelta: $delta"
+    err.println "${row.classAttr}\troc: $roc\tMajority: $maj\tDelta: $delta"
 	if (delta < deltaMajorityCutoff) return;
 	
 	if (roc < 0.45) return;

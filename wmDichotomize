@@ -288,13 +288,10 @@ def noFilter(output,inInst,attributeName){
 * c_notc
 * 
 */
-def dichotomize(outTable,instIn,attributeName){
-	
-	//err.println "\n\nORIGINAL ATTRIBUTE NAME: "+attributeName
-	
+def dichotomize(outTable,instIn,attributeName){		
 	attVals = instIn.attributeValues(attributeName) as ArrayList
 	attValSet = attVals as Set
-	//err.println attValSet
+	err.println attValSet
 		
 	// For each value, create a dichotomized variable, put it directly in the table...
 	attValSet.each{currentAttVal->		
@@ -305,8 +302,7 @@ def dichotomize(outTable,instIn,attributeName){
 			(currentAttVal == Double.NaN) ||
 			(currentAttVal == "null") ||
 			(currentAttVal == "?")) return;
-		
-		
+				
 		if (currentAttVal.class == Double){
 			currentAttVal = "Val=$currentAttVal" as String
 		}						
