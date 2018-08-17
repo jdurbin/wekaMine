@@ -21,8 +21,13 @@ err.println ""
 // Expand the configuration file or wekaMine results into a list of experiments.
 def experiments = [] 
 if (options.config){
-	experiments = new WekaMineConfig(options.config)
-	params = experiments.params
+	err.print "\nReading experiments from config..."
+	allExperiments = new WekaMineConfig(options.config,options.clinical)
+	err.println "${allExperiments.size()} experiments read from config. "
+	//experiments = allExperiments[options.experimentRange]
+	totalExperiments = allExperiments.size()
+	experiments = allExperiments
+	params = experiments.params		
 }else if (options.resultsFile){
 	wmr = new WekaMineResults(options.resultsFile)
 	experiments = wmr.toExperiments()
@@ -60,10 +65,14 @@ if (options.clinical){
 }
 
 // Perform each experiment described in the experiment spec...
+
+System.err.println "experimentRange: "+options.experimentRange
+System.err.println "experiments: "+experiments.size()
+
 experiments[options.experimentRange].eachWithIndex{exp,idx-> 
 	jobIdx = idx+options.experimentRange.getTo()
 	err.println "=================================="
-	err.println "Experiment: $jobIdx"
+	err.println "Experiment: $jobIdx"	
 	try{
 		
 		// Creates a wekaMine pipeline...
@@ -106,6 +115,7 @@ experiments[options.experimentRange].eachWithIndex{exp,idx->
 		}
 		
 		// Sort by most informative...
+		println "Class: "+exp.classAttribute
 		valuemap = valuemap.sort{-it.value}
 		valuemap.each{k,v->
 			def rval = v.round(3)
@@ -154,7 +164,7 @@ def ParseOptions(args){
 
 	Example:
 
-	wekaMineAttributeRank -d lin2008.tab -i lin2008.clinical.tab -o lin2008.atsel.tab -E 'weka.attributeSelection.GainRatioAttributeEval,weka.attributeSelection.Ranker,100,none,TIMEsurvival,2;2.1'
+	wekaMineAttributeRank -d lin2008.tab -i lin2008.clinical.tab -E 'weka.attributeSelection.GainRatioAttributeEval,weka.attributeSelection.Ranker,100,none,TIMEsurvival,2;2.1' > lin2008.atsel.tab 
 
 	''');
 

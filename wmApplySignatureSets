@@ -1,0 +1,94 @@
+#!/usr/bin/env groovy
+
+import grapnel.weka.* 
+import grapnel.util.*
+import weka.core.converters.ConverterUtils.DataSource;
+import weka.core.*
+
+err = System.err // sugar
+WekaAdditions.enable()
+options = ParseOptions(args)
+
+// read in all the signatures
+signatureSets = new SignatureSets(options.signatureDir);	
+
+// Read the data (expression, CNV, whatever) 
+expressionData = WekaMine.readNumericFromTable(options.data)
+
+
+/*
+  A note about normalization:
+
+  Usually models are built with exponential normalization.  
+  This can be done *within* the pipeline, by specifying a filter in the 
+  experiment spec, OR it can be done outside the pipeline.  
+
+  In the case of SamplePsychic, rather than look at the .wmm filter 
+  variable and apply the filter with each model,  we just exponentially 
+  normalize the data in bulk before applying the models.  
+
+  I mention this because it can seem confusing to look at the code because 
+  there is this filter that is sometimes used and sometimes not, and that 
+  just depends on the context and whether we can assume the data has 
+  been normalized first or not. 
+
+  Said another way, generally with whole sets of signatures being applied at 
+  once, we normalize in bulk first.  
+
+*/
+System.err.print "Normalizing data.."
+def normalizedExpressionData = SignatureSet.normalize(expressionData);
+System.err.println "done."
+
+def results = signatureSets.applyModels(normalizedExpressionData)
+
+if (options.samplePsychicOutput){
+	String jobID,sessionFileName			
+	(jobID,sessionFileName) = SessionUtils.generateResultsTokenAndFileName("","samplePsychic_")		
+	System.err.print "Saving results to $sessionFileName ..."
+	SignatureSet.saveResults(sessionFileName,results)		
+	System.err.println "done."
+}else{
+	System.err.println "Sorry, plain text output not implemented yet. "
+	System.exit(1)
+}
+
+/****************************************************
+* Parse the command line options, checking validity, printing help if needed. 
+*/ 
+def ParseOptions(args){
+	parser = new Parser(description: '''
+	
+	wmApplySignatureSets takes a directory of signature sets and applies all of the signatures to 
+	the data.  The output is either a table of results or a results file that can be viewed in 
+	SamplePsychic web application. 
+	
+		 
+	Written by: James Durbin (kdurbin@ucsc.edu)
+
+	Example:
+	
+	wmApplySignatureSets -p -d lusc.tab -o samplePsychic -s signaturesDir 
+
+
+	''');
+
+	parser.with{
+		required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
+		required 's','signatureDir', [description: 'Directory containing signature sets.']
+		required 'o','outputFile',[description: 'Output file name to use.  Interpreted as prefix for SamplePsychic output.']	
+		flag 'p','samplePsychicOutput',[default:false,description: "Save output as binary SamplePsychic result file."]
+	 	flag 'h','help',[default:false,description: 'Print script help.']	
+	}
+	
+	def options
+	try{
+	  options = parser.parse(args)
+		
+	}catch(Exception e){
+	  System.err << parser.usage
+	  System.exit(1)
+	}	
+	
+	return(options)
+}

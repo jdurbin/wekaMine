@@ -5,7 +5,7 @@ import grapnel.weka.*
 import grapnel.util.*
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.core.*
-
+import grapnel.weka.WekaClassifierInfo as WCI
 
 err = System.err // sugar
 
@@ -18,6 +18,16 @@ options.modelFiles.each{modelFile->
 	err.print "Reading model ${modelFile} ..."
 	model = (WekaMineModel) weka.core.SerializationHelper.read(modelFile);
 	err.println "done."
+	
+	if (options.attributeWeights){
+		// WCI is a newer bit that does more. 
+		def feature2weights = WCI.getFeatures(model.classifier)
+		println "feature\tweight"
+		feature2weights.each{k,v->
+			println "$k\t${v.round(4)}"
+		}
+		return;
+	}
 	
 	// Return a single line synopsis. 
 	if (options.shortSummary){		
@@ -33,6 +43,7 @@ options.modelFiles.each{modelFile->
 	if (options.attributeList){
 		println "Model attributes:"
 		println model.attributes().join("\n");
+		return;
 	}
 	
 	if (options.nullModel){
@@ -96,6 +107,7 @@ def ParseOptions(args){
 
 		flag 's','shortSummary',[description: 'Short single line summary of classifier.']
 		flag 'a','attributeList',[default:false,description: 'suppress classifier info and just output attribute list.']
+		flag 'w','attributeWeights',[default:false,description: 'suppress classifier info and just output attribute list with weights']
 		flag 'n','nullModel',[default:false,description: 'Print out null model values.']
 	  flag 'h','help',[default:false,description: 'Print script help.']
 	}

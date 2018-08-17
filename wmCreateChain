@@ -33,7 +33,6 @@ if (options.selfMap){
 	}
 }
 
-
 // Or just read a directory of models...
 if (options.modelDir){
 		new File(options.modelDir).eachFileMatch(~/.*\.wmm/){modelName->
