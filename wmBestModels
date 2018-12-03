@@ -27,7 +27,7 @@ options.resultFileNames.each{resultsFile->
 	//err.print "Reading $resultsFile..."
 	t = new OnlineTable(resultsFile)
 	
-	heading = t.headings().join("\t")		
+	heading = t.getHeadings().join("\t")		
 
 	t.eachRow{row->	
 		baseClassifier = WekaNames.getBaseClassifierType(row.classifier)

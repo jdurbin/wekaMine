@@ -76,7 +76,7 @@ try{
 	if (options.clinical){
 		baseOutput = FilenameUtils.getBaseName(options.outputFile)
 		path = FilenameUtils.getPath(options.outputFile)
-		clinOutput = "${path}${baseOutput}_meta.tab"
+		clinOutput = "/${path}${baseOutput}_meta.tab"
 		err.print "Saving $clinOutput..."
 		SaveTab.saveClinFromInstances(clinOutput,instances)
 		err.println "done."
