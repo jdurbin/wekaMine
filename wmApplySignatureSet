@@ -9,14 +9,13 @@ err = System.err // sugar
 WekaAdditions.enable()
 options = ParseOptions(args)
 
-// read in all the signatures
-signatureSets = new SignatureSets(options.signatureDir);
-
-err.println "INFO: "+signatureSets.size()	
+// read in all the signatures for this set
+println "INFO: "+options.signatureCfg
+signatureCfgFile = new File(options.signatureCfg)
+signatureSet = new SignatureSet(signatureCfgFile)
 
 // Read the data (expression, CNV, whatever) 
 expressionData = WekaMine.readNumericFromTable(options.data)
-
 
 /*
   A note about normalization:
@@ -42,7 +41,7 @@ System.err.print "Normalizing data.."
 def normalizedExpressionData = SignatureSet.normalize(expressionData);
 System.err.println "done."
 
-def results = signatureSets.applyModels(normalizedExpressionData)
+def results = signatureSet.applyModels(normalizedExpressionData)
 
 if (options.samplePsychicOutput){
 	String jobID,sessionFileName			
@@ -52,8 +51,10 @@ if (options.samplePsychicOutput){
 	SignatureSet.saveResults(sessionFileName,results)		
 	System.err.println "done."
 }else{
-	System.err.println "Sorry, plain text output not implemented yet. "
-	System.exit(1)
+	print"sampleID\tprForValues\tclassForValues\tnompred\tnullForValues\tmodelName"
+	results.each{r->
+		println "${r.sampleID}\t${r.prForValues}\t${r.nompred}\t${r.nullForValues}\t${r.modelName}"
+	}
 }
 
 /****************************************************
@@ -62,23 +63,26 @@ if (options.samplePsychicOutput){
 def ParseOptions(args){
 	parser = new Parser(description: '''
 	
-	wmApplySignatureSets takes a *directory* of signature sets and applies ALL of the signature sets to 
+	wmApplySignatureSet takes a directory of signatures and applies all of the signatures to 
 	the data.  The output is either a table of results or a results file that can be viewed in 
 	SamplePsychic web application. 
+	
+	Note:  fetal_clusters.cfg must be one directory above a directory named fetal_clusters 
+	that contains the actual .wmm signature files. 
 	
 		 
 	Written by: James Durbin (kdurbin@ucsc.edu)
 
 	Example:
 	
-	wmApplySignatureSets -p -d lusc.tab -o samplePsychic -s signaturesDir 
+	wmApplySignatureSet -p -d lusc.tab -o samplePsychic -s fetal_clusters.cfg  
 
 
 	''');
 
 	parser.with{
 		required 'd','data', [description: 'Data file in attribute (row) by samples (col) format.']
-		required 's','signatureDir', [description: 'Directory containing signature sets.']
+		required 's','signatureCfg', [description: '.cfg file for signature set (must be one directory above signature set dir)']
 		required 'o','outputFile',[description: 'Output file name to use.  Interpreted as prefix for SamplePsychic output.']	
 		flag 'p','samplePsychicOutput',[default:false,description: "Save output as binary SamplePsychic result file."]
 	 	flag 'h','help',[default:false,description: 'Print script help.']	
